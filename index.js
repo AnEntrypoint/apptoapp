@@ -35,6 +35,10 @@ async function generateJsonData() {
                     delete jsonEntries[filePath];
                     return;
                 }
+                if(filePath.startsWith('.')) {
+                    delete jsonEntries[filePath];
+                    return;
+                }
                 if (fs.statSync(filePath).isDirectory()) {
                     // If the "filename" is a directory, recursively read this directory
                     readsrcdirectory(filePath);
