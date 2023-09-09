@@ -79,7 +79,7 @@ async function generateJsonData() {
         }
         await readsrcdirectory('./');
         // Save the generated JSON data to a file
-        const generatedJsonData = Object.keys(jsonEntries).map(a => `${a}:\n${jsonEntries[a]}\n\n`).join(''); // Pretty-print JSON
+        const generatedJsonData = Object.keys(jsonEntries).map(a => `????${a}????${jsonEntries[a]}????`).join(''); // Pretty-print JSON
         let total = 1
         const message = `${generatedJsonData}`;
         total += tokenizer.encode(`${transformationInstruction} in the following application:\n\n${message}` ).bpe.length + tokenizer.encode(systemPrompt).bpe.length + 15
