@@ -34,11 +34,11 @@ async function generateJsonData() {
 
             await files.forEach(async filename => {
                 const filePath = path.join(srcDirectory, filename);
-                if(filePath.startsWith('node_modules')) {
+                if (filePath.startsWith('node_modules')) {
                     delete jsonEntries[filePath];
                     return;
                 }
-                if(filePath.startsWith('.')) {
+                if (filePath.startsWith('.')) {
                     delete jsonEntries[filePath];
                     return;
                 }
@@ -85,7 +85,7 @@ async function generateJsonData() {
         const generatedJsonData = Object.keys(jsonEntries).map(a => `${a}:\n${jsonEntries[a]}\n\n`).join(''); // Pretty-print JSON
         let total = 1
         const message = `${generatedJsonData}`;
-        total += tokenizer.encode(`${transformationInstruction} in the following application:\n\n${message}` ).bpe.length + tokenizer.encode(systemPrompt).bpe.length + 15
+        total += tokenizer.encode(`${transformationInstruction} in the following application:\n\n${message}`).bpe.length + tokenizer.encode(systemPrompt).bpe.length + 15
 
         const messages = [
             { "role": "system", "content": systemPrompt },
@@ -111,59 +111,46 @@ async function generateJsonData() {
         }
         const text = response.choices[0].message.content.trim();
         fs.writeFileSync('transformed.out', text)
-        function writeFilesFromStr(str) {
-            const lines = str.split('\n');
-            let filePath = '';
-            let fileContent = '';
-            let isInsideCodeBlock = false;
-        
-            lines.forEach(line => {
-              // Check if line starts or ends a code block
-              if (line.trim() === '```') {
-                isInsideCodeBlock = !isInsideCodeBlock;
-                // Skip the line if it is not a valid file name
-                if (!filePath) return;
-              } else if (line.endsWith(':') && !isInsideCodeBlock) {
-                // Write the previous file if filePath is not empty
-                if (filePath && fileContent.trim() !== '') {
-                  writeFile(filePath, fileContent);
+        function writeFile(filePath, content) {
+            const directory = path.dirname(filePath);
+
+            fs.mkdirSync(directory, { recursive: true });
+            try {
+                if (path.extname(filePath) == '.js') {
+                    content = beautify(content.replaceAll(';', ';\n'), { indent_size: 2, space_in_empty_paren: true });
                 }
-                // Reset variables for the next file
-                filePath = line.slice(0, -1);
-                fileContent = '';
-              } else if (isInsideCodeBlock) {
-                fileContent += line + '\n';
-              }
-            });
-        
-            // Write the last file if any content is left
-            if (filePath && fileContent.trim() !== '') {
-              writeFile(filePath, fileContent);
-            }
-        
-            function writeFile(filePath, content) {
-              const directory = path.dirname(filePath);
-        
-              fs.mkdirSync(directory, { recursive: true });
-              try {
-                if(path.extname(filePath) =='.js') {
-                  content = beautify(content.replaceAll(';',';\n'), { indent_size: 2, space_in_empty_paren: true });
+                if (path.extname(filePath) == '.html' || path.extname(filePath) == '.ejs') {
+                    content = htmlbeautify(content.replaceAll(';', ';\n').replaceAll('>', '>\n'), { indent_size: 2, space_in_empty_paren: true });
                 }
-                if(path.extname(filePath) =='.html'||path.extname(filePath) =='.ejs') {
-                  content = htmlbeautify(content.replaceAll(';',';\n').replaceAll('>','>\n'), { indent_size: 2, space_in_empty_paren: true });
-                }
-              } catch(e) {
+            } catch (e) {
                 console.error(e);
-              }
-              fs.writeFile(filePath, content, (err) => {
-                if (err) {
-                  console.error(`Error writing file ${filePath}:`, err);
-                } else {
-                  console.log(`File ${filePath} written successfully.`);
-                }
-              });
             }
-          }
+            fs.writeFile(filePath, content, (err) => {
+                if (err) {
+                    console.error(`Error writing file ${filePath}:`, err);
+                } else {
+                    console.log(`File ${filePath} written successfully.`);
+                }
+            });
+        }
+        function writeFilesFromStr(str) {
+            let chunks = str.split('\n```');
+
+            chunks.forEach(chunk => {
+                let content = chunk.split('\n');
+                let filePath = content.shift();
+
+                //if file path ends with ':' then there is no new line character at the beginning of next line of file content
+                let fileContent = filePath.endsWith(':') ? content.join('\n').trim() : '\n' + content.join('\n').trim();
+
+                filePath = filePath.replace(':', '').trim();
+
+                if (fileContent.trim()) {
+                    writeFile(filePath, fileContent);
+                }
+            });
+        }
+
         writeFilesFromStr(text)
 
 
