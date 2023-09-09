@@ -73,7 +73,7 @@ async function generateJsonData() {
         const generatedJsonData = Object.keys(jsonEntries).map(a => `${a}:\n${jsonEntries[a]}\n\n`).join(''); // Pretty-print JSON
         let total = 1
         const message = `${generatedJsonData}`;
-        total += tokenizer.encode(message).bpe.length + tokenizer.encode(systemPrompt).bpe.length + 15
+        total += tokenizer.encode(`${transformationInstruction} in the following application:\n\n${message}` ).bpe.length + tokenizer.encode(systemPrompt).bpe.length + 15
 
         const messages = [
             { "role": "system", "content": systemPrompt },
