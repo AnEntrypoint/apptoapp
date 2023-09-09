@@ -9,9 +9,9 @@ const tokenizer = new tokens({ type: 'gpt3' });
 const beautify = require("js-beautify/js").js;
 const instarray = [...process.argv];
 console.log(instarray)
-instarray.unshift();
+instarray.shift();
 console.log(instarray)
-instarray.unshift();
+instarray.shift();
 console.log(instarray)
 const transformationInstruction = instarray.join(' ');
 const systemPrompt = `${transformationInstruction}. Don't include any explanations in your responses, don't include unmodified files in yoru responses, refactor where neccesary and split large files where neccesary into separate files, include all the modified or added files complete without comments or in the following format: filename followed by a newline followed by file contents followed by two newlines, dont enclose the file contents`;
