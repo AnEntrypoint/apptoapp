@@ -115,52 +115,39 @@ async function generateJsonData() {
             let isInsideCodeBlock = false;
           
             lines.forEach(line => {
-              // Check if line starts or ends a code block
-              if (line.trim() === '```') {
-                if (isInsideCodeBlock) {
-                  // on block end
-                  isInsideCodeBlock = false;
-                  if (!filePath) return;
-                } else {
-                  // on block start
-                  isInsideCodeBlock = true;
-                }
-              } else if (line.endsWith(':') && !isInsideCodeBlock) {
-                if (filePath && fileContent.trim() !== '') {
-                  writeFile(filePath, fileContent);
-                }
-                filePath = line.slice(0, -1);
+              if(line.includes('.js:') || line.includes('.ejs:')){
+                filePath = line.replace(':', '');
                 fileContent = '';
-              } else if (isInsideCodeBlock) {
-                fileContent += line + '\n';
+              } else {
+                if (isInsideCodeBlock) {
+                    fileContent += line + '\n';
+                }
+                if (line.trim() === '```' && isInsideCodeBlock) {
+                  isInsideCodeBlock = false;
+                  if(filePath !== '') {
+                    writeFile(filePath, fileContent);
+                    filePath = '';
+                    fileContent = '';
+                  }
+                } else if (line.trim() === '```' && !isInsideCodeBlock) {
+                  isInsideCodeBlock = true;
+                } 
               }
             });
           
-            if (filePath && fileContent.trim() !== '') {
-              writeFile(filePath, fileContent);
-            }
-          
             function writeFile(filePath, content) {
               const directory = path.dirname(filePath);
-          
               fs.mkdirSync(directory, { recursive: true });
-              try {
-                if(path.extname(filePath) =='.js') {
-                  content = beautify(content.replaceAll(';',';\n'), { indent_size: 2, space_in_empty_paren: true });
-                }
-                if(path.extname(filePath) =='.html'||path.extname(filePath) =='.ejs') {
-                  content = htmlbeautify(content.replaceAll(';',';\n').replaceAll('>','>\n'), { indent_size: 2, space_in_empty_paren: true });
-                }
-              } catch(e) {
-                console.error(e);
+          
+              if(path.extname(filePath)=='.js') {
+                content = beautify(content, { indent_size: 2, space_in_empty_paren: true });
               }
-              fs.writeFile(filePath, content, (err) => {
-                if (err) {
-                  console.error(`Error writing file ${filePath}:`, err);
-                } else {
-                  console.log(`File ${filePath} written successfully.`);
-                }
-              });
+          
+              if(path.extname(filePath) =='.html'||path.extname(filePath) =='.ejs') {
+                content = htmlbeautify(content, { indent_size: 2, preserve_newlines: true });
+              }
+          
+              fs.writeFileSync(filePath, content, 'utf8');
             }
           }
         writeFilesFromStr(text)
