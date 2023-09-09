@@ -1,0 +1,2 @@
+# apptoapp
+npx apptoapp <prompt>
