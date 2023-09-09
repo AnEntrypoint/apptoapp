@@ -113,34 +113,36 @@ async function generateJsonData() {
             let filePath = '';
             let fileContent = '';
             let isInsideCodeBlock = false;
-        
+          
             lines.forEach(line => {
               // Check if line starts or ends a code block
               if (line.trim() === '```') {
-                isInsideCodeBlock = !isInsideCodeBlock;
-                // Skip the line if it is not a valid file name
-                if (!filePath) return;
+                if (isInsideCodeBlock) {
+                  // on block end
+                  isInsideCodeBlock = false;
+                  if (!filePath) return;
+                } else {
+                  // on block start
+                  isInsideCodeBlock = true;
+                }
               } else if (line.endsWith(':') && !isInsideCodeBlock) {
-                // Write the previous file if filePath is not empty
                 if (filePath && fileContent.trim() !== '') {
                   writeFile(filePath, fileContent);
                 }
-                // Reset variables for the next file
                 filePath = line.slice(0, -1);
                 fileContent = '';
               } else if (isInsideCodeBlock) {
                 fileContent += line + '\n';
               }
             });
-        
-            // Write the last file if any content is left
+          
             if (filePath && fileContent.trim() !== '') {
               writeFile(filePath, fileContent);
             }
-        
+          
             function writeFile(filePath, content) {
               const directory = path.dirname(filePath);
-        
+          
               fs.mkdirSync(directory, { recursive: true });
               try {
                 if(path.extname(filePath) =='.js') {
