@@ -1,2 +1,2 @@
 # apptoapp
-npx apptoapp <prompt>
+npx apptoapp your prompt here
