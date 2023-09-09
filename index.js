@@ -135,20 +135,24 @@ async function generateJsonData() {
         }
         function writeFilesFromStr(str) {
             let chunks = str.split('\n```');
-
+        
             chunks.forEach(chunk => {
                 let content = chunk.split('\n');
-                let filePath = content.shift();
-
+                let filePath = cleanFilePath(content.shift());
+        
                 //if file path ends with ':' then there is no new line character at the beginning of next line of file content
                 let fileContent = filePath.endsWith(':') ? content.join('\n').trim() : '\n' + content.join('\n').trim();
-
+        
                 filePath = filePath.replace(':', '').trim();
-
-                if (fileContent.trim()) {
-                    writeFile(filePath, fileContent);
+        
+                if(fileContent.trim()){
+                   writeFile(filePath, fileContent);
                 }
             });
+        
+            function cleanFilePath(filePath) {
+                return filePath.replace(/\:\s*```.*$/, ':');
+            }
         }
 
         writeFilesFromStr(text)
