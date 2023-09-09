@@ -31,7 +31,10 @@ async function generateJsonData() {
 
             await files.forEach(async filename => {
                 const filePath = path.join(srcDirectory, filename);
-
+                if(filePath.startsWith('node_modules')) {
+                    delete jsonEntries[filePath];
+                    return;
+                }
                 if (fs.statSync(filePath).isDirectory()) {
                     // If the "filename" is a directory, recursively read this directory
                     readsrcdirectory(filePath);
@@ -39,7 +42,6 @@ async function generateJsonData() {
                     // Otherwise, read the file and put its contents into jsonEntries
                     const fileContent = fs.readFileSync(filePath, 'utf8');
                     let result;
-
                     if (filePath.endsWith('.js')) {
                         const Terser = require('terser');
                         console.log({ fileContent })
