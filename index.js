@@ -109,7 +109,7 @@ async function generateJsonData() {
         const text = response.choices[0].message.content.trim();
         fs.writeFileSync('transformed.out', text)
         function writeFilesFromStr(str) {
-            const files = str.split('^^|^^');
+            const files = str.split('^^|');
             files.forEach(file => {
                 const parts = file.split('^');
                 const filePath = parts[2];
