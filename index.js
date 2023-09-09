@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 const fs = require('fs');
-const { Configuration, OpenAI } = require("openai");
 const prettier = require("prettier");
 const path = require('path');
 require('dotenv').config()
@@ -12,12 +11,9 @@ instarray.shift();
 instarray.shift();
 const transformationInstruction = instarray.join(' ');
 const systemPrompt = `${transformationInstruction}. Don't include any explanations in your responses, don't include unmodified files in your responses, include all the modified or added files complete without comments. Only respond in this syntax: ^^filename^filecontents^^|^^filename^filecontents^^`;
-var minify = require('html-minifier').minify;
 const htmlbeautify = require("js-beautify/js").html;
-if(OPENAI_API_KEY) {
-    console.log('please set OPENAI_API_KEY in a .env or env var')
-    process.exit();
-}
+const axios = require('axios'); // Added for sending HTTP requests
+
 console.log(transformationInstruction)
 
 async function generateJsonData() {
@@ -26,7 +22,6 @@ async function generateJsonData() {
         const configuration = {
             apiKey: process.env.OPENAI_API_KEY,
         }
-        const openai = new OpenAI(configuration);
         // Read all files in the source directory
         const jsonEntries = {};
         const readsrcdirectory = async (srcDirectory) => {
@@ -101,15 +96,20 @@ async function generateJsonData() {
             frequency_penalty: 0.0,
             presence_penalty: 0.0,
         }
-        const response = await openai.chat.completions.create(
-            question
-        )
-        console.log(response, JSON.stringify(response, null, 2));
-        if (response.choices[0].message.finish_reason == 'length') {
+
+        // Send the HTTP POST request to the new endpoint
+        const response = await axios.post('https://chatgpt-api.shn.hk/v1/', question, {
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        console.log(response.data, JSON.stringify(response.data, null, 2));
+        if (response.data.choices[0].message.finish_reason == 'length') {
             console.log("BAILLING OUT BECAUSE FINISH REASON IS LENGTH< PLEASE USE A BIGGER MODEL")
             return;
         }
-        const text = response.choices[0].message.content.trim();
+        const text = response.data.choices[0].message.content.trim();
         fs.writeFileSync('transformed.out', text)
         function writeFilesFromStr(str) {
             const files = str.split('^^|');
@@ -138,10 +138,9 @@ async function generateJsonData() {
         }
         writeFilesFromStr(text)
 
-
     } catch (error) {
         console.error(error)
-        console.error('Error:', error.response.data);
+        console.error('Error:', error.response ? error.response.data : error.message);
     }
 }
 
