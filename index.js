@@ -109,47 +109,29 @@ async function generateJsonData() {
         const text = response.choices[0].message.content.trim();
         fs.writeFileSync('transformed.out', text)
         function writeFilesFromStr(str) {
-            const lines = str.split('\n');
-            let filePath = '';
-            let fileContent = '';
-            let isInsideCodeBlock = false;
-          
-            lines.forEach(line => {
-              if(line.instcludes('.js') || line.includes('.ejs')){
-                filePath = line.replace(':', '');
-                fileContent = '';
-              } else {
-                if (isInsideCodeBlock) {
-                    fileContent += line + '\n';
-                }
-                if (line.trim() === '```' && isInsideCodeBlock) {
-                  isInsideCodeBlock = false;
-                  if(filePath !== '') {
-                    writeFile(filePath, fileContent);
-                    filePath = '';
-                    fileContent = '';
-                  }
-                } else if (line.trim() === '```' && !isInsideCodeBlock) {
-                  isInsideCodeBlock = true;
-                } 
-              }
+            const files = str.split('^^|^^');
+            files.forEach(file => {
+                const parts = file.split('^^');
+                const filePath = parts[1];
+                const fileContent = parts[2];
+                writeFile(filePath, fileContent);
             });
           
             function writeFile(filePath, content) {
               const directory = path.dirname(filePath);
               fs.mkdirSync(directory, { recursive: true });
           
-              if(path.extname(filePath)=='.js') {
+              if(path.extname(filePath) == '.js') {
                 content = beautify(content, { indent_size: 2, space_in_empty_paren: true });
               }
           
-              if(path.extname(filePath) =='.html'||path.extname(filePath) =='.ejs') {
+              if(path.extname(filePath) == '.html' || path.extname(filePath) == '.ejs') {
                 content = htmlbeautify(content, { indent_size: 2, preserve_newlines: true });
               }
           
               fs.writeFileSync(filePath, content, 'utf8');
             }
-          }
+        }
         writeFilesFromStr(text)
 
 
