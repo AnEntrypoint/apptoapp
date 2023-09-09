@@ -59,6 +59,9 @@ async function generateJsonData() {
                             minifyJS: true
                         };
                         result = minify(fileContent, options);
+                    } else {
+                        delete jsonEntries[filePath];
+                        return;
                     }
 
                     jsonEntries[filePath] = result;
