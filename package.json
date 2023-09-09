@@ -15,5 +15,8 @@
     "openai": "^4.6.0",
     "prettier": "^3.0.3",
     "terser": "^5.19.4"
+  },
+  "bin": {
+    "app2app": "index.js"
   }
 }
