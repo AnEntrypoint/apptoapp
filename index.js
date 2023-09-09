@@ -111,6 +111,7 @@ async function generateJsonData() {
         function writeFilesFromStr(str) {
             const files = str.split('^^|');
             files.forEach(file => {
+                console.log({file})
                 const parts = file.split('^');
                 const filePath = parts[2];
                 const fileContent = parts[3];
