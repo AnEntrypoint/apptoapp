@@ -1,0 +1,19 @@
+{
+  "name": "app2app",
+  "version": "0.0.1",
+  "description": "app to app transformer using GPT",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "lanmower",
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "gpt3-tokenizer": "^1.1.5",
+    "html-minifier": "^4.0.0",
+    "js-beautify": "^1.14.9",
+    "openai": "^4.6.0",
+    "prettier": "^3.0.3",
+    "terser": "^5.19.4"
+  }
+}
