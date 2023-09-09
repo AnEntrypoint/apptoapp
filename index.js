@@ -14,7 +14,7 @@ const transformationInstruction = instarray.join(' ');
 const systemPrompt = `${transformationInstruction}. Don't include any explanations in your responses, don't include unmodified files in your responses, include all the modified or added files complete without comments. Only respond in this syntax: ^^filename^filecontents^^|^^filename^filecontents^^`;
 var minify = require('html-minifier').minify;
 const htmlbeautify = require("js-beautify/js").html;
-if(OPENAI_API_KEY) {
+if(!process.env.OPENAI_API_KEY) {
     console.log('please set OPENAI_API_KEY in a .env or env var')
     process.exit();
 }
