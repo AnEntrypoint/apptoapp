@@ -11,7 +11,7 @@ const instarray = [...process.argv];
 instarray.shift();
 instarray.shift();
 const transformationInstruction = instarray.join(' ');
-const systemPrompt = `${transformationInstruction}. Don't include any explanations in your responses, don't include unmodified files in yoru responses, refactor where neccesary and split large files where neccesary into separate files, include all the modified or added files complete without comments. Only respond with files in http syntax\n\n`;
+const systemPrompt = `${transformationInstruction}. Don't include any explanations in your responses, don't include unmodified files in yoru responses, include all the modified or added files complete without comments. Only respond in this syntax: ^^filename^filecontents^^|^^filename^filecontents^^ \n\n`;
 var minify = require('html-minifier').minify;
 const htmlbeautify = require("js-beautify/js").html;
 
