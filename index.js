@@ -108,41 +108,45 @@ async function generateJsonData() {
             const lines = str.split('\n');
             let filePath = '';
             let fileContent = '';
+            let isInsideCodeBlock = false;
         
             lines.forEach(line => {
-              if(line.includes('```')) return;
-              if(line.includes('``javascript')) return;
-        
-              if (line.endsWith(':')) {
+              // Check if line starts or ends a code block
+              if (line.trim() === '```') {
+                isInsideCodeBlock = !isInsideCodeBlock;
+                // Skip the line if it is not a valid file name
+                if (!filePath) return;
+              } else if (line.endsWith(':') && !isInsideCodeBlock) {
+                // Write the previous file if filePath is not empty
                 if (filePath && fileContent.trim() !== '') {
-                    writeFile(filePath, fileContent.trim());
-                    filePath = line.slice(0, -1);
-                    fileContent = '';
-                }else {
-                    filePath = line.slice(0, -1);
+                  writeFile(filePath, fileContent);
                 }
-              } else {
+                // Reset variables for the next file
+                filePath = line.slice(0, -1);
+                fileContent = '';
+              } else if (isInsideCodeBlock) {
                 fileContent += line + '\n';
               }
             });
         
+            // Write the last file if any content is left
             if (filePath && fileContent.trim() !== '') {
-                writeFile(filePath, fileContent.trim());
+              writeFile(filePath, fileContent);
             }
-          
-            async function writeFile(filePath, content) {
+        
+            function writeFile(filePath, content) {
               const directory = path.dirname(filePath);
-          
+        
               fs.mkdirSync(directory, { recursive: true });
               try {
-                  if(path.extname(filePath) =='.js') {
-                              
-                      content = beautify(fileContent.replaceAll(';',';\n'), { indent_size: 2, space_in_empty_paren: true });
-                      console.log(filePath);
-                  }
-                  if(path.extname(filePath) =='.html'||path.extname(filePath) =='.ejs') content = htmlbeautify(fileContent.replaceAll(';',';\n').replaceAll('>','>\n'), { indent_size: 2, space_in_empty_paren: true });
+                if(path.extname(filePath) =='.js') {
+                  content = beautify(content.replaceAll(';',';\n'), { indent_size: 2, space_in_empty_paren: true });
+                }
+                if(path.extname(filePath) =='.html'||path.extname(filePath) =='.ejs') {
+                  content = htmlbeautify(content.replaceAll(';',';\n').replaceAll('>','>\n'), { indent_size: 2, space_in_empty_paren: true });
+                }
               } catch(e) {
-                  console.error(e);
+                console.error(e);
               }
               fs.writeFile(filePath, content, (err) => {
                 if (err) {
