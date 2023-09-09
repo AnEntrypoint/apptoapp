@@ -11,7 +11,7 @@ const instarray = [...process.argv];
 instarray.shift();
 instarray.shift();
 const transformationInstruction = instarray.join(' ');
-const systemPrompt = `${transformationInstruction}. Don't include any explanations in your responses, don't include unmodified files in yoru responses, include all the modified or added files complete without comments. Only respond in this syntax: ^^filename^filecontents^^|^^filename^filecontents^^ \n\n`;
+const systemPrompt = `${transformationInstruction}. Don't include any explanations in your responses, don't include unmodified files in yoru responses, include all the modified or added files complete without comments. Only respond in this syntax: ^^filename^filecontents^^|^^filename^filecontents^^`;
 var minify = require('html-minifier').minify;
 const htmlbeautify = require("js-beautify/js").html;
 
@@ -79,7 +79,7 @@ async function generateJsonData() {
         }
         await readsrcdirectory('./');
         // Save the generated JSON data to a file
-        const generatedJsonData = Object.keys(jsonEntries).map(a => `\n\n${a}\n${jsonEntries[a]}`).join(''); // Pretty-print JSON
+        const generatedJsonData = Object.keys(jsonEntries).map(a => `^^${a}^${jsonEntries[a]}^^`).join('|'); // Pretty-print JSON
         let total = 1
         const message = `${generatedJsonData}`;
         total += tokenizer.encode(`${transformationInstruction} in the following application:\n\n${message}` ).bpe.length + tokenizer.encode(systemPrompt).bpe.length + 15
