@@ -1,6 +1,6 @@
 {
   "name": "apptoapp",
-  "version": "0.0.2",
+  "version": "0.0.5",
   "description": "app to app transformer using GPT",
   "main": "index.js",
   "scripts": {

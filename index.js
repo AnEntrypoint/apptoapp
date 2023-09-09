@@ -65,8 +65,7 @@ async function generateJsonData() {
                 }
             });
         }
-        await readsrcdirectory(srcDirectory);
-        await readsrcdirectory('./views');
+        await readsrcdirectory('./');
         // Save the generated JSON data to a file
         const generatedJsonData = Object.keys(jsonEntries).map(a => `${a}:\n${jsonEntries[a]}\n\n`).join(''); // Pretty-print JSON
         let total = 1
