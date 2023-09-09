@@ -109,12 +109,15 @@ async function generateJsonData() {
             const lines = str.split('\n');
             let filePath = '';
             let fileContent = '';
+            let codeBlockFlag = false;
           
             lines.forEach(line => {
-              if(line.includes('```')) return;
-              if(line.includes('``javascript')) return;
+              if(line.trim() === '```') {
+                codeBlockFlag = !codeBlockFlag;
+                return;
+              }
               // If the line ends with ':', it implies that this line is a filename
-              if (line.endsWith(':')) {
+              if (!codeBlockFlag && line.endsWith(':')) {
                 // If file path is not empty, it means that we have read some file content, so we need to write it to a file
                 if (filePath) {
                   writeFile(filePath, fileContent.trim());
@@ -123,7 +126,7 @@ async function generateJsonData() {
                 // Reset file path and content
                 filePath = line.slice(0, -1); // remove the trailing ':'
                 fileContent = '';
-              } else {
+              } else if (codeBlockFlag) {
                 fileContent += line + '\n';
               }
             });
