@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 const fs = require('fs');
 const { Configuration, OpenAI } = require("openai");
 const prettier = require("prettier");
