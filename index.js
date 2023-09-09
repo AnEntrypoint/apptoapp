@@ -13,6 +13,7 @@ const transformationInstruction = instarray.join(' ');
 const systemPrompt = `${transformationInstruction}. Don't include any explanations in your responses, don't include unmodified files in your responses, include all the modified or added files complete without comments. Only respond in this syntax: ^^filename^filecontents^^|^^filename^filecontents^^`;
 const htmlbeautify = require("js-beautify/js").html;
 const axios = require('axios'); // Added for sending HTTP requests
+var minify = require('html-minifier').minify;
 
 console.log(transformationInstruction)
 
