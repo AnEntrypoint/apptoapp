@@ -105,45 +105,38 @@ async function generateJsonData() {
         const text = response.choices[0].message.content.trim();
         fs.writeFileSync('transformed.out', text)
         function writeFilesFromStr(str) {
-            // Split the input string by newline
             const lines = str.split('\n');
             let filePath = '';
             let fileContent = '';
-            let codeBlockFlag = false;
-          
+        
             lines.forEach(line => {
-              if(line.trim() === '```') {
-                codeBlockFlag = !codeBlockFlag;
-                return;
-              }
-              // If the line ends with ':', it implies that this line is a filename
-              if (!codeBlockFlag && line.endsWith(':')) {
-                // If file path is not empty, it means that we have read some file content, so we need to write it to a file
-                if (filePath) {
-                  writeFile(filePath, fileContent.trim());
+              if(line.includes('```')) return;
+              if(line.includes('``javascript')) return;
+        
+              if (line.endsWith(':')) {
+                if (filePath && fileContent.trim() !== '') {
+                    writeFile(filePath, fileContent.trim());
+                    filePath = line.slice(0, -1);
+                    fileContent = '';
+                }else {
+                    filePath = line.slice(0, -1);
                 }
-          
-                // Reset file path and content
-                filePath = line.slice(0, -1); // remove the trailing ':'
-                fileContent = '';
-              } else if (codeBlockFlag) {
+              } else {
                 fileContent += line + '\n';
               }
             });
-          
-            // Write the last file
-            if (filePath && fileContent) {
-              writeFile(filePath, fileContent.trim());
+        
+            if (filePath && fileContent.trim() !== '') {
+                writeFile(filePath, fileContent.trim());
             }
           
             async function writeFile(filePath, content) {
               const directory = path.dirname(filePath);
           
-              // Create the directory, if it doesn't already exist
               fs.mkdirSync(directory, { recursive: true });
               try {
                   if(path.extname(filePath) =='.js') {
-                      
+                              
                       content = beautify(fileContent.replaceAll(';',';\n'), { indent_size: 2, space_in_empty_paren: true });
                       console.log(filePath);
                   }
