@@ -141,7 +141,7 @@ async function generateJsonData() {
               const directory = path.dirname(filePath);
               fs.mkdirSync(directory, { recursive: true });
           
-              if(path.extname(filePath) == '.js') {
+              if(path.extname(filePath) == '.js' || path.extname(filePath) == '.jsx' || path.extname(filePath) == '.svelte') {
                 content = beautify(content, { indent_size: 2, space_in_empty_paren: true });
               }
           
