@@ -56,6 +56,9 @@ async function generateJsonData() {
                             result = (await Terser.minify(fileContent, {
                                 mangle: false,
                                 compress: false,
+                                output: {
+                                    comments: false,
+                                }
                             })).code;
                         } else if (filePath.endsWith('.jsx')) {
                             const Terser = require('terser');
@@ -63,6 +66,9 @@ async function generateJsonData() {
                             result = (await Terser.minify(fileContent, {
                                 mangle: false,
                                 compress: false,
+                                output: {
+                                    comments: false,
+                                }
                             })).code;
                         } else if (filePath.endsWith('.svelte')) {
                             const Terser = require('terser');
@@ -70,6 +76,9 @@ async function generateJsonData() {
                             result = (await Terser.minify(fileContent, {
                                 mangle: false,
                                 compress: false,
+                                output: {
+                                    comments: false,
+                                }
                             })).code;
                         } else if (filePath.endsWith('.ejs') || filePath.endsWith('.html')) {
                             console.log('MINIFYING HTML', { filePath })
