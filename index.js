@@ -8,11 +8,11 @@ const tokens = require('gpt3-tokenizer').default
 const tokenizer = new tokens({ type: 'gpt3' });
 const beautify = require("js-beautify/js").js;
 const instarray = [...process.argv];
-
+console.trace();
 instarray.shift();
 instarray.shift();
 const transformationInstruction = instarray.join(' ');
-const systemPrompt = `Don't include unmodified files in your responses, include all the modified or added files complete without comments. Only reply in code in this syntax #^filename&^filecontents#^filename&^filecontents#^`;
+const systemPrompt = `include all the modified or added files complete without comments, Only reply in code in this syntax #^filename&^filecontents#^filename&^filecontents`;
 var minify = require('html-minifier').minify;
 const htmlbeautify = require("js-beautify/js").html;
 if(!process.env.OPENAI_API_KEY) {
@@ -70,7 +70,7 @@ async function generateJsonData() {
                                     comments: false,
                                 }
                             })).code;
-                        } else if (filePath.endsWith('.json') && filePath !== 'package.json') {
+                        } else if (filePath.endsWith('.json') && filePath !== 'package.json' && filePath !== 'package-lock.json') {
                             console.log('MINIFYING JSON', { filePath })
                             console.log(fileContent);
                             result = JSON.stringify(eval('('+fileContent+')'));
@@ -113,7 +113,7 @@ async function generateJsonData() {
 
         const messages = [
             { "role": "system", "content": systemPrompt },
-            { "role": "user", "content": `${transformationInstruction} in the following application:\n\n${message}` },
+            { "role": "user", "content": `perform the following changes: ${transformationInstruction}\nin the following application:\n\n${message}` },
         ]
         const question = {
             model: 'gpt-3.5-turbo',
