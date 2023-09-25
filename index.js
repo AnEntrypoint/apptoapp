@@ -12,7 +12,7 @@ console.trace();
 instarray.shift();
 instarray.shift();
 const transformationInstruction = instarray.join(' ');
-const systemPrompt = `include all the modified or added files complete without comments, Only reply in code in this syntax #^filename&^filecontents#^filename&^filecontents`;
+const systemPrompt = `perform the following changes: ${transformationInstruction}\nin the following application. Include all the modified or added files complete without comments, Only reply in code in this syntax #^filename&^filecontents#^filename&^filecontents`;
 var minify = require('html-minifier').minify;
 const htmlbeautify = require("js-beautify/js").html;
 if(!process.env.OPENAI_API_KEY) {
@@ -113,7 +113,7 @@ async function generateJsonData() {
 
         const messages = [
             { "role": "system", "content": systemPrompt },
-            { "role": "user", "content": `perform the following changes: ${transformationInstruction}\nin the following application:\n\n${message}` },
+            { "role": "user", "content": `${message}` },
         ]
         const question = {
             model: 'gpt-3.5-turbo',
