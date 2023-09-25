@@ -70,7 +70,7 @@ async function generateJsonData() {
                                     comments: false,
                                 }
                             })).code;
-                        } else if (filePath.endsWith('.json') && filePath !== 'package.json') {
+                        } else if (filePath.endsWith('.json') && filePath !== 'package.json' && filePath == 'package-lock.json') {
                             console.log('MINIFYING JSON', { filePath })
                             console.log(fileContent);
                             result = JSON.stringify(eval('('+fileContent+')'));
