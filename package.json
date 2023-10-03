@@ -4,7 +4,7 @@
   "description": "app to app transformer using GPT",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "release": "git commit -a -m ranrelease && npm version $(semver $npm_package_version -i patch) && npm publish --tag latest"
   },
   "author": "lanmower",
   "dependencies": {
