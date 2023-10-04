@@ -112,7 +112,7 @@ async function generateJsonData() {
 
         const messages = [
             { "role": "system", "content": systemPrompt },
-            { "role": "user", "content": `${message}` },
+            { "role": "user", "content": `${message}+\n\n+${systemPrompt}` },
         ]
         const question = {
             model: 'gpt-3.5-turbo',
