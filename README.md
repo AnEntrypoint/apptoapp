@@ -4,8 +4,17 @@
 
 you can run it anywhere with npx:
 
-npx apptoapp your prompt here
+```
+npx apptoapp convert this project to sveltekit
+```
 
 It will ask you to make a .env file as such:
 
 OPENAI_API_KEY= 
+
+or run something like
+
+```
+export OPENAI_API_KEY=yourkey
+```
+to make it set for the duration of yoru command line session
