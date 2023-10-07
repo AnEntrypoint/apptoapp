@@ -108,11 +108,11 @@ async function generateJsonData() {
         const generatedJsonData = Object.keys(jsonEntries).map(a => `#^${a}&^${jsonEntries[a]}`).join(''); // Pretty-print JSON
         let total = 1
         const message = `${generatedJsonData}`;
-        total += tokenizer.encode(`${transformationInstruction} in the following application:\n\n${message}` ).bpe.length + tokenizer.encode(systemPrompt).bpe.length + 15
+        total += tokenizer.encode(`${transformationInstruction}${transformationInstruction} in the following application:\n\n${message}` ).bpe.length + tokenizer.encode(systemPrompt).bpe.length + 15 
 
         const messages = [
             { "role": "system", "content": systemPrompt },
-            { "role": "user", "content": `${message}+\n\n+${systemPrompt}` },
+            { "role": "user", "content": `${message}+\n\n+${transformationInstruction}` },
         ]
         const question = {
             model: 'gpt-3.5-turbo',
@@ -128,7 +128,7 @@ async function generateJsonData() {
         )
         console.log(response, JSON.stringify(response, null, 2));
         if (response.choices[0].message.finish_reason == 'length') {
-            console.log("BAILLING OUT BECAUSE FINISH REASON IS LENGTH< PLEASE USE A BIGGER MODEL")
+            console.log("BAILLING OUT BECAUSE FINISH REASON IS LENGTH, PLEASE USE A BIGGER MODEL")
             return;
         }
         const text = response.choices[0].message.content.trim();
