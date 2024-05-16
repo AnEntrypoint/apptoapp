@@ -115,7 +115,7 @@ async function generateJsonData() {
             { "role": "user", "content": `${message}+\n\n+${transformationInstruction}` },
         ]
         const question = {
-            model: 'gpt-3.5-turbo',
+            model: 'gpt-4o',
             messages,
             temperature: 0.1,
             max_tokens: 4096 - total,
