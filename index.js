@@ -120,20 +120,19 @@ async function generateJsonData() {
             frequency_penalty: 0.0,
             presence_penalty: 0.0,
         });
+        console.log(response)
 
-        console.log(response.data, JSON.stringify(response.data, null, 2));
-
-        if (response.data.choices[0].finish_reason === 'length') {
+        if (response.choices[0].finish_reason === 'length') {
             console.log("BAILING OUT BECAUSE FINISH REASON IS LENGTH, PLEASE USE A BIGGER MODEL");
             return;
         }
 
-        const text = response.data.choices[0].message.content.trim();
+        const text = response.choices[0].message.content.trim();
         fs.writeFileSync('transformed.out', text);
         return text;
     } catch (error) {
         console.trace(error);
-        console.error('Error:', error.response.data);
+        console.error('Error:', error);
     }
 }
 
