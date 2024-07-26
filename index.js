@@ -115,13 +115,13 @@ async function generateJsonData() {
             model: 'gpt-4o-mini',
             messages,
             temperature: 0.1,
-            max_tokens: 16384 - tokensCount, // Adjust max_tokens based on the input size
+            max_tokens: 16384 - tokensCount,
             top_p: 1.0,
             frequency_penalty: 0.0,
             presence_penalty: 0.0,
         });
 
-        console.log(response.data, JSON.stringify(response.data, null, 2));
+        console.log(response, JSON.stringify(response.data, null, 2));
 
         if (response.data.choices[0].finish_reason === 'length') {
             console.log("BAILING OUT BECAUSE FINISH REASON IS LENGTH, PLEASE USE A BIGGER MODEL");
