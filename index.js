@@ -128,7 +128,7 @@ async function generateJsonData() {
         ];
 
         const question = {
-            model: 'gpt-4o',
+            model: 'gpt-4o-mini',
             messages,
             temperature: 0.1,
             max_tokens: 4096,
