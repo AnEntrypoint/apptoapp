@@ -115,7 +115,7 @@ async function generateJsonData() {
             model: 'gpt-4o-mini',
             messages,
             temperature: 0.1,
-            max_tokens: 4096 - tokensCount, // Adjust max_tokens based on the input size
+            max_tokens: 16384 - tokensCount, // Adjust max_tokens based on the input size
             top_p: 1.0,
             frequency_penalty: 0.0,
             presence_penalty: 0.0,
