@@ -25,7 +25,7 @@ instarray.shift();
 
 const transformationInstruction = instarray.join(' ');
 
-const systemPrompt = `Only answer in code\nAnswer only in complete files, no omissions\nSkip unmodified files\n${transformationInstruction}\n - Include all the modified or added files complete without comments\nIf a file is modified respond with the entire file, no reductions\nOnly answer in this syntax #^filename&^filecontents#^filename&^filecontents`;
+const systemPrompt = `perform the following changes: ${transformationInstruction}\nin the following application. Include all the modified or added files complete without comments, Only reply in code in this syntax #^filename&^filecontents#^filename&^filecontents`;
 
 console.log({ prompt: transformationInstruction });
 
