@@ -111,9 +111,9 @@ async function generateJsonData() {
         ];
 
         const response = await openai.chat.completions.create({
-            model: 'gpt-4o-mini',
+            model: 'gpt-4o',
             messages,
-            temperature: 0.1,
+            temperature: 0.69,
             max_tokens: 16384, // Adjust max_tokens based on the input size
             top_p: 1.0,
             frequency_penalty: 0.0,
