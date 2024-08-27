@@ -10,7 +10,6 @@ const tokenizer = new tokens({ type: 'gpt3' });
 const beautify = require("js-beautify/js").js;
 const minify = require('html-minifier').minify;
 const htmlbeautify = require("js-beautify/js").html;
-
 const OpenAI = require("openai");
 
 if (!process.env.OPENAI_API_KEY) {
@@ -52,7 +51,7 @@ async function generateJsonData() {
                     await readsrcdirectory(filePath);
                 } else {
                     // Otherwise, read the file and put its contents into jsonEntries
-                    const fileContent = fs.readFileSync(filePath, 'utf8');
+                    const fileContent = await fs.promises.readFile(filePath, 'utf8');
                     let result;
 
                     try {
@@ -68,7 +67,7 @@ async function generateJsonData() {
                             })).code;
                         } else if (filePath.endsWith('.json') && filePath !== 'package.json' && filePath !== 'package-lock.json') {
                             console.log('MINIFYING JSON', { filePath });
-                            result = JSON.stringify(eval('(' + fileContent + ')'));
+                            result = JSON.stringify(JSON.parse(fileContent));
                         } else if (filePath.endsWith('.ejs') || filePath.endsWith('.html') || filePath.endsWith('.svelte')) {
                             console.log('MINIFYING HTML', { filePath });
                             const options = {
@@ -120,7 +119,7 @@ async function generateJsonData() {
             frequency_penalty: 0.0,
             presence_penalty: 0.0,
         });
-        console.log(response)
+        console.log(response);
 
         if (response.choices[0].finish_reason === 'length') {
             console.log("BAILING OUT BECAUSE FINISH REASON IS LENGTH, PLEASE USE A BIGGER MODEL");
