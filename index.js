@@ -113,8 +113,8 @@ async function generateJsonData() {
         const response = await openai.chat.completions.create({
             model: 'gpt-4o',
             messages,
-            temperature: 0.69,
-            max_tokens: 16384, // Adjust max_tokens based on the input size
+            temperature: 0.2,
+            max_tokens: 4096, // Adjust max_tokens based on the input size
             top_p: 1.0,
             frequency_penalty: 0.0,
             presence_penalty: 0.0,
