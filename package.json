@@ -18,6 +18,6 @@
     "terser": "^5.19.4"
   },
   "bin": {
-    "app2app": "index.js"
+    "weavetoapp": "index.js"
   }
 }
