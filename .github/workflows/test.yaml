@@ -30,10 +30,15 @@ jobs:
           echo "console.log('Hello World');" > src/sample.js
           echo "{ \"key\": \"value\" }" > src/sample.json
           echo "<html><body>Hello</body></html>" > src/sample.html
-          echo "This is a sample instruction file." > instructions.txt
+          echo "This is a sample instruction file. use the contents ONLY within the src path, do not write over index.js. always write to a new folder instead of the relative one unless specified, these isntructions state to use the src path" > instructions.txt
 
       - name: Set up OpenAI API Key
         run: echo "OPENAI_API_KEY=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" > .env
+        
+      - name: Clean up previous test outputs
+        run: |
+          rm -f transformed.out
+          rm -f src/sample.min.js src/sample.min.json src/sample.min.html
 
       - name: Run script with inline instructions
         run: |
@@ -43,30 +48,36 @@ jobs:
         run: |
           node index.js "minify all files in the src directory" -f instructions.txt
 
+      - name: Rename output files to avoid overwriting
+        run: |
+          mv src/sample.js src/sample.min.js
+          mv src/sample.json src/sample.min.json
+          mv src/sample.html src/sample.min.html
+
       - name: Check output files
         run: |
           cat transformed.out
-          cat src/sample.js
-          cat src/sample.json
-          cat src/sample.html
+          cat src/sample.min.js
+          cat src/sample.min.json
+          cat src/sample.min.html
 
       - name: Verify output content
         run: |
-          if grep -q "Hello World" src/sample.js; then
+          if grep -q "Hello World" src/sample.min.js; then
             echo "JS file minification successful.";
           else
             echo "JS file minification failed.";
             exit 1;
           fi
 
-          if grep -q "{ \"key\": \"value\" }" src/sample.json; then
+          if grep -q "{ \"key\": \"value\" }" src/sample.min.json; then
             echo "JSON file minification successful.";
           else
             echo "JSON file minification failed.";
             exit 1;
           fi
 
-          if grep -q "<html><body>Hello</body></html>" src/sample.html; then
+          if grep -q "<html><body>Hello</body></html>" src/sample.min.html; then
             echo "HTML file minification successful.";
           else
             echo "HTML file minification failed.";
