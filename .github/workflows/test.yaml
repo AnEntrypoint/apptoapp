@@ -1,0 +1,74 @@
+name: Test Node Script
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Create sample files
+        run: |
+          mkdir -p src
+          echo "console.log('Hello World');" > src/sample.js
+          echo "{ \"key\": \"value\" }" > src/sample.json
+          echo "<html><body>Hello</body></html>" > src/sample.html
+          echo "This is a sample instruction file." > instructions.txt
+
+      - name: Set up OpenAI API Key
+        run: echo "OPENAI_API_KEY=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" > .env
+
+      - name: Run script with inline instructions
+        run: |
+          node your-script.js "minify all files in the src directory"
+
+      - name: Run script with file input
+        run: |
+          node your-script.js "minify all files in the src directory" -f instructions.txt
+
+      - name: Check output files
+        run: |
+          cat transformed.out
+          cat src/sample.js
+          cat src/sample.json
+          cat src/sample.html
+
+      - name: Verify output content
+        run: |
+          if grep -q "Hello World" src/sample.js; then
+            echo "JS file minification successful.";
+          else
+            echo "JS file minification failed.";
+            exit 1;
+          fi
+
+          if grep -q "{ \"key\": \"value\" }" src/sample.json; then
+            echo "JSON file minification successful.";
+          else
+            echo "JSON file minification failed.";
+            exit 1;
+          fi
+
+          if grep -q "<html><body>Hello</body></html>" src/sample.html; then
+            echo "HTML file minification successful.";
+          else
+            echo "HTML file minification failed.";
+            exit 1;
+          fi
