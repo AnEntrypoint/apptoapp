@@ -54,6 +54,9 @@ jobs:
           mv src/sample.json src/sample.min.json
           mv src/sample.html src/sample.min.html
 
+      - name: Print minified JSON file
+        run: cat src/sample.min.json
+
       - name: Check output files
         run: |
           cat transformed.out
@@ -70,10 +73,15 @@ jobs:
             exit 1;
           fi
 
-          if grep -q "{ \"key\": \"value\" }" src/sample.min.json; then
+          # Using jq to check JSON content
+          actual=$(cat src/sample.min.json | jq -c .)
+          expected='{"key":"value"}'
+          if [ "$actual" = "$expected" ]; then
             echo "JSON file minification successful.";
           else
             echo "JSON file minification failed.";
+            echo "Expected: $expected"
+            echo "Actual: $actual"
             exit 1;
           fi
 
