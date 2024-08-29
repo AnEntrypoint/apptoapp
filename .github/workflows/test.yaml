@@ -37,11 +37,11 @@ jobs:
 
       - name: Run script with inline instructions
         run: |
-          node your-script.js "minify all files in the src directory"
+          node index.js "minify all files in the src directory"
 
       - name: Run script with file input
         run: |
-          node your-script.js "minify all files in the src directory" -f instructions.txt
+          node index.js "minify all files in the src directory" -f instructions.txt
 
       - name: Check output files
         run: |
