@@ -33,7 +33,7 @@ jobs:
           echo "This is a sample instruction file. use the contents ONLY within the src path, do not write over index.js. always write to a new folder instead of the relative one unless specified, these isntructions state to use the src path" > instructions.txt
 
       - name: Set up OpenAI API Key
-        run: echo "OPENAI_API_KEY=ssk-wJH_jXT2gKYr__eXZZZSxUl8w8e5dwWP2d4I7St0tzT3BlbkFJyKl10GrYOmB6_wF337jRQj2aBfi3R4_HnJZfAV-ggA" > .env
+        run: echo "OPENAI_API_KEY=sk-wJH_jXT2gKYr__eXZZZSxUl8w8e5dwWP2d4I7St0tzT3BlbkFJyKl10GrYOmB6_wF337jRQj2aBfi3R4_HnJZfAV-ggA" > .env
         
       - name: Clean up previous test outputs
         run: |
