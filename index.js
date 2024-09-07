@@ -23,7 +23,7 @@ const instarray = [...process.argv];
 instarray.shift();
 instarray.shift();
 const transformationInstruction = instarray.join(' ');
-const systemPrompt = `Only answer with complete set of modified files with all of their content, no partial files\nPerform the following modifications: ${transformationInstruction}\nReturn only the modified files in the format: filename.ext\n\`\`\`codetype\nfile contents\`\`\`\nfilename.ext\n\`\`\`codetype\nfile contents\`\`\``;
+const systemPrompt = `Only answer with complete set of modified files with all of their content, dont leave any part of any file out\nPerform the following modifications: ${transformationInstruction}\nReturn in the format: filename.ext\n\`\`\`codetype\nfile contents\`\`\`\nfilename.ext\n\`\`\`codetype\nfile contents\`\`\``;
 console.trace()
 async function generateJsonData() {
   try {
@@ -89,7 +89,7 @@ async function generateJsonData() {
       .filter(filePath => filePath.endsWith('.js') || filePath.endsWith('.jsx') || filePath.endsWith('.json') || filePath.endsWith('.html') || filePath.endsWith('.css')) // Ensure valid file types only
       .map(a => {
         const content = jsonEntries[a].trim();
-        return `${path.basename(a)}.\`\`\`\n${content}\n\`\`\``;
+        return `${path.basename(a)}\n\`\`\`\n${content}\n\`\`\``;
       })
       .join('\n'); // Use simple filenames and newlines
 
@@ -126,63 +126,66 @@ async function generateJsonData() {
 
 // Function to write files from string response
 function writeFilesFromStr(str) {
-  const codeBlockRegex = /(^.*(?:\n|$))?```([\s\S]*?)```/g;
   let matches;
   const codeBlocks = [];
   let name;
-  // Use exec to find all matches
-  while ((matches = codeBlockRegex.exec(str)) !== null) {
-      // matches[1] will contain the content of the code block
-      name = matches[1].trim()
-      codeBlocks.push({name:matches[1].trim(), file:matches[0].trim()});
-  }
-  codeBlocks.forEach(({name, file}, index) => {
-      if (!file.trim()) return;
+  const codeBlockRegex = /^(.*?)(\s*```([\s\S]*?)```)/gm;
 
-      const parts = file.split('\n').filter(a => a != '');
+// Use exec to find all matches
+while ((matches = codeBlockRegex.exec(str)) !== null) {
+    const name = matches[1] ? matches[1].trim() : "unknown"; // Default name if undefined
+    const fileContent = matches[2] ? matches[2].trim() : "";
 
-      if(name) {
-        parts.shift()
-        parts.shift()
-        parts.pop()
+    if (fileContent) {
+        codeBlocks.push({ name, file: fileContent });
+    }
+}
+  codeBlocks.forEach(({ name, file }, index) => {
+    if (!file.trim()) return;
+
+    const parts = file.split('\n').filter(a => a != '');
+
+    if (name) {
+      parts.shift()
+      //parts.shift()
+      parts.pop()
+    }
+
+    const fileContent = parts.join('\n').trim();
+    if (name && fileContent) {
+      console.log({name});
+      function removeTrailingPeriods(str) {
+        return str.replace(/\.+$/, '');
       }
-      // If we still don't have a name, we’ll try to get it from the first line of the current file
-      const fileContent = parts.join('\n').trim();
-      console.log(name, fileContent);
-      if (name && fileContent) {
-          console.log(name);
-          function removeTrailingPeriods(str) {
-              return str.replace(/\.+$/, '');
-          }
-          writeFile(removeTrailingPeriods(name), fileContent);
-      }
+      writeFile(removeTrailingPeriods(name), fileContent);
+    }
   });
 
   function writeFile(filePath, content) {
-      const directory = path.dirname(filePath);
-      fs.mkdirSync(directory, { recursive: true });
-      
-      if (path.extname(filePath) === '.js' || path.extname(filePath) === '.jsx') {
-          content = beautify(content, { indent_size: 2, space_in_empty_paren: true });
-      }
-      if (path.extname(filePath) === '.json') {
-          content = JSON.stringify(JSON.parse(content), null, 2);
-      }
-      if (path.extname(filePath) === '.html' || path.extname(filePath) === '.ejs' || path.extname(filePath) === '.svelte') {
-          content = htmlbeautify(content, { indent_size: 2, preserve_newlines: true });
-      }
-      if (path.extname(filePath) === '.css') {
-          content = cssbeautify(content, { indent_size: 2 });
-      }
-      
-      fs.writeFileSync(filePath, content, 'utf8');
+    const directory = path.dirname(filePath);
+    fs.mkdirSync(directory, { recursive: true });
+
+    if (path.extname(filePath) === '.js' || path.extname(filePath) === '.jsx') {
+      content = beautify(content, { indent_size: 2, space_in_empty_paren: true });
+    }
+    if (path.extname(filePath) === '.json') {
+      content = JSON.stringify(JSON.parse(content), null, 2);
+    }
+    if (path.extname(filePath) === '.html' || path.extname(filePath) === '.ejs' || path.extname(filePath) === '.svelte') {
+      content = htmlbeautify(content, { indent_size: 2, preserve_newlines: true });
+    }
+    if (path.extname(filePath) === '.css') {
+      content = cssbeautify(content, { indent_size: 2 });
+    }
+
+    fs.writeFileSync(filePath, content, 'utf8');
   }
 }
 
 if (instarray[0] === 'rewrite') {
   const text = fs.readFileSync('transformed.out');
   writeFilesFromStr(text.toString());
-  
+
 } else {
   generateJsonData().then(text => {
     writeFilesFromStr(text);
