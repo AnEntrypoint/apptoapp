@@ -14,7 +14,7 @@ const instarray = [...process.argv];
 instarray.shift();
 instarray.shift();
 const transformationInstruction = instarray.join(' ');
-const systemPrompt = `Only answer with complete set of modified files with all of their content, dont leave any part of any file out\nPerform the following modifications: ${transformationInstruction}\nReturn in the format: \n\`\`\`css\nfilename.ext\nfile contents\`\`\`\n\`\`\`javascript\nfilename.ext\n\nfile contents\`\`\``;
+const systemPrompt = `Only answer with complete set of modified files with all of their content, dont leave any part of any file out\nPerform the following modifications: ${transformationInstruction}\nRespond only in this format: filename.ext\n\`\`\`codetype\nfile contents\`\`\`\nfilename.ext\n\`\`\`codetype\nfile contents\`\`\`\n\nFor example:\n\nindex.js\n\`\`\`javascript\nalert("test")\`\`\`\ntest.js\n\`\`\`javascript\nsomething else\`\`\``;
 
 console.trace();
 
@@ -42,10 +42,20 @@ async function generateJsonData() {
     };
     await readSrcDirectory(srcDirectory);
     const generatedJsonData = Object.keys(jsonEntries)
-      .filter(filePath => filePath.endsWith('.js') || filePath.endsWith('.gd') || filePath.endsWith('.json') || filePath.endsWith('.html') || filePath.endsWith('.css')) // Ensure valid file types only
+      .filter(fp => {
+        filePath = fp
+        return filePath.endsWith('.js') || filePath.endsWith('.gd') || filePath.endsWith('.html') || filePath.endsWith('.css')|| filePath.endsWith('.jsx')|| filePath.endsWith('.svelte')
+      }) // Ensure valid file types only
       .map(a => {
+        let filePath = a;
+        let filetype='';
+        if(filePath.endsWith('.js'))  filetype = 'javascript';
+        if(filePath.endsWith('.gd'))  filetype = 'gdscript';
+        if(filePath.endsWith('.html'))  filetype = 'html';
+        if(filePath.endsWith('.jsx'))  filetype = 'javascript';
+        if(filePath.endsWith('.svelte'))  filetype = 'svelte';
         const content = jsonEntries[a].trim();
-        return `${path.basename(a)}\n\`\`\`\n${content}\n\`\`\``;
+        return `${path.basename(a)}\n\`\`\`${filetype}\n${content}\n\`\`\``;
       })
       .join('\n'); // Use simple filenames and newlines
 
@@ -53,8 +63,7 @@ async function generateJsonData() {
       { "role": "system", "content": systemPrompt },
       { "role": "user", "content": `${generatedJsonData}+\n\n+${transformationInstruction}` },
     ];
-    
-    const response = await openai.chat.completions.create({
+    const tosend = {
       model: 'gpt-4o-mini',
       messages,
       temperature: 0.1,
@@ -62,8 +71,9 @@ async function generateJsonData() {
       top_p: 1.0,
       frequency_penalty: 0.0,
       presence_penalty: 0.0,
-    });
-
+    }
+    const response = await openai.chat.completions.create(tosend);
+    fs.writeFileSync('sent.json', JSON.stringify(tosend))
     if (response.choices[0].finish_reason === 'length') {
       console.log("BAILING OUT BECAUSE FINISH REASON IS LENGTH, PLEASE USE A BIGGER MODEL");
       return;
