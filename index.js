@@ -14,7 +14,7 @@ const instarray = [...process.argv];
 instarray.shift();
 instarray.shift();
 const transformationInstruction = instarray.join(' ');
-const systemPrompt = `Only answer with complete set of modified files with all of their content, dont leave any part of any file out\nPerform the following modifications: ${transformationInstruction}\nRespond only in this format: filename.ext\n\`\`\`codetype\nfile contents\`\`\`\nfilename.ext\n\`\`\`codetype\nfile contents\`\`\`\n\nFor example:\n\nindex.js\n\`\`\`javascript\nalert("test")\`\`\`\ntest.js\n\`\`\`javascript\nsomething else\`\`\``;
+const systemPrompt = `Only answer with complete set of modified files with all of their content, dont leave any part of any file out\nAlways leave out unedited files\nPerform the following modifications: ${transformationInstruction}\nRespond only in this format: filename.ext\n\`\`\`codetype\nfile contents\`\`\`\nfilename.ext\n\`\`\`codetype\nfile contents\`\`\`\n\nFor example:\n\nindex.js\n\`\`\`javascript\nalert("test")\`\`\`\ntest.js\n\`\`\`javascript\nsomething else\`\`\``;
 
 console.trace();
 
