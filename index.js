@@ -6,7 +6,7 @@ const instarray = [...process.argv];
 instarray.shift();
 instarray.shift();
 const transformationInstruction = instarray.join(' ');
-
+console.log("Current directory:", __dirname);
 async function main() {
   try {
     if (instarray[0] === 'rewrite') {
