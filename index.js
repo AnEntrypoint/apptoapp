@@ -12,9 +12,11 @@ const OpenAI = require("openai");
 const esbuild = require('esbuild');
 const jsYaml = require('js-yaml');
 const prettier = require('prettier');
+const readline = require('readline');
+const { v4: uuidv4 } = require('uuid');
 
 if (!process.env.OPENAI_API_KEY) {
-    console.log('please set OPENAI_API_KEY in a .env or env var');
+    console.log('Please set OPENAI_API_KEY in a .env file or as an environment variable.');
     process.exit();
 }
 
@@ -23,15 +25,59 @@ console.trace();
 instarray.shift();
 instarray.shift();
 
-const transformationInstruction = instarray.join(' ');
+// Collect the transformation instruction and adjust it
+const originalInstruction = instarray.join(' ');
+const disallowedPhrases = ['modify my existing project', 'update my project', 'edit existing project', 'modify existing project'];
+let transformationInstruction = originalInstruction.toLowerCase();
 
-const systemPrompt = `perform the following changes: ${transformationInstruction}\nin the following application. Include all the modified or added files complete without comments, Only reply in code in this syntax #^filename&^filecontents#^filename&^filecontents`;
+disallowedPhrases.forEach(phrase => {
+    transformationInstruction = transformationInstruction.replace(phrase, '');
+});
+
+transformationInstruction = transformationInstruction.trim();
 
 console.log({ prompt: transformationInstruction });
 
+// Define the project directory
+let projectDir = '';
+const baseProjectName = 'project';
+
+// Function to prompt the user
+function promptUser(query) {
+    const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout
+    });
+    return new Promise(resolve => rl.question(query, ans => {
+        rl.close();
+        resolve(ans);
+    }));
+}
+
+(async () => {
+    // Prompt the user for the project directory
+    const answer = await promptUser('Enter the project directory to modify: ');
+    projectDir = answer.trim();
+    if (!projectDir || !fs.existsSync(projectDir)) {
+        console.log('Project directory does not exist.');
+        const copyAnswer = await promptUser('Do you want to generate a copy of it? (yes/no): ');
+        if (copyAnswer.toLowerCase() === 'yes' || copyAnswer.toLowerCase() === 'y') {
+            // Generate a new project directory
+            projectDir = `${baseProjectName}-${uuidv4()}`;
+            console.log(`Creating new project directory: ${projectDir}`);
+        } else {
+            console.log('Exiting.');
+            process.exit();
+        }
+    } else {
+        console.log(`Modifying existing project in directory: ${projectDir}`);
+    }
+    const text = await generateJsonData(); // Generate new data based on the existing project
+    await writeFilesFromStr(text);
+})();
+
 async function generateJsonData() {
     try {
-        const srcDirectory = './src'; // Specify the source directory path
         const openai = new OpenAI({
             apiKey: process.env.OPENAI_API_KEY,
         });
@@ -44,8 +90,10 @@ async function generateJsonData() {
 
             await Promise.all(files.map(async filename => {
                 const filePath = path.join(srcDirectory, filename);
-                if (filePath.startsWith('node_modules') || filePath.startsWith('.')) {
-                    return; // Skip these files
+                const relativePath = path.relative(projectDir, filePath); // Adjusted for projectDir
+
+                if (relativePath.startsWith('node_modules') || relativePath.startsWith('.') || relativePath.startsWith('project')) {
+                    return; // Skip these files and the project directories
                 }
                 if (fs.statSync(filePath).isDirectory()) {
                     // If the "filename" is a directory, recursively read this directory
@@ -101,30 +149,41 @@ async function generateJsonData() {
                         return;
                     }
 
-                    jsonEntries[filePath] = result;
+                    jsonEntries[relativePath] = result;
                 }
             }));
         };
 
-        await readsrcdirectory('./');
+        // Use the project directory
+        const sourceDir = projectDir;
 
-        // Save the generated JSON data to a file
+        await readsrcdirectory(sourceDir);
+
+        // Generate the message for the OpenAI API
         const generatedJsonData = Object.keys(jsonEntries)
             .map(a => `#^${a}&^${jsonEntries[a]}`)
-            .join(''); // Pretty-print JSON
+            .join('');
         const message = `${generatedJsonData}`;
 
-        const tokensCount = tokenizer.encode(`${transformationInstruction}${transformationInstruction} in the following application:\n\n${message}`).bpe.length + tokenizer.encode(systemPrompt).bpe.length + 15;
+        // Include platform description if available
+        let platformDescription = '';
+        if (fs.existsSync('platform_description.txt')) {
+            platformDescription = fs.readFileSync('platform_description.txt', 'utf8');
+        }
+
+        const systemPrompt = `You are provided with the code of an application. Perform the following changes to the code: ${transformationInstruction}${platformDescription ? '\n\nPlatform Description:\n' + platformDescription : ''}\nReturn the modified or added files in the following format without any explanations or comments: #^filename&^filecontents#^filename&^filecontents`;
+
+        const tokensCount = tokenizer.encode(`${transformationInstruction} in the following application:\n\n${message}`).bpe.length + tokenizer.encode(systemPrompt).bpe.length + 15;
 
         const messages = [
             { "role": "system", "content": systemPrompt },
-            { "role": "user", "content": `${message}+\n\n+${transformationInstruction}` },
+            { "role": "user", "content": `${message}` },
         ];
 
         const response = await openai.chat.completions.create({
-            model: 'gpt-4',
+            model: 'gpt-4o',
             messages,
-            temperature: 0.25,
+            temperature: 0.2,
             max_tokens: 16300, // Adjust max_tokens based on the input size
             top_p: 1.0,
             frequency_penalty: 0.0,
@@ -147,52 +206,58 @@ async function generateJsonData() {
 }
 
 // Function to write files from string response
-function writeFilesFromStr(str) {
+async function writeFilesFromStr(str) {
     const files = str.split('#^');
     console.log({ files });
     files.shift();
-    files.forEach(file => {
+
+    // Use Promise.all to handle asynchronous writeFile operations
+    await Promise.all(files.map(async (file) => {
         console.log("WRITING:", { file });
         const parts = file.split('&^');
         const filePath = parts[0];
         const fileContent = parts[1];
-        writeFile(filePath, fileContent);
-    });
-
-    function writeFile(filePath, content) {
-        const directory = path.dirname(filePath);
-        fs.mkdirSync(directory, { recursive: true });
-
-        if (['.js', '.jsx', '.ts', '.tsx'].includes(path.extname(filePath))) {
-            const parser = ['.ts', '.tsx'].includes(path.extname(filePath)) ? 'typescript' : 'babel';
-            content = prettier.format(content, { parser });
-        }
-
-        if (path.extname(filePath) === '.json') {
-            content = JSON.stringify(JSON.parse(content), null, 2);
-        }
-
-        if (['.html', '.ejs', '.svelte'].includes(path.extname(filePath))) {
-            content = htmlbeautify(content, { indent_size: 2, preserve_newlines: true });
-        }
-
-        if (path.extname(filePath) === '.yaml' || path.extname(filePath) === '.yml') {
-            const yamlData = JSON.parse(content);
-            content = jsYaml.dump(yamlData, { indent: 2 });
-        }
-
-        // For .sh files, you can use a shell script formatter if desired
-        // For now, just write the content as is
-
-        fs.writeFileSync(filePath, content, 'utf8');
-    }
+        await writeFile(filePath, fileContent);
+    }));
 }
 
-if (instarray[0] === 'rewrite') {
-    const text = fs.readFileSync('transformed.out');
-    writeFilesFromStr(text.toString());
-} else {
-    generateJsonData().then(text => {
-        writeFilesFromStr(text);
-    });
+async function writeFile(filePath, content) {
+    const outputPath = path.join(projectDir, filePath);
+    const directory = path.dirname(outputPath);
+    fs.mkdirSync(directory, { recursive: true });
+
+    if (['.js', '.jsx', '.ts', '.tsx'].includes(path.extname(filePath))) {
+        const parser = ['.ts', '.tsx'].includes(path.extname(filePath)) ? 'typescript' : 'babel';
+        try {
+            content = await prettier.format(content, { parser });
+        } catch (err) {
+            console.error(`Error formatting file ${filePath}:`, err);
+        }
+    }
+
+    if (path.extname(filePath) === '.json') {
+        try {
+            content = JSON.stringify(JSON.parse(content), null, 2);
+        } catch (err) {
+            console.error(`Error parsing JSON in file ${filePath}:`, err);
+        }
+    }
+
+    if (['.html', '.ejs', '.svelte'].includes(path.extname(filePath))) {
+        content = htmlbeautify(content, { indent_size: 2, preserve_newlines: true });
+    }
+
+    if (['.yaml', '.yml'].includes(path.extname(filePath))) {
+        try {
+            const yamlData = JSON.parse(content);
+            content = jsYaml.dump(yamlData, { indent: 2 });
+        } catch (err) {
+            console.error(`Error parsing YAML in file ${filePath}:`, err);
+        }
+    }
+
+    // For .sh files, you can use a shell script formatter if desired
+    // For now, just write the content as is
+
+    fs.writeFileSync(outputPath, content, 'utf8');
 }
