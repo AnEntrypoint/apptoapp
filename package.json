@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "debug": "^4.3.4",
-    "diff": "^5.1.0",
+    "diff": "^5.1.0", 
     "dotenv": "^16.4.1",
     "ignore": "^5.3.1"
   }
