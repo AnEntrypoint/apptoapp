@@ -1,0 +1,7 @@
+Initial changes:
+1. Added a check in index.js to ensure the user is in the ./test directory before running the script.
+2. Added a check in transform.js to ensure the instruction is provided before starting the cycle.
+
+Next steps:
+1. Verify that the changes are correct by running the application.
+2. Speculate on what further changes can be made to better realise the user's instructions.

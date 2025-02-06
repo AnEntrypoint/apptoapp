@@ -1,4 +1,4 @@
-const { cycleTasks, generateJsonData, writeFilesFromStr } = require('./src/operations/main');
+const { cycleTasks, generateJsonData, writeFilesFromStr } = require('../src/operations/main');
 
 // When executed directly, take the test URL from the command-line arguments and start the cycle.
 if (require.main === module) {
@@ -9,10 +9,15 @@ if (require.main === module) {
     console.error('  node transform.js http://localhost:3000 "make this a comprehensive artist portfolio site"');
     process.exit(1);
   }
+  if (!instruction) {
+    console.error('Please provide an instruction as an argument. Example:');
+    console.error('  node transform.js http://localhost:3000 "make this a comprehensive artist portfolio site"');
+    process.exit(1);
+  }
   console.log('Starting cycle of task evaluation using pupdebug on URL:', testUrl);
   cycleTasks(testUrl, instruction).catch(error => {
     console.error('Cycle encountered an error:', error);
   });
 }
 
-module.exports = { cycleTasks, generateJsonData, writeFilesFromStr }; 
+module.exports = { cycleTasks, generateJsonData, writeFilesFromStr };
