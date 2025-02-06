@@ -1,18 +1,19 @@
 {
   "name": "apptoapp",
-  "version": "0.0.3",
+  "version": "0.1.52",
   "description": "app to app transformer using GPT",
   "main": "index.js",
+  "bin": {
+    "apptoapp": "index.js"
+  },
   "scripts": {
     "start": "node cli.js",
-    "release": "git commit -a -m ranrelease && npm version $(semver $npm_package_version -i patch) && npm publish --tag latest"
+    "release": "git commit -a -m ranrelease && npm version $(semver $npm_package_version -i patch) && npm publish --tag latest",
+    "app2app": "node index.js"
   },  
   "author": "lanmower",
   "dependencies": {
     "dotenv": "^16.3.1",
     "openai": "^4.6.0"
-  },
-  "bin": {
-    "app2app": "index.js"
   }
 }

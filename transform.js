@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const dotenv = require('dotenv');
+const { exec } = require('child_process');
 
 dotenv.config();
 
@@ -12,11 +13,29 @@ const transformationLibrary = {
       const jsonEntries = await this.readSrcDirectory('./');
       const generatedJsonData = this.formatJsonData(jsonEntries);
 
-      const systemPrompt = `Only answer with complete set of modified files with all of their content, dont leave any part of any file out\nAlways leave out unedited files\nPerform the following modifications: ${transformationInstruction}\nRespond only in this format: filename.ext\n\`\`\`codetype\nfile contents\`\`\`\nfilename.ext\n\`\`\`codetype\nfile contents\`\`\`\n\nFor example:\n\nindex.js\n\`\`\`javascript\nalert("test")\`\`\`\ntest.js\n\`\`\`javascript\nsomething else\`\`\``;
+      const systemPrompt = `You are a code transformation assistant. Analyze the files and perform the requested modifications.
+Response format must be a JSON array of operations, each with 'operation' and 'params' fields.
+Available operations:
+- write: params: {path: string, content: string}
+- move: params: {from: string, to: string}
+- delete: params: {path: string}
+- rename: params: {from: string, to: string}
+- writeFolder: params: {path: string}
+- deleteFolder: params: {path: string}
+- cli: params: {command: string}
+Example response:
+[
+  {"operation": "delete", "params": {"path": "oldfile.js"}},
+  {"operation": "write", "params": {"path": "newfile.js", "content": "console.log('hello')"}},
+  {"operation": "move", "params": {"from": "src/util.js", "to": "lib/util.js"}},
+  {"operation": "writeFolder", "params": {"path": "new_folder"}},
+  {"operation": "deleteFolder", "params": {"path": "old_folder"}},
+  {"operation": "cli", "params": {"command": "npm run dev"}}
+]`;
 
       const messages = [
         { "role": "system", "content": systemPrompt },
-        { "role": "user", "content": `${generatedJsonData}+\n\n+${transformationInstruction}` },
+        { "role": "user", "content": `${generatedJsonData}\n\nTransformation request: ${transformationInstruction}` },
       ];
 
       // Choose API based on configuration
@@ -36,11 +55,71 @@ const transformationLibrary = {
       }
 
       if (this.debug) fs.writeFileSync('transformed.out', response);
-      return response;
+      
+      // Parse and execute the operations
+      try {
+        const operations = JSON.parse(response);
+        await this.executeOperations(operations);
+      } catch (error) {
+        console.error('Error parsing or executing operations:', error);
+        console.error('Raw response:', response);
+        throw new Error('Failed to process AI response');
+      }
 
+      return response;
     } catch (error) {
       console.error('Error:', error);
       throw error;
+    }
+  },
+
+  executeOperations: async function(operations) {
+    if (!Array.isArray(operations)) {
+      throw new Error('Operations must be an array');
+    }
+
+    console.log(`Executing ${operations.length} operations...`);
+
+    for (const op of operations) {
+      try {
+        console.log(`Executing operation: ${op.operation}`);
+        
+        switch (op.operation) {
+          case 'write':
+            await this.writeFile(op.params.path, op.params.content);
+            break;
+          
+          case 'move':
+            await this.moveFile(op.params.from, op.params.to);
+            break;
+          
+          case 'delete':
+            await this.deleteFile(op.params.path);
+            break;
+          
+          case 'rename':
+            await this.renameFile(op.params.from, op.params.to);
+            break;
+          
+          case 'writeFolder':
+            await this.writeFolder(op.params.path);
+            break;
+          
+          case 'deleteFolder':
+            await this.deleteFolder(op.params.path);
+            break;
+          
+          case 'cli':
+            await this.callCliCommand(op.params.command);
+            break;
+          
+          default:
+            console.warn(`Unknown operation: ${op.operation}`);
+        }
+      } catch (error) {
+        console.error(`Failed to execute operation ${op.operation}:`, error);
+        throw error;
+      }
     }
   },
 
@@ -111,60 +190,120 @@ const transformationLibrary = {
   },
 
   formatJsonData: function(jsonEntries) {
-    return Object.keys(jsonEntries)
-      .filter(fp => {
-        return fp.endsWith('.js') || fp.endsWith('.gd') || fp.endsWith('.html') || fp.endsWith('.css') || fp.endsWith('.jsx') || fp.endsWith('.svelte');
-      })
-      .map(a => {
-        let filePath = a;
-        let filetype = '';
-        if (filePath.endsWith('.js')) filetype = 'javascript';
-        if (filePath.endsWith('.gd')) filetype = 'gdscript';
-        if (filePath.endsWith('.html')) filetype = 'html';
-        if (filePath.endsWith('.jsx')) filetype = 'javascript';
-        if (filePath.endsWith('.svelte')) filetype = 'svelte';
-        const content = jsonEntries[a].trim();
-        return `${path.basename(a)}\n\`\`\`${filetype}\n${content}\n\`\`\``;
-      })
-      .join('\n');
+    return JSON.stringify(jsonEntries, null, 2);
   },
 
-  writeFilesFromStr: function(str) {
-    const codeBlocks = [];
-    const codeBlockRegex = /^(.*?)(\s*```([\s\S]*?)```)/gm;
-    let matches;
-
-    while ((matches = codeBlockRegex.exec(str)) !== null) {
-      const name = matches[1] ? matches[1].trim() : "unknown";
-      const fileContent = matches[2] ? matches[2].trim() : "";
-      if (fileContent) {
-        codeBlocks.push({ name, file: fileContent });
-      }
+  writeFile: async function(filePath, content) {
+    try {
+      const directory = path.dirname(filePath);
+      await fs.promises.mkdir(directory, { recursive: true });
+      await fs.promises.writeFile(filePath, content, 'utf8');
+      console.log(`Successfully wrote file: ${filePath}`);
+    } catch (error) {
+      console.error(`Error writing file ${filePath}:`, error);
+      throw error;
     }
-
-    codeBlocks.forEach(({ name, file }) => {
-      if (!file.trim()) return;
-      const parts = file.split('\n').filter(a => a != '');
-      if (name !== 'unknown') {
-        parts.shift();
-        parts.pop();
-      } else {
-        parts.shift();
-        name = parts.shift();
-        parts.pop();
-      }
-      const fileContent = parts.join('\n').trim();
-      if (name && fileContent) {
-        console.log(`Writing File: ${name.replace('#','').replace('//','').trim()}`);
-        this.writeFile(name.replace('#','').replace('//','').trim(), fileContent);
-      }
-    });
   },
 
-  writeFile: function(filePath, content) {
-    const directory = path.dirname(filePath);
-    fs.mkdirSync(directory, { recursive: true });
-    fs.writeFileSync(filePath, content, 'utf8');
+  moveFile: async function(sourcePath, targetPath) {
+    try {
+      if (!fs.existsSync(sourcePath)) {
+        throw new Error(`Source file doesn't exist: ${sourcePath}`);
+      }
+      
+      const targetDir = path.dirname(targetPath);
+      await fs.promises.mkdir(targetDir, { recursive: true });
+      
+      await fs.promises.rename(sourcePath, targetPath);
+      console.log(`Successfully moved ${sourcePath} to ${targetPath}`);
+    } catch (error) {
+      console.error(`Error moving file from ${sourcePath} to ${targetPath}:`, error);
+      throw error;
+    }
+  },
+
+  deleteFile: async function(filePath) {
+    try {
+      if (fs.existsSync(filePath)) {
+        await fs.promises.unlink(filePath);
+        console.log(`Successfully deleted: ${filePath}`);
+        
+        // Try to remove empty directories
+        let dirPath = path.dirname(filePath);
+        while (dirPath !== '.') {
+          if (fs.existsSync(dirPath) && fs.readdirSync(dirPath).length === 0) {
+            await fs.promises.rmdir(dirPath);
+            console.log(`Removed empty directory: ${dirPath}`);
+            dirPath = path.dirname(dirPath);
+          } else {
+            break;
+          }
+        }
+      } else {
+        console.log(`File doesn't exist, skipping delete: ${filePath}`);
+      }
+    } catch (error) {
+      console.error(`Error deleting file ${filePath}:`, error);
+      throw error;
+    }
+  },
+
+  renameFile: async function(oldPath, newPath) {
+    try {
+      if (!fs.existsSync(oldPath)) {
+        throw new Error(`Source file doesn't exist: ${oldPath}`);
+      }
+      
+      const newDir = path.dirname(newPath);
+      await fs.promises.mkdir(newDir, { recursive: true });
+      
+      await fs.promises.rename(oldPath, newPath);
+      console.log(`Successfully renamed ${oldPath} to ${newPath}`);
+    } catch (error) {
+      console.error(`Error renaming file from ${oldPath} to ${newPath}:`, error);
+      throw error;
+    }
+  },
+
+  writeFolder: async function(folderPath) {
+    try {
+      await fs.promises.mkdir(folderPath, { recursive: true });
+      console.log(`Successfully created folder: ${folderPath}`);
+    } catch (error) {
+      console.error(`Error creating folder ${folderPath}:`, error);
+      throw error;
+    }
+  },
+
+  deleteFolder: async function(folderPath) {
+    try {
+      if (fs.existsSync(folderPath)) {
+        await fs.promises.rm(folderPath, { recursive: true, force: true });
+        console.log(`Successfully deleted folder: ${folderPath}`);
+      } else {
+        console.log(`Folder does not exist, skipping deletion: ${folderPath}`);
+      }
+    } catch (error) {
+      console.error(`Error deleting folder ${folderPath}:`, error);
+      throw error;
+    }
+  },
+
+  callCliCommand: async function(command) {
+    console.log(`Executing CLI command: ${command}`);
+    return new Promise((resolve, reject) => {
+      exec(command, { shell: 'powershell.exe' }, (error, stdout, stderr) => {
+        if (error) {
+          console.error(`Error executing command: ${command}`, error);
+          return reject(error);
+        }
+        console.log(`Command output: ${stdout}`);
+        if (stderr && stderr.trim() !== "") {
+          console.warn(`Command stderr: ${stderr}`);
+        }
+        resolve(stdout.trim());
+      });
+    });
   }
 };
 
