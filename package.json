@@ -1,35 +1,14 @@
 {
-  "name": "apptoapp",
-  "version": "0.0.2",
-  "description": "app to app transformer using GPT",
-  "main": "index.js",
+  "name": "node-starter",
+  "private": true,
   "scripts": {
-    "start": "node cli.js",
-    "dev": "NODE_ENV=development node cli.js",
-    "prod": "NODE_ENV=production node cli.js",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "release": "git commit -a -m ranrelease && npm version $(semver $npm_package_version -i patch) && npm publish --tag latest",
-    "run-test": "node test/scripts/test.js",
-    "clean-logs": "rimraf logs/*"
+    "start": "DEBUG=codestral:* node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "lanmower",
   "dependencies": {
-    "dotenv": "^16.3.1",
-    "fs-extra": "^10.0.0",
-    "inquirer": "^8.2.4",
-    "openai": "^4.6.0",
-    "tree-kill": "^1.2.2"
-  },
-  "devDependencies": {
-    "eslint": "^8.57.1",
-    "jest": "^29.7.0",
-    "rimraf": "^5.0.10",
-    "winston": "^3.17.0"
-  },
-  "bin": {
-    "app2app": "index.js"
+    "debug": "^4.3.4",
+    "diff": "^5.1.0",
+    "dotenv": "^16.4.1",
+    "ignore": "^5.3.1"
   }
 }

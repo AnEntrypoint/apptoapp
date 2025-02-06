@@ -1,0 +1,141 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+public/
+# Build outputs
+dist/
+build/
+out/
+.next/
+.nuxt/
+.output/
+.cache/
+.parcel-cache/
+
+# Environment and config files
+.env
+.env.*
+.envrc
+.npmrc
+.yarnrc
+.pnpmrc
+config.local.js
+*.config.local.js
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Debug and log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+debug.log
+*.log
+
+# Test coverage
+coverage/
+.nyc_output/
+junit.xml
+test-results/
+
+# Binary and media files
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.ico
+*.svg
+*.woff
+*.woff2
+*.ttf
+*.eot
+*.mp3
+*.mp4
+*.webm
+*.pdf
+*.zip
+*.tar
+*.gz
+*.7z
+
+# Generated files
+*.min.js
+*.min.css
+*.bundle.js
+*.bundle.css
+**/generated/
+**/dist/
+**/*.generated.*
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+temp/
+tmp/
+
+# System files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Version control
+.git/
+.gitignore
+.gitattributes
+.svn/
+.hg/
+
+# Package manager files
+.npm/
+.yarn/
+.pnpm/
+
+# Security and keys
+*.pem
+*.key
+*.cert
+*.crt
+*.ca-bundle
+*.p12
+*.pfx
+
+# Large data files
+*.csv
+*.tsv
+*.xlsx
+*.xls
+*.db
+*.sqlite
+*.sqlite3
+
+# Backup files
+*.bak
+*.backup
+*~
+*.old
+*.orig
+
+# Platform specific
+.bolt/
+.vercel/
+.netlify/
+.firebase/
+.serverless/
+.terraform/
+.docker/
+
+# Documentation
+docs/
+*.md
+LICENSE
+AUTHORS
+CONTRIBUTORS
+CHANGELOG

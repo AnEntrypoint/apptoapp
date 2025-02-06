@@ -1,123 +1,270 @@
-#!/usr/bin/env node
-
-const { exec, spawn } = require('child_process');
+const { createDiff } = require('./diff.js');
+const { tools, executeToolCall } = require('./tools.js');
+const dotenv = require('dotenv');
 const fs = require('fs');
+const fsp = require('fs').promises;
 const path = require('path');
-const config = require('./src/config');
-const logger = require('./src/utils/logger');
-const { runDevAndPupdebug } = require('./src/testing/devRunner');
-const { updateUnitTests, runUnitTests } = require('./src/testing/unitTests');
-const { readTodo, removeTask, appendChangelog } = require('./src/operations/fileOps');
-const { executeOperation, determineTaskCompletion } = require('./src/operations/taskOps');
-const { needsDecomposition, decomposeTask } = require('./src/operations/taskDecomposition');
-const { generatePlan, writeFilesFromStr, cycleTasks } = require('./src/operations/main');
-const sleep = require('./src/utils/sleep');
-const { execCliCommand } = require('./src/utils/cli');
+const ignore = require('ignore');
 
-async function main() {
+dotenv.config();
+console.log('Environment loaded');
+
+const CODESTRAL_API_KEY = process.env.MISTRAL_API_KEY;
+const CHAT_ENDPOINT = 'https://codestral.mistral.ai/v1/chat/completions';
+
+async function loadIgnorePatterns() {
   try {
-    logger.info('Starting application transformation process');
-    const testUrl = config.testing.baseUrl;
-    const instruction = process.argv[2] || 'make this a comprehensive artist portfolio site';
-
-    // Ensure the user is in the ./test directory
-    if (process.cwd() !== path.resolve(__dirname, 'test')) {
-      logger.error('Invalid working directory', { 
-        expected: path.resolve(__dirname, 'test'),
-        actual: process.cwd()
-      });
-      process.exit(1);
-    }
-
-    // Generate plan based on instruction
-    logger.info('Generating plan', { instruction });
-    const plan = await generatePlan(instruction);
-    logger.debug('Generated plan', { plan });
-
-    // Write files from plan
-    logger.info('Writing files from plan');
-    await writeFilesFromStr(plan);
-
-    // Start cyclic task evaluation
-    logger.info('Starting cyclic task evaluation', { testUrl });
-    await cycleTasks(testUrl, instruction);
+    const ignoreContent = await fsp.readFile('.llmignore', 'utf8');
+    const ig = ignore().add(ignoreContent);
+    console.log('Ignore patterns loaded successfully');
+    return ig;
   } catch (error) {
-    logger.error('Application failed', { 
-      error: error.message,
-      stack: error.stack
-    });
+    if (error.code === 'ENOENT') {
+      console.log('No .llmignore file found, using empty ignore list');
+      return ignore();
+    }
+    throw error;
+  }
+}
+
+async function makeCodestralRequest(messages, tools) {
+  console.log('Making Codestral API request');
+  console.log('Messages count: %d', messages.length);
+  console.log('Tools count: %d', tools.length);
+
+  const totalTokensSent = messages.reduce((acc, msg) => acc + msg.content.split(' ').length, 0);
+  console.log('Total tokens sent: %d', totalTokensSent);
+
+  const response = await fetch(CHAT_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${CODESTRAL_API_KEY}`
+    },
+    body: JSON.stringify({
+      model: "codestral-latest",
+      messages,
+      tools,
+      stream: false
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    console.log('API error: %O', error);
+    throw new Error(`Codestral API error: ${error.message || response.statusText}`);
+  }
+
+  console.log('API request successful');
+  const responseData = await response.json();
+  
+  // Handle tool call token counting
+  let totalTokensReceived = 0;
+  if (responseData.choices[0].message.tool_calls) {
+    totalTokensReceived = responseData.choices[0].message.tool_calls
+      .reduce((acc, toolCall) => acc + JSON.stringify(toolCall).split(' ').length, 0);
+  } else if (responseData.choices[0].message.content) {
+    totalTokensReceived = responseData.choices[0].message.content.split(' ').length;
+  }
+  
+  console.log('Total tokens received: %d', totalTokensReceived);
+  
+  return responseData;
+}
+
+function setupLogging() {
+  const fs = require('fs');
+  const logFilePath = 'serverlogs.txt';
+  
+  // Clear the log file
+  fs.writeFileSync(logFilePath, '');
+}
+
+async function calculateDirectorySize(dir, ig) {
+  console.log('Calculating size for directory: %s', dir);
+  try {
+    const files = await fsp.readdir(dir, { withFileTypes: true });
+    let totalSize = 0;
+
+    for (const file of files) {
+      const fullPath = path.join(dir, file.name);
+      const relativePath = path.relative(process.cwd(), fullPath);
+
+      if (ig.ignores(relativePath)) {
+        console.log('Ignoring path: %s', relativePath);
+        continue;
+      }
+
+      if (file.isDirectory()) {
+        console.log('Processing subdirectory: %s', file.name);
+        // Don't add directory sizes to the total
+        await calculateDirectorySize(fullPath, ig);
+      } else {
+        const stats = await fsp.stat(fullPath);
+        console.log('Processing file: %s (%s bytes)', file.name, stats.size);
+        totalSize += stats.size;
+      }
+    }
+    console.log('Completed size calculation for %s: %d bytes', dir, totalSize);
+    return totalSize;
+  } catch (error) {
+    console.log('Error calculating directory size: %O', error);
+    throw error;
+  }
+}
+
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+async function listFiles(dir, ig) {
+  console.log('Listing files in directory: %s', dir);
+  try {
+    const files = await fsp.readdir(dir, { withFileTypes: true });
+    const fileList = [];
+
+    for (const file of files) {
+      const fullPath = path.join(dir, file.name);
+      const relativePath = path.relative(process.cwd(), fullPath);
+
+      if (ig.ignores(relativePath)) {
+        console.log('Ignoring path: %s', relativePath);
+        continue;
+      }
+
+      if (file.isDirectory()) {
+        console.log('Found directory: %s', file.name);
+        const subFiles = await listFiles(fullPath, ig);
+        // All directories show as 0KB
+        fileList.push(`${file.name}/ (0KB)`);
+        fileList.push(...subFiles.map(f => `  ${f}`));
+      } else {
+        // Check if file is under components/ui
+        const isUiComponent = fullPath.includes(path.join('components', 'ui'));
+        const size = isUiComponent ? '0KB' : formatBytes((await fsp.stat(fullPath)).size);
+        console.log('Found file: %s (%s)', file.name, size);
+        fileList.push(`${file.name} (${size})`);
+      }
+    }
+    return fileList;
+  } catch (error) {
+    console.log('Error listing files: %O', error);
+    throw error;
+  }
+}
+
+async function main(instruction) {
+  console.log('Starting main application');
+  
+  // Validate instruction
+  if (!instruction || instruction.trim() === '') {
+    console.error('Error: No instruction provided');
     process.exit(1);
   }
-}
+  
+  console.log('Processing instruction:', instruction);
+  
+  // Load ignore patterns
+  const ig = await loadIgnorePatterns();
+  
+  // Directory analysis
+  console.log('Starting directory analysis');
+  const dir = process.cwd();
+  console.log('Current working directory: %s', dir);
+  
+  const totalSize = await calculateDirectorySize(dir, ig);
+  const fileList = await listFiles(dir, ig);
 
-async function cleanup() {
-  logger.info('Starting cleanup process');
-  try {
-    // Stop the dev server if it's running
-    await new Promise((resolve, reject) => {
-      exec('taskkill /F /IM node.exe', (error, stdout, stderr) => {
-        if (error && !error.message.includes('not found')) {
-          logger.error('Error stopping dev server', { error: error.message });
-          reject(error);
-          return;
-        }
-        if (stderr) {
-          logger.warn('Cleanup stderr output', { stderr });
-        }
-        if (stdout) {
-          logger.debug('Cleanup stdout output', { stdout });
-        }
-        resolve();
-      });
-    });
+  console.log('\nDirectory Analysis:');
+  console.log(`Total Size: ${formatBytes(totalSize)}`);
+  console.log('Files and Directories:');
+  fileList.forEach(f => console.log(`- ${f}`));
+  console.log('');
 
-    // Collect logs
-    if (fs.existsSync('lastCycleLogs.txt')) {
-      const logs = fs.readFileSync('lastCycleLogs.txt', 'utf8');
-      logger.info('Collected cycle logs', { logs });
-    } else {
-      logger.warn('No cycle logs found to collect');
+  // Generate diff and log its size
+  console.log('Generating project diff');
+  const diff = await createDiff();
+  const diffSize = Buffer.byteLength(diff, 'utf8');
+  console.log(`Generated diff size: ${diffSize} bytes`);
+
+  // Prepare messages for the Codestral API request
+  const messages = [
+    {
+      role: 'system',
+      content: "You are a professional web developer. Transform the code according to the user's instructions."
+    },
+    {
+      role: 'user',
+      content: instruction
+    },
+    {
+      role: 'user',  // Second user message containing the diff
+      content: `CODE DIFF:\n${diff}`
     }
+  ];
+
+  console.log('Sending to Codestral API');
+  try {
+    const response = await makeCodestralRequest(messages, tools);
+    console.log('API response received');
+
+    // Execute tool calls if present in the API response
+    if (response.choices[0].message.tool_calls) {
+      for (const toolCall of response.choices[0].message.tool_calls) {
+        await executeToolCall(toolCall);
+      }
+    }
+
+    console.log('Transformation complete!');
   } catch (error) {
-    logger.error('Cleanup process failed', { 
-      error: error.message,
-      stack: error.stack
-    });
+    console.error('Error during transformation:', error);
+    process.exit(1);
   }
+
+  console.log('Main application setup complete');
 }
 
-// Handle process signals
-process.on('SIGINT', async () => {
-  logger.info('Received SIGINT signal');
-  await cleanup();
-  process.exit(0);
-});
-
-process.on('SIGTERM', async () => {
-  logger.info('Received SIGTERM signal');
-  await cleanup();
-  process.exit(0);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  logger.error('Unhandled Promise rejection', {
-    reason: reason instanceof Error ? reason.message : reason,
-    stack: reason instanceof Error ? reason.stack : undefined
-  });
-});
-
-process.on('uncaughtException', (error) => {
-  logger.error('Uncaught Exception', {
-    error: error.message,
-    stack: error.stack
-  });
+// Get instruction from command line arguments
+const instruction = process.argv[2];
+main(instruction).catch(error => {
+  console.error('Application error:', error);
   process.exit(1);
 });
 
-main().catch(error => {
-  logger.error('Fatal error in main process', {
-    error: error.message,
-    stack: error.stack
+// Add a new function to run the program after generation
+async function runProgram() {
+  console.log('Preparing to run npm run dev');
+  const { spawn } = require('child_process');
+  
+  console.log('Creating log stream');
+  const logStream = fs.createWriteStream('serverlogs.txt', { flags: 'a' });
+
+  console.log('Spawning npm run dev process');
+  const child = spawn('npm', ['run', 'dev'], { 
+    cwd: '',
+    shell: true
   });
-  process.exit(1);
-});
+
+  child.stdout.on('data', (data) => {
+    console.log('npm run dev stdout: %s', data.toString().trim());
+    logStream.write(data.toString());
+  });
+
+  child.stderr.on('data', (data) => {
+    console.log('npm run dev stderr: %s', data.toString().trim());
+    logStream.write(data.toString());
+  });
+
+  child.on('close', (code) => {
+    console.log('npm run dev process exited with code %d', code);
+    logStream.end();
+    console.log('Application completed');
+  });
+}
+
+// Export the runProgram function
+module.exports = { main, runProgram };
