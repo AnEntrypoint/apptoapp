@@ -57,8 +57,8 @@ async function makeCodestralRequest(messages, tools) {
 
   console.log('API request successful');
   const responseData = await response.json();
-    
-  
+
+
   return responseData;
 }
 
@@ -137,6 +137,34 @@ async function listFiles(dir, ig) {
   }
 }
 
+async function runBuild() {
+  console.log('Starting build process');
+  const { exec } = require('child_process');
+  return new Promise((resolve) => {
+    const child = exec('npm run build', {
+      timeout: 120000,
+      cwd: process.cwd()
+    });
+
+    let stdout = [];
+    let stderr = [];
+    
+    child.stdout.on('data', (data) => {
+      console.log('Build output:', data.toString().trim());
+      stdout.push(data.toString().trim());
+    });
+
+    child.stderr.on('data', (data) => {
+      console.log('Build error:', data.toString().trim());
+      stderr.push(data.toString().trim());
+    });
+
+    child.on('close', (code) => {
+      resolve(`Build exit code: ${code}\nSTDOUT:\n${stdout.join('\n')}\nSTDERR:\n${stderr.join('\n')}`);
+    });
+  });
+}
+
 async function runConcurrently() {
   console.log('Starting concurrent processes');
   const { exec } = require('child_process');
@@ -144,7 +172,7 @@ async function runConcurrently() {
   return new Promise((resolve, reject) => {
     const command = 'concurrently --kill-others "npm run dev" "npx pupdebug"';
     console.log('Executing:', command);
-    
+
     const child = exec(command, (error, stdout, stderr) => {
       if (error) {
         console.error('Concurrent process error:', error);
@@ -168,7 +196,7 @@ async function runConcurrently() {
         stderr:
         ${out.stderr.join('\n')}
       `);
-  });
+    });
 
     child.stdout.on('data', (data) => {
       console.log('Concurrent output:', data.toString().trim());
@@ -183,7 +211,6 @@ async function runConcurrently() {
 
   });
 }
-
 
 async function createErrorNote(errorDetails) {
   const messages = [
@@ -212,10 +239,10 @@ async function createErrorNote(errorDetails) {
 
 async function main(instruction, previousNotes = [], previousLogs = '') {
   console.log('Starting main application');
-  
+
   // Initialize notes with previous notes
   const notes = [...previousNotes];
-  
+
   // Add error handler to collect notes
   process.on('uncaughtException', async (error) => {
     console.error('Uncaught exception:', error);
@@ -226,23 +253,23 @@ async function main(instruction, previousNotes = [], previousLogs = '') {
     notes.push(noteContent);
     process.exit(1);
   });
-  
+
   // Validate instruction
   if (!instruction || instruction.trim() === '') {
     console.error('Error: No instruction provided');
     process.exit(1);
   }
-  
+
   console.log('Processing instruction:', instruction);
-  
+
   // Load ignore patterns
   const ig = await loadIgnorePatterns();
-  
+
   // Directory analysis
   console.log('Starting directory analysis');
   const dir = process.cwd();
   console.log('Current working directory: %s', dir);
-  
+
   const totalSize = await calculateDirectorySize(dir, ig);
   const fileList = await listFiles(dir, ig);
 
@@ -252,24 +279,43 @@ async function main(instruction, previousNotes = [], previousLogs = '') {
   fileList.forEach(f => console.log(`- ${f}`));
   console.log('');
 
+  // Add this after directory analysis (line 252)
+  console.log('\nRunning initial build');
+  const buildLogs = await runBuild();
+  console.log('Build logs size:', Buffer.byteLength(buildLogs, 'utf8'), 'bytes');
+
   // Generate diff and log its size
   console.log('Generating project diff');
-  const diff = await createDiff();
+  let diff = await createDiff();
   const diffSize = Buffer.byteLength(diff, 'utf8');
   console.log(`Generated diff size: ${diffSize} bytes`);
-
-  // Prepare messages for the Codestral API request
-  const messages = [
+  const brainstorm = await makeCodestralRequest([
     {
       role: 'system',
-      content: "Perform the following instructions: " + instruction + ". Only respond with tool calls, one for each file that needs modification and one for any required CLI commands. Do NOT include any explanatory text."
+      content: "Brainstorm the following code transformations, make a complete list of instructions for each file that needs modification: " + instruction
     },
-
     {
       role: 'user',  // Second user message containing the diff
       content: `${diff}`
+    }], []);
+  
+  // Modify the messages array (lines 271-281) to include build logs
+  const messages = [
+    {
+      role: 'system',
+      content: `Perform these code transformations: ${instruction}\n\n
+        If there are any errors, fix them first:\n${buildLogs}\n\n
+        Follow these rules:
+        1. Fix build errors first
+        2. Modify files showing build errors
+        Only respond with tool calls, one for each file that needs modification and one for any required CLI commands.`
+    },
+    {
+      role: 'user',
+      content: `Project State:\n${diff}\n\nBuild Output:\n${buildLogs}`
     }
   ];
+
 
   console.log('Sending to Codestral API');
   try {
@@ -292,12 +338,22 @@ async function main(instruction, previousNotes = [], previousLogs = '') {
     } else if (response.choices[0].message.content) {
       try {
         const toolCalls = JSON.parse(response.choices[0].message.content);
-        // Process toolCalls array here
+        for (const toolCall of toolCalls) {
+          try {
+            await executeToolCall(toolCall);
+          } catch (error) {
+            const noteContent = await createErrorNote({
+              tool: toolCall.function.name,
+              error: error.message
+            });
+            notes.push(noteContent);
+          }
+        }
       } catch (e) {
         console.error('Failed to parse tool calls from content:', e);
       }
     }
-    
+
     console.log('Transformation complete!');
   } catch (error) {
     console.error('Error during transformation:', error);
@@ -313,46 +369,33 @@ async function main(instruction, previousNotes = [], previousLogs = '') {
   const finalMessages = [
     {
       role: 'system',
-      content: `Analyze these notes and logs. Respond "true" if there are any errors, and the process should iterate this full history.`
+      content: `Respond with JSON: { "needsRepeat": boolean, "errors": string[] }`
     },
     {
       role: 'user',
-      content: `Previous Logs:\n${previousLogs}\n\nCurrent Notes:\n${notes.join('\n')}\n\nLatest Logs:\n${latestlogs}`
+      content: `Current Notes:\n${notes.join('\n')}\n\nLatest Logs:\n${latestlogs}`
     }
   ];
 
-  const finalResponse = await makeCodestralRequest(finalMessages, [
-    {
-      type: "function",
-      function: {
-        name: "shouldRepeatProcess",
-        description: "Determine if the process should be repeated",
-        parameters: {
-          type: "object",
-          properties: {
-            repeat: {
-              type: "boolean",
-              description: "Whether to repeat the process"
-            }
-          },
-          required: ["repeat"]
-        }
-      }
-    }
-  ]);
 
-  if (finalResponse.choices[0].message.tool_calls) {
-    const toolCall = finalResponse.choices[0].message.tool_calls[0];
-    const parsedArgs = JSON.parse(toolCall.function.arguments);
+
+
+  const finalResponse = await makeCodestralRequest(finalMessages, []);
+  try {
+    const decision = JSON.parse(finalResponse.choices[0].message.content);
+    console.log('Final evaluation decision:', decision);
     
-    if (parsedArgs.repeat) {
-      console.log('Restarting process with previous context');
-      return main(`fix the following errors: ${latestlogs}`, notes, previousLogs);
+    if (decision.needsRepeat) {
+      console.log('Errors detected, restarting process');
+      await main(instruction, notes, latestlogs);
+    } else {
+      console.log('No errors found, process complete');
     }
+  } catch (e) {
+    console.error('Failed to parse final decision:', e);
+    // Default to retry if parsing fails
+    await main(instruction, notes, latestlogs);
   }
-
-  console.log('Process completed successfully');
-  process.exit(0);
 }
 
 // Get instruction from command line arguments
