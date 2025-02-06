@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 const { createDiff } = require('./diff.js');
 const { tools, executeToolCall } = require('./tools.js');
 const dotenv = require('dotenv');
