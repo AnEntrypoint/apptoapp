@@ -5,6 +5,7 @@ Initial changes:
 4. Created a basic structure for the portfolio website in index.js.
 5. Created styles.css for basic styling.
 6. Updated index.js to call cycleTasks from transform.js with a default test URL and instruction.
+7. Created cli.js to handle command-line arguments and start the cycle.
 
 Next steps:
 1. Verify that the changes are correct by running the application.
