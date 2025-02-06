@@ -42,7 +42,6 @@ Example response:
         { "role": "user", "content": `${generatedJsonData}\n\nTransformation request: ${transformationInstruction}` },
       ];
 
-      // Choose API based on configuration
       const usesMistral = process.env.MISTRAL_API_KEY && process.env.MISTRAL_MODEL;
       
       if (!usesMistral && !process.env.OPENAI_API_KEY) {
@@ -65,21 +64,24 @@ Example response:
         console.log("Response written to transformed.out for debugging.");
       }
       
-      // Parse and execute the operations
-      try {
-        const operations = JSON.parse(response);
-        console.log("Parsed operations:", operations);
-        await this.executeOperations(operations);
-        console.log("Finished executing all operations.");
-      } catch (error) {
-        console.error('Error parsing or executing operations:', error);
-        console.error('Raw response:', response);
-        throw new Error('Failed to process AI response');
-      }
-
+      // Instead of executing operations here, simply return the response JSON string.
       return response;
     } catch (error) {
       console.error('Error in generateJsonData:', error);
+      throw error;
+    }
+  },
+
+  writeFilesFromStr: async function(text) {
+    try {
+      console.log("Parsing operations from string...");
+      const operations = JSON.parse(text);
+      console.log("Parsed operations:", operations);
+      console.log(`Executing ${operations.length} operations...`);
+      await this.executeOperations(operations);
+      console.log("Finished executing operations.");
+    } catch (error) {
+      console.error("Error executing operations from string:", error);
       throw error;
     }
   },
@@ -185,18 +187,23 @@ Example response:
     const files = fs.readdirSync(srcDirectory);
     
     await Promise.all(files.map(async filename => {
-      const filePath = path.join(srcDirectory, filename);
-      if (filePath.startsWith('node_modules') || filePath.startsWith('.')) {
-        return; // Skip these files
+      if (filename === "node_modules" || filename.startsWith('.')) {
+        console.log(`Skipping ${filename}`);
+        return;
       }
+      const filePath = path.join(srcDirectory, filename);
       if (fs.statSync(filePath).isDirectory()) {
         Object.assign(jsonEntries, await this.readSrcDirectory(filePath));
       } else {
-        const fileContent = fs.readFileSync(filePath, 'utf8');
-        jsonEntries[filePath] = fileContent;
+        try {
+          const fileContent = fs.readFileSync(filePath, 'utf8');
+          jsonEntries[filePath] = fileContent;
+        } catch (error) {
+          console.warn(`Failed to read file ${filePath}: ${error.message}`);
+        }
       }
     }));
-
+    
     return jsonEntries;
   },
 
@@ -302,7 +309,6 @@ Example response:
 
   callCliCommand: async function(command) {
     console.log(`Executing CLI command: ${command}`);
-    // If the command is "npm run dev", warn that it will start a long-running process.
     if (command.trim().toLowerCase() === 'npm run dev') {
       console.log("Note: 'npm run dev' will start the development server and run continuously.");
     }
