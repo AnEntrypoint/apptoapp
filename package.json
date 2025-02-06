@@ -7,6 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "release": "git commit -a -m ranrelease && npm version patch  && npm publish --tag latest"
   },
+  
   "dependencies": {
     "debug": "^4.3.4",
     "diff": "^5.1.0",
