@@ -41,7 +41,7 @@ const config = {
 const validateConfig = () => {
   const required = ['OPENAI_API_KEY'];
   const missing = required.filter(key => !process.env[key]);
-  
+
   if (missing.length > 0) {
     throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
   }
@@ -49,4 +49,4 @@ const validateConfig = () => {
 
 validateConfig();
 
-module.exports = config; 
+module.exports = config;

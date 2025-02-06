@@ -35,7 +35,7 @@ class Cache {
    */
   set(key, value, options = {}) {
     metrics.increment('cache.set_attempts', 1, { name: this.name });
-    
+
     const cacheKey = this.generateKey(key, options);
     const ttl = options.ttl || this.defaultTTL;
     const expiresAt = Date.now() + ttl;
@@ -44,7 +44,7 @@ class Cache {
     const existing = this.store.get(cacheKey);
     if (existing && existing.expiresAt <= Date.now()) {
       this.store.delete(cacheKey);
-      metrics.increment('cache.evictions', 1, { 
+      metrics.increment('cache.evictions', 1, {
         name: this.name,
         reason: 'expired',
       });
@@ -53,12 +53,12 @@ class Cache {
     // Ensure we don't exceed max size
     if (this.store.size >= this.maxSize) {
       const evicted = this.evictExpired();
-      
+
       // If still at max size, remove oldest entry
       if (this.store.size >= this.maxSize) {
         const oldestKey = Array.from(this.store.keys())[0];
         this.store.delete(oldestKey);
-        metrics.increment('cache.evictions', 1, { 
+        metrics.increment('cache.evictions', 1, {
           name: this.name,
           reason: 'size',
         });
@@ -90,7 +90,7 @@ class Cache {
    */
   get(key, options = {}) {
     metrics.increment('cache.get_attempts', 1, { name: this.name });
-    
+
     const cacheKey = this.generateKey(key, options);
     const entry = this.store.get(cacheKey);
 
@@ -101,7 +101,7 @@ class Cache {
 
     if (entry.expiresAt <= Date.now()) {
       this.store.delete(cacheKey);
-      metrics.increment('cache.evictions', 1, { 
+      metrics.increment('cache.evictions', 1, {
         name: this.name,
         reason: 'expired',
       });
@@ -131,7 +131,7 @@ class Cache {
     for (const [key, entry] of this.store.entries()) {
       if (entry.expiresAt <= now) {
         this.store.delete(key);
-        metrics.increment('cache.evictions', 1, { 
+        metrics.increment('cache.evictions', 1, {
           name: this.name,
           reason: 'expired',
         });
@@ -183,7 +183,7 @@ class Cache {
     const size = this.store.size;
     if (size > 0) {
       this.store.clear();
-      metrics.increment('cache.evictions', size, { 
+      metrics.increment('cache.evictions', size, {
         name: this.name,
         reason: 'clear',
       });
@@ -203,4 +203,4 @@ const apiCache = new Cache({
 module.exports = {
   Cache,
   apiCache,
-}; 
+};

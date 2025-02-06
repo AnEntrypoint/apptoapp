@@ -19,7 +19,7 @@ class RateLimiter {
   refillTokens() {
     const now = Date.now();
     const timePassed = now - this.lastRefill;
-    
+
     if (timePassed >= this.interval) {
       const oldTokens = this.tokens;
       this.tokens = this.maxRequests;
@@ -125,11 +125,11 @@ class RateLimiter {
     return async (...args) => {
       try {
         await this.acquire();
-        
+
         metrics.startTimer(`rate_limiter.execution`, { name: this.name });
         const result = await fn(...args);
         metrics.stopTimer(`rate_limiter.execution`, { name: this.name });
-        
+
         metrics.increment(`rate_limiter.success`, 1, { name: this.name });
         return result;
       } catch (error) {
@@ -176,4 +176,4 @@ const openAiLimiter = new RateLimiter({
 module.exports = {
   RateLimiter,
   openAiLimiter,
-}; 
+};
