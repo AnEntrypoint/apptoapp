@@ -10,8 +10,12 @@ const transformationLibrary = {
 
   generateJsonData: async function(transformationInstruction) {
     try {
+      console.log("Starting generation: reading source directory...");
       const jsonEntries = await this.readSrcDirectory('./');
+      console.log("Finished reading source directory.");
+
       const generatedJsonData = this.formatJsonData(jsonEntries);
+      console.log("Generated JSON data from source files.");
 
       const systemPrompt = `You are a code transformation assistant. Analyze the files and perform the requested modifications.
 Response format must be a JSON array of operations, each with 'operation' and 'params' fields.
@@ -45,6 +49,7 @@ Example response:
         throw new Error('Please set either MISTRAL_API_KEY or OPENAI_API_KEY in .env');
       }
 
+      console.log("Sending API request to", usesMistral ? "Mistral" : "OpenAI", "...");
       let response;
       if (usesMistral) {
         console.log('Using Mistral API');
@@ -53,13 +58,19 @@ Example response:
         console.log('Using OpenAI API');
         response = await this.callOpenAIAPI(messages);
       }
+      console.log("Received API response.");
 
-      if (this.debug) fs.writeFileSync('transformed.out', response);
+      if (this.debug) {
+        fs.writeFileSync('transformed.out', response);
+        console.log("Response written to transformed.out for debugging.");
+      }
       
       // Parse and execute the operations
       try {
         const operations = JSON.parse(response);
+        console.log("Parsed operations:", operations);
         await this.executeOperations(operations);
+        console.log("Finished executing all operations.");
       } catch (error) {
         console.error('Error parsing or executing operations:', error);
         console.error('Raw response:', response);
@@ -68,7 +79,7 @@ Example response:
 
       return response;
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error in generateJsonData:', error);
       throw error;
     }
   },
@@ -291,6 +302,10 @@ Example response:
 
   callCliCommand: async function(command) {
     console.log(`Executing CLI command: ${command}`);
+    // If the command is "npm run dev", warn that it will start a long-running process.
+    if (command.trim().toLowerCase() === 'npm run dev') {
+      console.log("Note: 'npm run dev' will start the development server and run continuously.");
+    }
     return new Promise((resolve, reject) => {
       exec(command, { shell: 'powershell.exe' }, (error, stdout, stderr) => {
         if (error) {
