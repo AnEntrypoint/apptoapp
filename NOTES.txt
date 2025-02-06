@@ -1,7 +1,14 @@
 Initial changes:
 1. Added a check in index.js to ensure the user is in the ./test directory before running the script.
 2. Added a check in transform.js to ensure the instruction is provided before starting the cycle.
+3. Updated package.json to include necessary scripts and dependencies.
+4. Created a basic structure for the portfolio website in index.js.
+5. Created styles.css for basic styling.
+6. Updated index.js to call cycleTasks from transform.js with a default test URL and instruction.
 
 Next steps:
 1. Verify that the changes are correct by running the application.
-2. Speculate on what further changes can be made to better realise the user's instructions.
+2. Add more sections to the portfolio website (e.g., About, Projects, Contact).
+3. Implement a way to add projects dynamically.
+4. Speculate on what further changes can be made to better realize the user's instructions.
+5. Ensure the application does not get stuck on any of its steps when testing.
