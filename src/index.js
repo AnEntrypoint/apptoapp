@@ -8,6 +8,7 @@ const { executeOperation, determineTaskCompletion } = require('./operations/task
 const { needsDecomposition, decomposeTask } = require('./operations/taskDecomposition');
 const { generatePlan, writeFilesFromStr, cycleTasks } = require('./operations/main');
 const sleep = require('./utils/sleep');
+const { execCliCommand } = require('./utils/cli');
 
 async function main() {
   const testUrl = 'http://localhost:3000'; // Replace with your actual test URL
