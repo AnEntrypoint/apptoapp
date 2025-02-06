@@ -6,6 +6,5 @@ describe('Nav', () => {
     render(<Nav />);
     const nav = screen.getByRole('navigation');
     expect(nav).toBeInTheDocument();
-    // Add tests for specific navigation items
   });
 });

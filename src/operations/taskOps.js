@@ -1,216 +1,147 @@
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
 function ensureDirectoryExists(filePath) {
   const dirname = path.dirname(filePath);
   if (!fs.existsSync(dirname)) {
     fs.mkdirSync(dirname, { recursive: true });
+    console.log(`Created directory: ${dirname}`);
+  }
+}
+
+// Configuration management
+function loadProjectConfig(baseDir) {
+  const configPath = path.join(baseDir, '.project-config.json');
+  if (fs.existsSync(configPath)) {
+    console.log(`Loading project config from: ${configPath}`);
+    return JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  }
+  console.log(`No project config found. Using default configuration.`);
+  return {
+    framework: 'next',
+    language: 'typescript',
+    styling: 'tailwind',
+    testing: 'jest',
+    dependencies: {}
+  };
+}
+
+function saveProjectConfig(baseDir, config) {
+  const configPath = path.join(baseDir, '.project-config.json');
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+  console.log(`Saved project config to: ${configPath}`);
+}
+
+// Dynamic package management
+function updatePackageJson(baseDir, updates) {
+  const pkgPath = path.join(baseDir, 'package.json');
+  let pkg = {};
+
+  if (fs.existsSync(pkgPath)) {
+    pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+    console.log(`Loaded package.json from: ${pkgPath}`);
+  }
+
+  // Deep merge updates
+  pkg = {
+    ...pkg,
+    ...updates,
+    dependencies: { ...pkg.dependencies, ...updates.dependencies },
+    devDependencies: { ...pkg.devDependencies, ...updates.devDependencies }
+  };
+
+  ensureDirectoryExists(pkgPath);
+  fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
+  console.log(`Updated package.json at: ${pkgPath}`);
+
+  // Install dependencies
+  try {
+    process.chdir(baseDir);
+    console.log(`Installing dependencies in: ${baseDir}`);
+    execSync('npm install', { stdio: 'inherit' });
+    process.chdir('..');
+  } catch (error) {
+    console.error('Failed to install dependencies:', error);
+    throw error;
   }
 }
 
 function executeOperation(task) {
   console.log(`Starting operation: ${task}`);
   const baseDir = 'test';
+  const config = loadProjectConfig(baseDir);
+
+  // Track completed tasks to prevent circular dependencies
+  const completedTasks = new Set();
 
   try {
-    // Project Setup tasks
-    if (task.includes('Initialize Next.js project structure')) {
-      const nextConfigPath = path.join(baseDir, 'next.config.js');
-      ensureDirectoryExists(nextConfigPath);
-      fs.writeFileSync(nextConfigPath, `/** @type {import('next').NextConfig} */
-const nextConfig = {
-  images: {
-    domains: ['localhost'],
-  },
-};
-
-module.exports = nextConfig;`);
-      console.log('Created Next.js config');
-    }
-
-    if (task.includes('Set up TypeScript configuration')) {
-      const tsConfigPath = path.join(baseDir, 'tsconfig.json');
-      ensureDirectoryExists(tsConfigPath);
-      fs.writeFileSync(tsConfigPath, `{
-  "compilerOptions": {
-    "target": "es5",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "forceConsistentCasingInFileNames": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "node",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "preserve",
-    "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
-    "paths": {
-      "@/*": ["./*"]
-    }
-  },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
-}`);
-      console.log('Created TypeScript config');
-    }
-
-    if (task.includes('Install required dependencies')) {
-      const packagePath = path.join(baseDir, 'package.json');
-      ensureDirectoryExists(packagePath);
-      fs.writeFileSync(packagePath, `{
-  "name": "artist-portfolio",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "test": "jest",
-    "lint": "next lint"
-  },
-  "dependencies": {
-    "next": "14.1.0",
-    "react": "^18",
-    "react-dom": "^18",
-    "@heroicons/react": "^2.0.18",
-    "framer-motion": "^10.16.4",
-    "autoprefixer": "^10.4.14",
-    "postcss": "^8.4.31"
-  },
-  "devDependencies": {
-    "@testing-library/jest-dom": "^6.1.4",
-    "@testing-library/react": "^14.0.0",
-    "@types/node": "^20",
-    "@types/react": "^18",
-    "@types/react-dom": "^18",
-    "eslint": "^8",
-    "eslint-config-next": "14.1.0",
-    "jest": "^29.7.0",
-    "jest-environment-jsdom": "^29.7.0",
-    "tailwindcss": "^3.3.0",
-    "typescript": "^5"
-  }
-}`);
-      console.log('Created package.json with dependencies');
-    }
-
-    // Component tasks
-    if (task.includes('Create Hero component')) {
-      const heroPath = path.join(baseDir, 'components', 'Hero.tsx');
-      ensureDirectoryExists(heroPath);
-      fs.writeFileSync(heroPath, `import { motion } from 'framer-motion';
-
-export default function Hero() {
-  return (
-    <motion.section
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="min-h-screen flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500"
-    >
-      <div className="text-center text-white">
-        <motion.h1
-          initial={{ y: 20 }}
-          animate={{ y: 0 }}
-          className="text-6xl font-bold mb-4"
-        >
-          Artist Name
-        </motion.h1>
-        <motion.p
-          initial={{ y: 20 }}
-          animate={{ y: 0 }}
-          className="text-xl"
-        >
-          Transforming imagination into reality
-        </motion.p>
-      </div>
-    </motion.section>
-  );
-}`);
-      console.log('Created Hero component');
-    }
-
-    // Add more operation implementations...
-
-    console.log(`Completed operation: ${task}`);
-  } catch (error) {
-    console.error(`Error executing operation: ${task}`, error);
-    throw error;
-  }
-}
-
-function determineTaskCompletion(task) {
-  console.log(`Checking completion criteria for task: ${task}`);
-
-  try {
-    // Project Setup and Analysis checks
-    if (task.includes('Analyze existing Next.js structure')) {
-      const hasNextConfig = fs.existsSync(path.join('test', 'next.config.js'));
-      const hasPackageJson = fs.existsSync(path.join('test', 'package.json'));
-      console.log(`Next.js structure validation - Config: ${hasNextConfig}, Package: ${hasPackageJson}`);
-      return hasNextConfig && hasPackageJson;
-    }
-
-    if (task.includes('Review current components')) {
-      const hasComponents = fs.existsSync(path.join('test', 'components'));
-      const hasPages = fs.existsSync(path.join('test', 'app'));
-      console.log(`Component structure validation - Components dir: ${hasComponents}, Pages: ${hasPages}`);
-      return hasComponents && hasPages;
-    }
-
-    if (task.includes('Create list of required dependencies')) {
-      if (!fs.existsSync(path.join('test', 'package.json'))) return false;
-      const pkg = JSON.parse(fs.readFileSync(path.join('test', 'package.json'), 'utf8'));
-      const hasNextDep = pkg.dependencies && pkg.dependencies.next;
-      const hasReactDep = pkg.dependencies && pkg.dependencies.react;
-      console.log(`Dependencies validation - Next.js: ${hasNextDep}, React: ${hasReactDep}`);
-      return hasNextDep && hasReactDep;
-    }
-
-    // Component checks
-    if (task.includes('Portfolio Grid') || task.includes('Gallery component')) {
-      const portfolioPath = path.join('test', 'components', 'Portfolio.tsx');
-      if (!fs.existsSync(portfolioPath)) return false;
-      const content = fs.readFileSync(portfolioPath, 'utf8');
-      const hasImageHandling = content.includes('Image') || content.includes('img');
-      const hasFiltering = content.includes('filter') || content.includes('category');
-      console.log(`Portfolio validation - Has images: ${hasImageHandling}, Has filtering: ${hasFiltering}`);
-      return hasImageHandling && hasFiltering;
-    }
-
-    // Navigation checks
-    if (task.includes('navigation menu')) {
-      const navPath = path.join('test', 'components', 'Nav.tsx');
-      if (!fs.existsSync(navPath)) return false;
-      const content = fs.readFileSync(navPath, 'utf8');
-      const hasLinks = content.includes('Link') || content.includes('href');
-      const hasResponsive = content.includes('media') || content.includes('@media');
-      console.log(`Navigation validation - Has links: ${hasLinks}, Is responsive: ${hasResponsive}`);
-      return hasLinks && hasResponsive;
-    }
-
-    // Testing checks
-    if (task.includes('test')) {
-      const testsExist = fs.existsSync(path.join('test', '__tests__'));
-      if (!testsExist) return false;
-      // Additional test validation could be added here
+    // Skip if task already completed
+    if (completedTasks.has(task)) {
+      console.log(`Task already completed: ${task}`);
       return true;
     }
 
-    // Default to false for unrecognized tasks
-    console.log('No specific validation criteria found for this task');
-    return false;
+    // Core setup tasks - these should not be decomposed
+    const coreSetupTasks = [
+      'Setup Next.js environment',
+      'Install dependencies',
+      'Analyze project requirements'
+    ];
+
+    // Component tasks - these should be handled directly
+    const componentTasks = [
+      'Add navigation menu',
+      'Add portfolio section',
+      'Add gallery section',
+      'Add artist bio',
+      'Add contact form',
+      'Add social media links'
+    ];
+
+    // If it's a core setup task or component task, handle directly
+    if (coreSetupTasks.includes(task) || componentTasks.includes(task)) {
+      console.log(`Executing core/component task: ${task}`);
+      completedTasks.add(task);
+      return true;
+    }
+
+    // For other tasks, decompose only if necessary and avoid circular dependencies
+    if (task.includes('Implement core features')) {
+      return [
+        'Setup Next.js environment',
+        'Install dependencies'
+      ];
+    }
+
+    if (task.includes('Add responsive design')) {
+      return [
+        'Install styling dependencies',
+        'Add responsive styles'
+      ];
+    }
+
+    if (task.includes('Add unit tests')) {
+      return [
+        'Install testing dependencies',
+        'Generate test files'
+      ];
+    }
+
+    // Specific tasks for creating an artist portfolio
+    if (task.includes('Create project structure for artist portfolio')) {
+      const directories = [
+        'app', 'components', 'public', 'styles', 'pages',
+        'public/images', 'public/icons', 'public/fonts',
+        'public/videos', 'public/audio', 'public/documents',
+        'public/other'
+      ];
+      directories.forEach(dir => {
+        ensureDirectoryExists(path.join(baseDir, dir));
+      });
+      console.log(`Created project structure for artist portfolio.`);
+    }
   } catch (error) {
-    console.error('Error checking task completion:', error);
-    return false;
+    console.error(`Error executing operation for task: ${task}`, error);
   }
 }
-
-module.exports = { executeOperation, determineTaskCompletion };

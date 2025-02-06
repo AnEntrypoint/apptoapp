@@ -1,9 +1,27 @@
+this project is an auto programmer, its a CLI tool that edits other project, we dont want to improve the test project its editing under test/ we want to improve its ability to edit projects, and test/ is just an example that we are testing with
 
-this project is an auto programmer, its a CLI tool that edits other project
+the source code you have to edit is in src, not test
 
+do not edit test/ use the program in src to edit test/, same goes for cli commands like npm installs etc, the program should make all changes
+
+do not edit any files in the test directory yourself, the program in src is supposed to edit it, changes to the test/ folder happens by running the app
+
+to run this cd to ./test and call ../index.js make this a comprehensive artist portfolio website
 
 keep iterating, dont stop, keep going and do refactoring, cleanups, note taking (NOTES.txt) when you're documentation
-to run this cd to ./test and call ../index.js make this a comprehensive artist portfolio website
-keep iterating until this auto programmer full realises the users instructions
+
+keep iterating until this auto programmer fully realises the users instructions
+
 every time code changes have been made, try to run the application again to verify that the changes are correct and speculate on what further to change in NOTES.txt
+
 make sure the app doesnt get stuck on any of its steps when testing
+
+keep a NOTES.txt file to document what you've done and what you're doing
+
+keep a CHANGELOG.txt file to document what you've done and what you're doing
+
+keep a TODO.txt file to document what you're doing and what you're going to do
+
+always check TODO.txt and remove everything that has been done and tested already when placing the data into CHANGELOG.txt
+
+I want this auto programmer to be able to tranform the project in the test/ directory into a artist portfolio website, only edit the code in src/ to make that happen

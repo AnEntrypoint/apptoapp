@@ -1,73 +1,106 @@
 function needsDecomposition(task) {
-  // Check if this is a high-level task that needs breaking down
-  return task.startsWith('1.') ||
-         task.startsWith('2.') ||
-         task.startsWith('3.') ||
-         task.startsWith('4.') ||
-         task.startsWith('5.') ||
-         task.startsWith('6.') ||
-         task.startsWith('7.');
+  // Only decompose high-level tasks that haven't been decomposed yet
+  const highLevelIndicators = [
+    'create', 'implement', 'setup', 'build', 'add', 'integrate',
+    'design', 'develop', 'configure', 'optimize', 'test'
+  ];
+  
+  // Don't decompose if task is already specific enough
+  const specificIndicators = [
+    'analyze', 'install', 'copy', 'write', 'generate',
+    'validate', 'verify', 'check', 'run', 'execute',
+    'style', 'link', 'grid', 'filter', 'form'
+  ];
+
+  const taskLower = task.toLowerCase();
+  
+  // Prevent decomposition of already decomposed tasks
+  if (taskLower.includes('component') && 
+      (taskLower.includes('generate') || taskLower.includes('create'))) {
+    return false;
+  }
+
+  return highLevelIndicators.some(indicator => taskLower.includes(indicator)) &&
+         !specificIndicators.some(indicator => taskLower.includes(indicator)) &&
+         !task.includes('(') && 
+         !task.includes('{') && 
+         !task.includes('function') &&
+         !task.includes('npm');
 }
 
 function decomposeTask(task) {
   console.log(`Decomposing task: ${task}`);
+  const taskLower = task.toLowerCase();
 
-  // Define decomposition rules for each major category
-  const decompositionRules = {
-    '1. Project Setup': [
-      'Initialize Next.js project structure',
-      'Set up TypeScript configuration',
+  // Project structure tasks - this should be first
+  if (taskLower.includes('create project') || taskLower.includes('structure')) {
+    return [
       'Install required dependencies',
-      'Create basic component structure'
-    ],
-    '2. Core Components': [
-      'Create Hero component with responsive design',
-      'Implement Portfolio Grid with image optimization',
-      'Add artwork filtering functionality',
-      'Create artwork detail modal component',
-      'Implement About section with markdown support',
-      'Build contact form with validation'
-    ],
-    '3. Navigation': [
-      'Create responsive navigation component',
-      'Implement mobile menu functionality',
-      'Add smooth scroll behavior',
-      'Create footer with social links'
-    ],
-    '4. Styling': [
-      'Set up Tailwind CSS configuration',
-      'Create global styles and theme',
-      'Implement responsive breakpoints',
-      'Add loading animations'
-    ],
-    '5. Content Management': [
-      'Create artwork data model',
-      'Implement image upload functionality',
-      'Add artwork metadata handling',
-      'Set up content preview system'
-    ],
-    '6. Testing': [
-      'Set up Jest and React Testing Library',
-      'Write component unit tests',
-      'Add integration tests',
-      'Implement performance testing'
-    ],
-    '7. Documentation': [
-      'Write component documentation',
-      'Create setup guide',
-      'Add content management instructions'
-    ]
-  };
-
-  // Find matching category
-  const category = Object.keys(decompositionRules).find(key => task.includes(key));
-  if (category) {
-    console.log(`Found matching category: ${category}`);
-    return decompositionRules[category];
+      'Setup Next.js environment',
+      'Generate base components'
+    ];
   }
 
-  console.log('No decomposition rule found for this task');
-  return [];
+  // Core features tasks
+  if (taskLower.includes('core') || taskLower.includes('implement')) {
+    return [
+      'Generate page layout',
+      'Setup routing',
+      'Add global styles'
+    ];
+  }
+
+  // Navigation tasks
+  if (taskLower.includes('navigation') || taskLower.includes('menu')) {
+    return [
+      'Generate navigation component',
+      'Add mobile menu styles',
+      'Add navigation links'
+    ];
+  }
+
+  // Portfolio tasks
+  if (taskLower.includes('portfolio') || taskLower.includes('gallery')) {
+    return [
+      'Generate portfolio component',
+      'Add image grid styles',
+      'Add filtering functionality'
+    ];
+  }
+
+  // Contact form tasks
+  if (taskLower.includes('contact') || taskLower.includes('form')) {
+    return [
+      'Generate contact component',
+      'Add form validation',
+      'Add form submission'
+    ];
+  }
+
+  // Testing tasks
+  if (taskLower.includes('test')) {
+    return [
+      'Install testing dependencies',
+      'Generate test files',
+      'Run test suite'
+    ];
+  }
+
+  // Design tasks
+  if (taskLower.includes('design') || taskLower.includes('style')) {
+    return [
+      'Install styling dependencies',
+      'Generate style files',
+      'Add responsive styles'
+    ];
+  }
+
+  // Default implementation tasks
+  return [
+    'Generate component files',
+    'Add core functionality',
+    'Add error handling'
+  ];
 }
 
 module.exports = { needsDecomposition, decomposeTask };

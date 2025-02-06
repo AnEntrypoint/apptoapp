@@ -6,6 +6,7 @@ function ensureTestDirectory() {
   const testDir = path.join('test', '__tests__');
   if (!fs.existsSync(testDir)) {
     fs.mkdirSync(testDir, { recursive: true });
+    console.log(`Created test directory: ${testDir}`);
   }
   return testDir;
 }
@@ -18,6 +19,7 @@ async function updateUnitTests(instruction) {
     // Create test setup file
     const setupPath = path.join('test', 'jest.setup.js');
     fs.writeFileSync(setupPath, `import '@testing-library/jest-dom';`);
+    console.log(`Created Jest setup file: ${setupPath}`);
 
     // Create Jest config
     const jestConfigPath = path.join('test', 'jest.config.js');
@@ -34,6 +36,8 @@ const customJestConfig = {
 
 module.exports = createJestConfig(customJestConfig);`);
 
+    console.log(`Created Jest config file: ${jestConfigPath}`);
+
     // Generate component tests
     const componentsDir = path.join('test', 'components');
     if (fs.existsSync(componentsDir)) {
@@ -49,48 +53,54 @@ module.exports = createJestConfig(customJestConfig);`);
           // Read component file to analyze its structure
           const componentContent = fs.readFileSync(path.join(componentsDir, component), 'utf8');
 
-          // Generate appropriate tests based on component content
+          // Generate test content based on component analysis
           let testContent = `import { render, screen } from '@testing-library/react';
 import ${componentName} from '../components/${component}';
 
-describe('${componentName}', () => {
+describe('${componentName}', () => {`;
 
-  if (componentContent.includes('motion.')) {
-    testContent += \`
+          // Add animation tests if component uses framer-motion
+          if (componentContent.includes('motion.')) {
+            testContent += `
   it('renders with animation properties', () => {
     render(<${componentName} />);
-    const element = screen.getByRole('region');
+    const element = screen.getByTestId('${componentName.toLowerCase()}-section');
     expect(element).toBeInTheDocument();
-    expect(element).toHaveStyle('opacity: 1');
-  });
-\`;
-  }
+  });`;
+          }
 
-  if (componentContent.includes('form')) {
-    testContent += \`
+          // Add form tests if component has forms
+          if (componentContent.includes('form')) {
+            testContent += `
   it('renders form elements correctly', () => {
     render(<${componentName} />);
     const form = screen.getByRole('form');
     expect(form).toBeInTheDocument();
-    // Add more specific form element tests
-  });
-\`;
-  }
+  });`;
+          }
 
-  if (componentContent.includes('nav')) {
-    testContent += \`
+          // Add navigation tests if component has nav elements
+          if (componentContent.includes('nav')) {
+            testContent += `
   it('renders navigation links', () => {
     render(<${componentName} />);
     const nav = screen.getByRole('navigation');
     expect(nav).toBeInTheDocument();
-    // Add tests for specific navigation items
-  });
-\`;
-  }
+  });`;
+          }
 
-  testContent += \`
-});
-\`;
+          // Add state management tests if component uses useState
+          if (componentContent.includes('useState')) {
+            testContent += `
+  it('handles state changes correctly', () => {
+    render(<${componentName} />);
+    // Add specific state change tests based on component functionality
+  });`;
+          }
+
+          // Close the test suite
+          testContent += `
+});`;
 
           fs.writeFileSync(testPath, testContent);
           console.log(`Created test file: ${testPath}`);

@@ -16,12 +16,15 @@ async function generatePlan(instruction) {
   // Dynamic plan based on the instruction
   const plan = [
     "Analyze user instruction",
-    "Create project structure",
-    "Implement core features",
-    "Add navigation menu",
-    "Add portfolio section",
-    "Add contact form",
-    "Add responsive design",
+    "Create project structure for artist portfolio",
+    "Implement core features for artist portfolio",
+    "Add navigation menu for artist portfolio",
+    "Add portfolio section with artist's work",
+    "Add artist bio section",
+    "Add gallery section with images",
+    "Add social media links for artist",
+    "Add contact form for visitors",
+    "Add responsive design for artist portfolio",
     "Add unit tests for components"
   ];
 
@@ -30,8 +33,8 @@ async function generatePlan(instruction) {
 
 async function writeFilesFromStr(text) {
   try {
-    fs.writeFileSync('TODO.txt', text);
-    console.log(`Wrote plan to TODO.txt file.`);
+    fs.writeFileSync('test/TODO.txt', text);
+    console.log(`Wrote plan to test/TODO.txt file.`);
   } catch (error) {
     console.error("Error writing plan:", error);
     throw error;
@@ -39,9 +42,9 @@ async function writeFilesFromStr(text) {
 }
 
 async function cycleTasks(testUrl, instruction, pollInterval = 30000) {
-  if (!fs.existsSync('TODO.txt')) fs.writeFileSync('TODO.txt', '');
-  if (!fs.existsSync('CHANGELOG.txt')) fs.writeFileSync('CHANGELOG.txt', '');
-  if (!fs.existsSync('NOTES.txt')) fs.writeFileSync('NOTES.txt', '');
+  if (!fs.existsSync('test/TODO.txt')) fs.writeFileSync('test/TODO.txt', '');
+  if (!fs.existsSync('test/CHANGELOG.txt')) fs.writeFileSync('test/CHANGELOG.txt', '');
+  if (!fs.existsSync('test/NOTES.txt')) fs.writeFileSync('test/NOTES.txt', '');
 
   console.log('Starting cyclic task evaluation...');
   while (true) {
@@ -64,7 +67,7 @@ async function cycleTasks(testUrl, instruction, pollInterval = 30000) {
           if (subTasks.length > 0) {
             console.log(`Decomposed task into sub-tasks: ${subTasks.join(', ')}`);
             removeTask(task);
-            fs.appendFileSync('TODO.txt', subTasks.join('\n') + '\n');
+            fs.appendFileSync('test/TODO.txt', subTasks.join('\n') + '\n');
             continue;
           }
         }
@@ -102,8 +105,8 @@ async function cycleTasks(testUrl, instruction, pollInterval = 30000) {
       console.log('Verification output:', verifyOutput);
 
       // Speculate on further changes
-      fs.appendFileSync('NOTES.txt', `Verification output:\n${verifyOutput}\n\n`);
-      fs.appendFileSync('NOTES.txt', `Speculating on further changes...\n\n`);
+      fs.appendFileSync('test/NOTES.txt', `Verification output:\n${verifyOutput}\n\n`);
+      fs.appendFileSync('test/NOTES.txt', `Speculating on further changes...\n\n`);
 
       await sleep(pollInterval);
     } catch (error) {
