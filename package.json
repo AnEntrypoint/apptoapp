@@ -1,7 +1,7 @@
 {
   "name": "apptoapp",
-  "version": "0.2.9",
-  "main": "node index.js",
+  "version": "0.2.8",
+  "main": "index.js",
   "scripts": {
     "start": "DEBUG=codestral:* node index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -14,6 +14,6 @@
     "ignore": "^5.3.1"
   },
   "bin": {
-    "apptoapp": "node index.js"
+    "apptoapp": "index.js"
   }
 }
