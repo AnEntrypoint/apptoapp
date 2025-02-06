@@ -262,8 +262,9 @@ async function main(instruction, previousNotes = [], previousLogs = '') {
   const messages = [
     {
       role: 'system',
-      content: instruction + ". Only respond with tool calls, one for each file that needs modification and one for any required CLI commands. Do NOT include any explanatory text."
+      content: "Perform the following instructions: " + instruction + ". Only respond with tool calls, one for each file that needs modification and one for any required CLI commands. Do NOT include any explanatory text."
     },
+
     {
       role: 'user',  // Second user message containing the diff
       content: `${diff}`
