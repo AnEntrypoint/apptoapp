@@ -1,6 +1,6 @@
 {
   "name": "apptoapp",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "scripts": {
     "start": "DEBUG=codestral:* node index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
