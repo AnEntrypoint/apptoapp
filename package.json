@@ -3,7 +3,8 @@
   "private": true,
   "scripts": {
     "start": "DEBUG=codestral:* node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "release": "git commit -a -m ranrelease && npm version patch  && npm publish --tag latest"
   },
   "dependencies": {
     "debug": "^4.3.4",

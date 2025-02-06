@@ -16,7 +16,7 @@ async function loadIgnorePatterns() {
       return ignore();
     }
     throw error;
-  }
+  } 
 }
 
 async function readDirRecursive(dir, ig) {
