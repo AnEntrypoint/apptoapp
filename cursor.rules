@@ -1,0 +1,9 @@
+
+this project is an auto programmer, its a CLI tool that edits other project
+
+
+keep iterating, dont stop, keep going and do refactoring, cleanups, note taking (NOTES.txt) when you're documentation
+to run this cd to ./test and call ../index.js make this a comprehensive artist portfolio website
+keep iterating until this auto programmer full realises the users instructions
+every time code changes have been made, try to run the application again to verify that the changes are correct and speculate on what further to change in NOTES.txt
+make sure the app doesnt get stuck on any of its steps when testing
