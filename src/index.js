@@ -54,4 +54,4 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
-main().catch(console.error);
+module.exports = { main, cleanup };
