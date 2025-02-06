@@ -11,7 +11,7 @@ function ensureDirectoryExists(filePath) {
 function executeOperation(task) {
   console.log(`Starting operation: ${task}`);
   const baseDir = 'test';
-  
+
   try {
     // Project Setup tasks
     if (task.includes('Initialize Next.js project structure')) {
@@ -81,7 +81,9 @@ module.exports = nextConfig;`);
     "react": "^18",
     "react-dom": "^18",
     "@heroicons/react": "^2.0.18",
-    "framer-motion": "^10.16.4"
+    "framer-motion": "^10.16.4",
+    "autoprefixer": "^10.4.14",
+    "postcss": "^8.4.31"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.1.4",
@@ -89,12 +91,10 @@ module.exports = nextConfig;`);
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
-    "autoprefixer": "^10.0.1",
     "eslint": "^8",
     "eslint-config-next": "14.1.0",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
-    "postcss": "^8",
     "tailwindcss": "^3.3.0",
     "typescript": "^5"
   }
@@ -110,20 +110,20 @@ module.exports = nextConfig;`);
 
 export default function Hero() {
   return (
-    <motion.section 
+    <motion.section
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="min-h-screen flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500"
     >
       <div className="text-center text-white">
-        <motion.h1 
+        <motion.h1
           initial={{ y: 20 }}
           animate={{ y: 0 }}
           className="text-6xl font-bold mb-4"
         >
           Artist Name
         </motion.h1>
-        <motion.p 
+        <motion.p
           initial={{ y: 20 }}
           animate={{ y: 0 }}
           className="text-xl"
@@ -148,7 +148,7 @@ export default function Hero() {
 
 function determineTaskCompletion(task) {
   console.log(`Checking completion criteria for task: ${task}`);
-  
+
   try {
     // Project Setup and Analysis checks
     if (task.includes('Analyze existing Next.js structure')) {

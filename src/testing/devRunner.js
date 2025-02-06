@@ -18,7 +18,7 @@ function findAvailablePort(startPort) {
 
 async function ensureNextSetup() {
   const baseDir = 'test';
-  
+
   try {
     // Check if Next.js is installed
     if (!fs.existsSync(path.join(baseDir, 'node_modules', 'next'))) {
@@ -94,7 +94,7 @@ body {
 
 async function runDevAndPupdebug(testUrl, shouldRecordLogs) {
   console.log('Starting dev server and monitoring...');
-  
+
   try {
     // Ensure Next.js is set up
     if (!await ensureNextSetup()) {
