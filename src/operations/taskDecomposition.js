@@ -1,17 +1,17 @@
 function needsDecomposition(task) {
   // Check if this is a high-level task that needs breaking down
-  return task.startsWith('1.') || 
-         task.startsWith('2.') || 
-         task.startsWith('3.') || 
-         task.startsWith('4.') || 
-         task.startsWith('5.') || 
-         task.startsWith('6.') || 
+  return task.startsWith('1.') ||
+         task.startsWith('2.') ||
+         task.startsWith('3.') ||
+         task.startsWith('4.') ||
+         task.startsWith('5.') ||
+         task.startsWith('6.') ||
          task.startsWith('7.');
 }
 
 function decomposeTask(task) {
   console.log(`Decomposing task: ${task}`);
-  
+
   // Define decomposition rules for each major category
   const decompositionRules = {
     '1. Project Setup': [

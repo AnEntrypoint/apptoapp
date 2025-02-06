@@ -1,4 +1,3 @@
-
   - Hero Section with artist introduction
   - Portfolio Grid/Gallery component
     * Image optimization and lazy loading
