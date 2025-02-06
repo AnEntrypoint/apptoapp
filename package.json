@@ -1,6 +1,6 @@
 {
   "name": "apptoapp",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "main": "node index.js",
   "scripts": {
     "start": "DEBUG=codestral:* node index.js",
