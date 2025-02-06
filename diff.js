@@ -31,7 +31,6 @@ async function readDirRecursive(dir, ig) {
       const relativePath = path.relative(process.cwd(), fullPath);
 
       if (ig.ignores(relativePath)) {
-        console.log('Completely ignoring path: %s', relativePath);
         continue;
       }
 
@@ -49,9 +48,6 @@ async function readDirRecursive(dir, ig) {
           includeContent: !isUIComponent
         });
         
-        console.log(isUIComponent ? 
-          `UI component excluded: ${relativePath}` :
-          `Including file content: ${relativePath}`);
       }
     }
   }
@@ -97,7 +93,6 @@ async function createDiff(preferredDir) {
   
   for (const file of files) {
     try {
-      console.log('Processing file: %s', file.path);
       const relativePath = path.relative(process.cwd(), file.path);
       
       if (file.includeContent) {
@@ -108,7 +103,6 @@ async function createDiff(preferredDir) {
         diffOutput += `# ${relativePath}\n`;
       }
       
-      console.log('Generated diff for: %s', relativePath);
     } catch (error) {
       console.log('Error processing file %s: %O', file.path, error);
       console.error(`Error processing file ${file.path}:`, error);
@@ -122,41 +116,6 @@ async function createDiff(preferredDir) {
   return diffOutput || `No files found in ${sourceDir} directory`;
 }
 
-async function listFiles(dir, ig) {
-  console.logFile('Listing files in directory: %s', dir);
-  try {
-    const files = await fs.readdir(dir, { withFileTypes: true });
-    const fileList = [];
 
-    for (const file of files) {
-      const fullPath = path.join(dir, file.name);
-      const relativePath = path.relative(process.cwd(), fullPath);
-
-      if (ig.ignores(relativePath)) {
-        console.logFile('Ignoring path: %s', relativePath);
-        continue;
-      }
-
-      if (file.isDirectory()) {
-        console.logFile('Found directory: %s', file.name);
-        fileList.push(`${file.name}/`);
-        const subFiles = await listFiles(fullPath, ig);
-        fileList.push(...subFiles.map(f => `  ${f}`));
-      } else {
-        let size = '0KB';
-        if (!fullPath.includes('app/components/ui')) {
-          const stats = await fs.stat(fullPath);
-          size = formatBytes(stats.size);
-        }
-        console.logFile('Found file: %s (%s)', file.name, size);
-        fileList.push(`${file.name} (${size})`);
-      }
-    }
-    return fileList;
-  } catch (error) {
-    console.logFile('Error listing files: %O', error);
-    throw error;
-  }
-}
 
 module.exports = { createDiff };

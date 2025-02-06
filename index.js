@@ -57,27 +57,9 @@ async function makeCodestralRequest(messages, tools) {
 
   console.log('API request successful');
   const responseData = await response.json();
-  
-  // Handle tool call token counting
-  let totalTokensReceived = 0;
-  if (responseData.choices[0].message.tool_calls) {
-    totalTokensReceived = responseData.choices[0].message.tool_calls
-      .reduce((acc, toolCall) => acc + JSON.stringify(toolCall).split(' ').length, 0);
-  } else if (responseData.choices[0].message.content) {
-    totalTokensReceived = responseData.choices[0].message.content.split(' ').length;
-  }
-  
-  console.log('Total tokens received: %d', totalTokensReceived);
+    
   
   return responseData;
-}
-
-function setupLogging() {
-  const fs = require('fs');
-  const logFilePath = 'serverlogs.txt';
-  
-  // Clear the log file
-  fs.writeFileSync(logFilePath, '');
 }
 
 async function calculateDirectorySize(dir, ig) {
@@ -101,7 +83,6 @@ async function calculateDirectorySize(dir, ig) {
         await calculateDirectorySize(fullPath, ig);
       } else {
         const stats = await fsp.stat(fullPath);
-        console.log('Processing file: %s (%s bytes)', file.name, stats.size);
         totalSize += stats.size;
       }
     }
@@ -146,7 +127,6 @@ async function listFiles(dir, ig) {
         // Check if file is under components/ui
         const isUiComponent = fullPath.includes(path.join('components', 'ui'));
         const size = isUiComponent ? '0KB' : formatBytes((await fsp.stat(fullPath)).size);
-        console.log('Found file: %s (%s)', file.name, size);
         fileList.push(`${file.name} (${size})`);
       }
     }
@@ -157,8 +137,95 @@ async function listFiles(dir, ig) {
   }
 }
 
-async function main(instruction) {
+async function runConcurrently() {
+  console.log('Starting concurrent processes');
+  const { exec } = require('child_process');
+  const out = { stdout: [], stderr: [] };
+  return new Promise((resolve, reject) => {
+    const command = 'concurrently --kill-others "npm run dev" "npx pupdebug"';
+    console.log('Executing:', command);
+    
+    const child = exec(command, (error, stdout, stderr) => {
+      if (error) {
+        console.error('Concurrent process error:', error);
+        // Return both stdout and stderr for evaluation
+        return resolve(`
+          stdout:
+          ${out.stdout.join('\n')}
+
+          stderr:
+          ${out.stderr.join('\n')}
+
+          error:
+          ${error.message}
+        `);
+      }
+      console.log('Concurrent processes completed');
+      return resolve(`
+        stdout: 
+        ${out.stdout.join('\n')}
+
+        stderr:
+        ${out.stderr.join('\n')}
+      `);
+  });
+
+    child.stdout.on('data', (data) => {
+      console.log('Concurrent output:', data.toString().trim());
+      out.stdout.push(data.toString().trim());
+    });
+
+
+    child.stderr.on('data', (data) => {
+      console.log('Concurrent error:', data.toString().trim());
+      out.stderr.push(data.toString().trim());
+    });
+
+  });
+}
+
+
+async function createErrorNote(errorDetails) {
+  const messages = [
+    {
+      role: 'system',
+      content: `Create a concise error note that includes:
+                1. Error description
+                2. Relevant context
+                3. Potential solutions
+                Keep it brief and actionable.`
+    },
+    {
+      role: 'user',
+      content: JSON.stringify(errorDetails)
+    }
+  ];
+
+  try {
+    const response = await makeCodestralRequest(messages, []);
+    return `Error Note:\n${response.choices[0].message.content}\n`;
+  } catch (error) {
+    console.error('Error creating error note:', error);
+    return `Error Note:\n${errorDetails.error}\nContext: ${JSON.stringify(errorDetails)}\n`;
+  }
+}
+
+async function main(instruction, previousNotes = [], previousLogs = '') {
   console.log('Starting main application');
+  
+  // Initialize notes with previous notes
+  const notes = [...previousNotes];
+  
+  // Add error handler to collect notes
+  process.on('uncaughtException', async (error) => {
+    console.error('Uncaught exception:', error);
+    const noteContent = await createErrorNote({
+      error: error.message,
+      stack: error.stack
+    });
+    notes.push(noteContent);
+    process.exit(1);
+  });
   
   // Validate instruction
   if (!instruction || instruction.trim() === '') {
@@ -195,15 +262,11 @@ async function main(instruction) {
   const messages = [
     {
       role: 'system',
-      content: "You are a professional web developer. Transform the code according to the user's instructions."
-    },
-    {
-      role: 'user',
-      content: instruction
+      content: instruction + ". Only respond with tool calls, one for each file that needs modification and one for any required CLI commands. Do NOT include any explanatory text."
     },
     {
       role: 'user',  // Second user message containing the diff
-      content: `CODE DIFF:\n${diff}`
+      content: `${diff}`
     }
   ];
 
@@ -215,17 +278,80 @@ async function main(instruction) {
     // Execute tool calls if present in the API response
     if (response.choices[0].message.tool_calls) {
       for (const toolCall of response.choices[0].message.tool_calls) {
-        await executeToolCall(toolCall);
+        try {
+          await executeToolCall(toolCall);
+        } catch (error) {
+          const noteContent = await createErrorNote({
+            tool: toolCall.function.name,
+            error: error.message
+          });
+          notes.push(noteContent);
+        }
+      }
+    } else if (response.choices[0].message.content) {
+      try {
+        const toolCalls = JSON.parse(response.choices[0].message.content);
+        // Process toolCalls array here
+      } catch (e) {
+        console.error('Failed to parse tool calls from content:', e);
       }
     }
-
+    
     console.log('Transformation complete!');
   } catch (error) {
     console.error('Error during transformation:', error);
+    const noteContent = await createErrorNote({
+      error: error.message,
+      stack: error.stack
+    });
+    notes.push(noteContent);
     process.exit(1);
   }
+  const latestlogs = await runConcurrently();
+  // Final evaluation
+  const finalMessages = [
+    {
+      role: 'system',
+      content: `Analyze these notes and logs. Respond "true" if there are any errors, and the process should iterate this full history.`
+    },
+    {
+      role: 'user',
+      content: `Previous Logs:\n${previousLogs}\n\nCurrent Notes:\n${notes.join('\n')}\n\nLatest Logs:\n${latestlogs}`
+    }
+  ];
 
-  console.log('Main application setup complete');
+  const finalResponse = await makeCodestralRequest(finalMessages, [
+    {
+      type: "function",
+      function: {
+        name: "shouldRepeatProcess",
+        description: "Determine if the process should be repeated",
+        parameters: {
+          type: "object",
+          properties: {
+            repeat: {
+              type: "boolean",
+              description: "Whether to repeat the process"
+            }
+          },
+          required: ["repeat"]
+        }
+      }
+    }
+  ]);
+
+  if (finalResponse.choices[0].message.tool_calls) {
+    const toolCall = finalResponse.choices[0].message.tool_calls[0];
+    const parsedArgs = JSON.parse(toolCall.function.arguments);
+    
+    if (parsedArgs.repeat) {
+      console.log('Restarting process with previous context');
+      return main(`fix the following errors: ${latestlogs}`, notes, previousLogs);
+    }
+  }
+
+  console.log('Process completed successfully');
+  process.exit(0);
 }
 
 // Get instruction from command line arguments
@@ -235,36 +361,5 @@ main(instruction).catch(error => {
   process.exit(1);
 });
 
-// Add a new function to run the program after generation
-async function runProgram() {
-  console.log('Preparing to run npm run dev');
-  const { spawn } = require('child_process');
-  
-  console.log('Creating log stream');
-  const logStream = fs.createWriteStream('serverlogs.txt', { flags: 'a' });
-
-  console.log('Spawning npm run dev process');
-  const child = spawn('npm', ['run', 'dev'], { 
-    cwd: '',
-    shell: true
-  });
-
-  child.stdout.on('data', (data) => {
-    console.log('npm run dev stdout: %s', data.toString().trim());
-    logStream.write(data.toString());
-  });
-
-  child.stderr.on('data', (data) => {
-    console.log('npm run dev stderr: %s', data.toString().trim());
-    logStream.write(data.toString());
-  });
-
-  child.on('close', (code) => {
-    console.log('npm run dev process exited with code %d', code);
-    logStream.end();
-    console.log('Application completed');
-  });
-}
-
 // Export the runProgram function
-module.exports = { main, runProgram };
+module.exports = { main };

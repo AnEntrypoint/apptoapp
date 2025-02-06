@@ -2,6 +2,7 @@ const fs = require('fs').promises;
 const { exec } = require('child_process');
 const { promisify } = require('util');
 const path = require('path');
+const { makeCodestralRequest } = require('./index.js');
 
 const execAsync = promisify(exec);
 
@@ -127,8 +128,23 @@ async function executeToolCall(toolCall) {
 
       case "executeCommand":
         console.log('Executing command: %s', parsedArgs.command);
-        const { stdout, stderr } = await execAsync(parsedArgs.command);
+        // Add --legacy-peer-deps to npm install commands
+        const command = parsedArgs.command.includes('npm install') 
+          ? 'npm install --legacy-peer-deps'
+          : parsedArgs.command;
+        
+        const { stdout, stderr } = await execAsync(command);
         console.log('Command output: %s', stdout + stderr);
+        
+        // If command fails, create a note
+        if (stderr) {
+          const noteContent = await createErrorNote({
+            command: parsedArgs.command,
+            error: stderr
+          });
+          await fs.appendFile('NOTES.txt', `\n${noteContent}\n`, 'utf8');
+        }
+        
         return `Command executed: ${parsedArgs.command}\nOutput: ${stdout}${stderr}`;
 
       default:
@@ -137,8 +153,32 @@ async function executeToolCall(toolCall) {
     }
   } catch (error) {
     console.log('Tool execution error: %O', error);
+    
+    // Create a note for the error
+    const noteContent = await createErrorNote({
+      tool: name,
+      error: error.message
+    });
+    await fs.appendFile('NOTES.txt', `\n${noteContent}\n`, 'utf8');
+    
     throw error;
   }
+}
+
+async function createErrorNote(errorDetails) {
+  const messages = [
+    {
+      role: 'system',
+      content: 'Create a concise note about this error that would be helpful for debugging. Include the error details and any potential solutions.'
+    },
+    {
+      role: 'user',
+      content: JSON.stringify(errorDetails)
+    }
+  ];
+
+  const response = await makeCodestralRequest(messages, []);
+  return response.choices[0].message.content;
 }
 
 module.exports = { tools, executeToolCall };
