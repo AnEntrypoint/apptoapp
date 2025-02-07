@@ -19,12 +19,13 @@ async function readDirRecursive(dir, ig) {
       const filesInFolder = await fs.readdir(fullPath);
       if (filesInFolder.length === 0) {
         console.log(`Found empty folder: ${fullPath}`);
+        result.push({ path: fullPath + '/' }); // Add empty folder to result with trailing slash
       }
     }
   }));
 
-  console.log(`Finished reading directory: ${dir}, found ${result.length} files`);
-  console.log(`Total files collected: ${result.length}`); // Added output for total files collected
+  console.log(`Finished reading directory: ${dir}, found ${result.length} files and folders`);
+  console.log(`Total files and folders collected: ${result.length}`); // Added output for total files and folders collected
   return result;
 }
 
@@ -57,17 +58,18 @@ async function createDiff(preferredDir) {
         continue; // Skip processing this file
       }
       
-      const originalContent = await fs.readFile(file.path, 'utf8');
-      const modifiedContent = ''; // Modify content as needed
+      const originalContent = '';
+      let modifiedContent = '';
+      try {
+        modifiedContent = await fs.readFile(file.path, 'utf8'); // Modify content as needed
+      } catch (error) {
+        // Handle error if needed
+      }
 
       console.log('Including content for file:', file.path);
       const diff = diffLines(originalContent, modifiedContent);
-      diffOutput += `diff --git a/${relativePath} b/${relativePath}\n`;
-      diffOutput += `--- a/${relativePath}\n`;
-      diffOutput += `+++ b/${relativePath}\n`;
       diff.forEach(part => {
-        const prefix = part.added ? '+' : part.removed ? '-' : ' ';
-        diffOutput += `${prefix}${part.value}`;
+        diffOutput += `${part.value}`;
       });
       
     } catch (error) {
