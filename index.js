@@ -196,8 +196,9 @@ async function main(instruction, previousNotes = [], previousLogs = '') {
   } catch (e) {
     //console.error('Error during rebuild:', e);
     setTimeout(async () => {
-      await main(e.message, notes, e.message);
+      await main(instruction, notes, e.message);
     }, 0);
+
   }
 }
 

@@ -45,7 +45,7 @@ async function createDiff(preferredDir) {
   console.log(`Total files to process: ${files.length}`);
   
   let diffOutput = '';
-  const noContents = []; // List to store file names without contents
+  const noContents = ['package-lock.json', 'yarn.lock', 'pnpm-lock.yaml', 'bun.lockb']; // List to store file names without contents
   
   for (const file of files) {
     try {
