@@ -2,10 +2,8 @@
 const { createDiff } = require('./diff.js');
 const { getTools, executeToolCall } = require('./tools.js');
 const dotenv = require('dotenv');
-const fs = require('fs');
 const fsp = require('fs').promises;
 const path = require('path');
-const ignore = require('ignore');
 const { loadIgnorePatterns, formatBytes, makeApiRequest, createErrorNote } = require('./utils');
 const { executeCommand, cmdhistory } = require('./utils');
 
@@ -142,26 +140,12 @@ async function main(instruction, previousNotes = [], previousLogs = '') {
   const messages = [
     {
       role: 'system',
-      content: `Inspect these logs, and perform the necessary transformations to this codebase to fulfill the following request: ${instruction}\n\n` +
+      content: `Inspect these logs, and perform the necessary transformations to this codebase or cli instructions required to fulfill the following request: ${instruction}\n\n` +
         `Here is the cli history: ${cmdhistory.join('\n')}`+
         `The files under components/ui are not to be modified, they're standard shadcn/ui components, their source has been excluded to save tokens.\n`+
         `Only respond with tool calls, respond with as many calls as is needed to perform the task. Do not respond with any other text.\n\n`+
-        `Here is the diff of the changes to be made: ${diff}`+
-        `Here is the current directory: ${dir}`+
-        `Here is the list of files in the current directory: ${fileList.join('\n')}`+
-        `Here is the total size of the current directory: ${formatBytes(totalSize)}`+
-        `Here is the current date and time: ${new Date().toISOString()}`+
-        `Here is the current working directory: ${process.cwd()}`+
-        `Here is the current user: ${process.env.USER}`+
-        `Here is the current hostname: ${process.env.HOSTNAME}`+
-        `Here is the current platform: ${process.platform}`+
-        `Here is the current version of node: ${process.version}`+
-        `Here is the current version of npm: ${process.env.npm_version}`
+        `Here is the current directory: ${dir}`
     },
-
-
-
-
     {
       role: 'user',
       content: diff

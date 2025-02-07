@@ -82,7 +82,7 @@ async function makeApiRequest(messages, tools, apiKey, endpoint) {
 
     async function writeToLastCall(data) {
         try {
-            //await fsp.writeFile('lastcall.txt', data, 'utf8');
+            await fsp.writeFile('../lastcall.txt', data, 'utf8');
             console.log('Data written to lastcall.txt successfully');
         } catch (error) {
             console.error('Error writing to lastcall.txt:', error);
@@ -116,7 +116,7 @@ async function directoryExists(dir) {
 // scanDirectory is a unified directory scanner.
 // handler is a function(fullPath, relativePath) that returns an item (or null) for each file.
 async function scanDirectory(dir, ig, handler, baseDir = dir) {
-    console.log(`[SCAN] Scanning directory: ${dir} (base: ${baseDir})`);
+    //console.log(`[SCAN] Scanning directory: ${dir} (base: ${baseDir})`);
     const entries = await fsp.readdir(dir, { withFileTypes: true });
     const results = [];
     
@@ -125,16 +125,18 @@ async function scanDirectory(dir, ig, handler, baseDir = dir) {
         // Normalize path to POSIX style and make relative to original base
         const relativePath = path.relative(baseDir, fullPath).replace(/\\/g, '/');
         
-        console.log(`[SCAN] Checking: ${relativePath}`);
+        //console.log(`[SCAN] Checking: ${relativePath}`);
         if (ig.ignores(relativePath)) {
-            console.log(`Ignoring: ${relativePath} matched pattern: `, ig.test(relativePath));
+            //console.log(`Ignoring: ${relativePath} matched pattern: `, ig.test(relativePath));
             continue;
         }
+
         
         if (entry.isDirectory()) {
-            console.log(`[SCAN] Entering directory: ${relativePath}`);
+            //console.log(`[SCAN] Entering directory: ${relativePath}`);
             results.push(...await scanDirectory(fullPath, ig, handler, baseDir));
         } else {
+
             console.log(`[SCAN] Processing file: ${relativePath}`);
             const result = handler(fullPath, relativePath);
             results.push(result);
