@@ -2,79 +2,17 @@ const fs = require('fs').promises;
 const path = require('path');
 const ignore = require('ignore');
 const { createPatch } = require('diff');
-
-async function loadIgnorePatterns() {
-  try {
-    console.log('Loading .llmignore file');
-    const ignoreContent = await fs.readFile('.llmignore', 'utf8');
-    const ig = ignore().add(ignoreContent);
-    console.log('Ignore patterns loaded successfully');
-    return ig;
-  } catch (error) {
-    if (error.code === 'ENOENT') {
-      console.log('No .llmignore file found, using empty ignore list');
-      return ignore();
-    }
-    throw error;
-  } 
-}
+const { loadIgnorePatterns, scanDirectory } = require('./utils');
 
 async function readDirRecursive(dir, ig) {
-  const files = [];
-  
-  async function scan(currentPath) {
-    console.log('Scanning directory: %s', currentPath);
-    const entries = await fs.readdir(currentPath, { withFileTypes: true });
-    
-    for (const entry of entries) {
-      const fullPath = path.join(currentPath, entry.name);
-      const relativePath = path.relative(process.cwd(), fullPath);
-
-      if (ig.ignores(relativePath)) {
-        continue;
-      }
-
-      if (entry.isDirectory()) {
-        console.log('Found directory: %s', entry.name);
-        await scan(fullPath);
-      } else {
-        const pathParts = relativePath.split(path.sep);
-        const isUIComponent = pathParts.includes('components') && 
-                             pathParts.includes('ui') &&
-                             pathParts.indexOf('ui') === pathParts.indexOf('components') + 1;
-
-        files.push({
-          path: fullPath,
-          includeContent: !isUIComponent
-        });
-        
-      }
-    }
-  }
-  
-  try {
-    await scan(dir);
-  } catch (error) {
-    if (error.code === 'ENOENT') {
-      console.log('Directory not found: %s', dir);
-      return [];
-    }
-    throw error;
-  }
-  
-  console.log('Total files found: %d', files.length);
-  return files;
-}
-
-async function directoryExists(dir) {
-  try {
-    await fs.access(dir);
-    console.log('Directory exists: %s', dir);
-    return true;
-  } catch {
-    console.log('Directory does not exist: %s', dir);
-    return false;
-  }
+  // Use the unified scanDirectory with a handler that preserves the UI component check
+  return await scanDirectory(dir, ig, (fullPath, relativePath) => {
+    const pathParts = relativePath.split(path.sep);
+    const isUIComponent = pathParts.includes('components') &&
+                          pathParts.includes('ui') &&
+                          pathParts.indexOf('ui') === pathParts.indexOf('components') + 1;
+    return { path: fullPath, includeContent: !isUIComponent };
+  });
 }
 
 async function createDiff(preferredDir) {
@@ -97,6 +35,7 @@ async function createDiff(preferredDir) {
       
       if (file.includeContent) {
         const content = await fs.readFile(file.path, 'utf8');
+        console.log(" - ",`${file.path} (${content.length}B)`);
         const patch = createPatch(relativePath, '', content);
         diffOutput += patch + '\n';
       } else {
@@ -115,7 +54,5 @@ async function createDiff(preferredDir) {
   
   return diffOutput || `No files found in ${sourceDir} directory`;
 }
-
-
 
 module.exports = { createDiff };
