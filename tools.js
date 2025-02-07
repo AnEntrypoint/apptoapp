@@ -79,22 +79,30 @@ async function loadTools() {
 }
 
 async function executeToolCall(toolCall) {
-    console.log('Tool call received:', toolCall);
     
     // Get the function details from the tool call.
     const toolFunc = toolCall.function;
+    console.log('Tool call received:', toolFunc.name);
     if (!toolFunc || !toolFunc.name) {
         throw new Error('Invalid tool call: missing function definition.');
     }
+
     const name = toolFunc.name;
     
     // Use arguments from toolCall or from toolFunc.
     let args = toolCall.arguments || toolFunc.arguments;
+
+    console.log('Executing tool:', name);
     
     // If arguments are provided as a JSON string, parse them.
     if (typeof args === 'string') {
         try {
             args = JSON.parse(args);
+            if (typeof args === 'object' && !Array.isArray(args) && Object.keys(args).length > 10) {
+                console.log('Arguments (truncated):', JSON.stringify(args).slice(0, 100) + '...'); // Truncate long arguments
+            } else {
+                console.log('Arguments:', args);
+            }
         } catch (err) {
             console.error('Error parsing tool arguments:', err);
             throw new Error('Invalid JSON for tool arguments.');
@@ -102,8 +110,6 @@ async function executeToolCall(toolCall) {
     }
     
     try {
-        console.log('Executing tool:', name);
-        console.log('Arguments:', args);
         // If arguments are provided as an object, convert them into an ordered array.
         let orderedArgs = [];
         if (args && typeof args === 'object' && !Array.isArray(args)) {
@@ -134,6 +140,7 @@ let tools = [];
     tools.forEach(tool => {
         console.log('Loaded tool:', tool.function.name);
     }); 
+
 })();
 
 function getTools() {

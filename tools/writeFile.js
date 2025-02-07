@@ -1,4 +1,4 @@
-const { executeCommand: runCmd } = require('../utils');
+const fs = require('fs').promises;
 
 /**
  * @tool writeFile
@@ -13,7 +13,8 @@ async function writeFile(path, content) {
     }
 
     console.log('Writing file at path:', path);
-    await runCmd(`echo "${content}" > ${path}`); // Using executeCommand to write the file
+    await fs.writeFile(path, content, 'utf8'); // Using fs to write the file
+    console.log(`File written successfully at: ${path}`);
     return `File written: ${path}`;
 }
 

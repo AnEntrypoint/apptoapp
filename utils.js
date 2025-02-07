@@ -6,9 +6,6 @@ const { exec } = require('child_process');
 const cmdhistory = [];
 async function executeCommand(command, options = {}) {
     console.log('Command history size:', cmdhistory.join().length, 'B');
-    console.log('Current working directory:', process.cwd());
-    console.log('Options:', options);
-    console.log('Executing command:', command);
     return new Promise((resolve) => {
         const child = exec(command, {
             timeout: 120000,
@@ -23,14 +20,14 @@ async function executeCommand(command, options = {}) {
             const trimmed = data.toString().trim();
             cmdhistory.push(trimmed);
             output.stdout.push(trimmed);
-            console.log(`[CMD] ${trimmed}`); // Added console log for stdout
+            //console.log(`[CMD] ${trimmed}`); // Added console log for stdout
         });
 
         child.stderr.on('data', (data) => {
             const trimmed = data.toString().trim();
             cmdhistory.push(trimmed);
             output.stderr.push(trimmed);
-            console.error(`[CMD-ERR] ${trimmed}`); // Added console log for stderr
+            //console.error(`[CMD-ERR] ${trimmed}`); // Added console log for stderr
         });
 
         child.on('close', (code) => {
@@ -47,8 +44,7 @@ async function executeCommand(command, options = {}) {
 async function loadIgnorePatterns(ignoreFile = '.llmignore') {
     try {
         const ignoreContent = await fsp.readFile(ignoreFile, 'utf8');
-        console.log(`Loaded ignore patterns from ${ignoreFile}`);
-        return ignore().add(ignoreContent);
+        return ignore().add(ignoreContent.split('\n').filter(l => !l.startsWith('#')));
     } catch (error) {
         if (error.code === 'ENOENT') {
             console.log(`No ${ignoreFile} found, using empty ignore list`);
@@ -67,8 +63,8 @@ function formatBytes(bytes) {
 }
 
 async function makeApiRequest(messages, tools, apiKey, endpoint) {
-    console.log(`API Request to ${endpoint} with`, {tools:JSON.stringify(tools, null, 2) });
-    const response = await fetch(endpoint, {
+    console.log(`API Request to ${endpoint}`);
+    const data = [endpoint, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -81,7 +77,20 @@ async function makeApiRequest(messages, tools, apiKey, endpoint) {
             tools,
             stream: false
         })
-    });
+    }];
+    const response = await fetch(...data);
+
+    async function writeToLastCall(data) {
+        try {
+            //await fsp.writeFile('lastcall.txt', data, 'utf8');
+            console.log('Data written to lastcall.txt successfully');
+        } catch (error) {
+            console.error('Error writing to lastcall.txt:', error);
+        }
+    }
+
+    await writeToLastCall(JSON.stringify(JSON.parse(data[1].body), null, 2)); // Replace with actual data as needed
+
 
     if (!response.ok) {
         const error = await response.json();
@@ -106,22 +115,32 @@ async function directoryExists(dir) {
 
 // scanDirectory is a unified directory scanner.
 // handler is a function(fullPath, relativePath) that returns an item (or null) for each file.
-async function scanDirectory(dir, ig, handler) {
+async function scanDirectory(dir, ig, handler, baseDir = dir) {
+    console.log(`[SCAN] Scanning directory: ${dir} (base: ${baseDir})`);
     const entries = await fsp.readdir(dir, { withFileTypes: true });
-    let results = [];
+    const results = [];
+    
     for (const entry of entries) {
         const fullPath = path.join(dir, entry.name);
-        const relativePath = path.relative(process.cwd(), fullPath);
-        if (ig.ignores(relativePath)) continue;
+        // Normalize path to POSIX style and make relative to original base
+        const relativePath = path.relative(baseDir, fullPath).replace(/\\/g, '/');
+        
+        console.log(`[SCAN] Checking: ${relativePath}`);
+        if (ig.ignores(relativePath)) {
+            console.log(`Ignoring: ${relativePath} matched pattern: `, ig.test(relativePath));
+            continue;
+        }
+        
         if (entry.isDirectory()) {
-            results = results.concat(await scanDirectory(fullPath, ig, handler));
+            console.log(`[SCAN] Entering directory: ${relativePath}`);
+            results.push(...await scanDirectory(fullPath, ig, handler, baseDir));
         } else {
-            const item = handler(fullPath, relativePath);
-            if (item) {
-                results.push(item);
-            }
+            console.log(`[SCAN] Processing file: ${relativePath}`);
+            const result = handler(fullPath, relativePath);
+            results.push(result);
         }
     }
+    
     return results;
 }
 
@@ -148,4 +167,4 @@ module.exports = {
     createErrorNote,
     executeCommand,
     cmdhistory
-}; 
+};

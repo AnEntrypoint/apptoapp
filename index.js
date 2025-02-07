@@ -10,7 +10,6 @@ const { loadIgnorePatterns, formatBytes, makeApiRequest, createErrorNote } = req
 const { executeCommand, cmdhistory } = require('./utils');
 
 dotenv.config();
-console.log('Environment loaded');
 
 async function calculateDirectorySize(dir, ig) {
   try {
@@ -118,14 +117,11 @@ async function main(instruction, previousNotes = [], previousLogs = '') {
   console.log('Processing instruction:', instruction);
   const ig = await loadIgnorePatterns();
 
-  console.log('Starting directory analysis');
   const dir = process.cwd();
-  console.log('Current working directory: %s', dir);
 
   const totalSize = await calculateDirectorySize(dir, ig);
   const fileList = await listFiles(dir, ig);
 
-  console.log('\nDirectory Analysis:');
   console.log(`Total Size: ${formatBytes(totalSize)}`);
   //console.log('Files and Directories:');
   //fileList.forEach(f => console.log(`- ${f}`));
@@ -141,15 +137,30 @@ async function main(instruction, previousNotes = [], previousLogs = '') {
     buildLogs = e.message;
   }*/
 
-  let diff = await createDiff();
+  let diff = await createDiff('.');
 
   const messages = [
     {
       role: 'system',
-      content: `Perform these code transformations: ${instruction}\n\n` +
+      content: `Inspect these logs, and perform the necessary transformations to this codebase to fulfill the following request: ${instruction}\n\n` +
+        `Here is the cli history: ${cmdhistory.join('\n')}`+
+        `The files under components/ui are not to be modified, they're standard shadcn/ui components, their source has been excluded to save tokens.\n`+
         `Only respond with tool calls, respond with as many calls as is needed to perform the task. Do not respond with any other text.\n\n`+
-        `Here is the cli history: ${cmdhistory.join('\n')}`
+        `Here is the diff of the changes to be made: ${diff}`+
+        `Here is the current directory: ${dir}`+
+        `Here is the list of files in the current directory: ${fileList.join('\n')}`+
+        `Here is the total size of the current directory: ${formatBytes(totalSize)}`+
+        `Here is the current date and time: ${new Date().toISOString()}`+
+        `Here is the current working directory: ${process.cwd()}`+
+        `Here is the current user: ${process.env.USER}`+
+        `Here is the current hostname: ${process.env.HOSTNAME}`+
+        `Here is the current platform: ${process.platform}`+
+        `Here is the current version of node: ${process.version}`+
+        `Here is the current version of npm: ${process.env.npm_version}`
     },
+
+
+
 
     {
       role: 'user',
