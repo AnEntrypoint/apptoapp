@@ -62,13 +62,19 @@ async function createDiff(preferredDir) {
       try {
         modifiedContent = await fs.readFile(file.path, 'utf8'); // Modify content as needed
       } catch (error) {
+        console.log(`Error reading file ${file.path}:`, error);
       }
 
-      console.log('Including content for file:', file.path);
-      const diff = diffLines(originalContent, modifiedContent);
-      diff.forEach(part => {
-        diffOutput += `${part.value}`;
-      });
+      // Include file path and content for diff output
+      if (noc.ignores(relativePath)) {
+        diffOutput += `${file.path}\n`; // Just the path for no contents files
+      } else {
+        console.log('Including content for file:', file.path);
+        const diff = diffLines(originalContent, modifiedContent);
+        diff.forEach(part => {
+          diffOutput += `${file.path}\n${part.value}`;
+        });
+      }
       
     } catch (error) {
       console.error(`Error processing file ${file.path}:`, error);
