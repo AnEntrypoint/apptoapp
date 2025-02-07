@@ -140,7 +140,7 @@ async function main(instruction, previousNotes = [], previousLogs = '') {
   const messages = [
     {
       role: 'system',
-      content: `Inspect these logs, and perform the necessary transformations to this codebase or cli instructions required to fulfill the following request: ${instruction}\n\n` +
+      content: `Inspect these logs, and perform the necessary transformations to this codebase or cli instructions (if using npm install always --save or --save-dev) required to fulfill the following request: ${instruction}\n\n` +
         `Here is the cli history: ${cmdhistory.join('\n')}`+
         `The files under components/ui are not to be modified, they're standard shadcn/ui components, their source has been excluded to save tokens.\n`+
         `Only respond with tool calls, respond with as many calls as is needed to perform the task. Do not respond with any other text.\n\n`+

@@ -1,6 +1,6 @@
 const fs = require('fs').promises;
 const path = require('path');
-const { loadIgnorePatterns, scanDirectory } = require('./utils');
+const { loadIgnorePatterns, loadNoContentsPatterns, scanDirectory } = require('./utils');
 const { diffLines } = require('diff');
 
 async function readDirRecursive(dir, ig) {
@@ -39,21 +39,20 @@ async function createDiff(preferredDir) {
   }
   
   const ig = await loadIgnorePatterns();
-  console.log('Loaded ignore patterns');
+  const noc = await loadNoContentsPatterns(); // Load no contents patterns
+  console.log('Loaded ignore patterns and no contents patterns');
   
   const files = await readDirRecursive(sourceDir, ig);
   console.log(`Total files to process: ${files.length}`);
   
   let diffOutput = '';
-  const noContents = ['package-lock.json', 'yarn.lock', 'pnpm-lock.yaml', 'bun.lockb']; // List to store file names without contents
   
   for (const file of files) {
     try {
       const relativePath = path.relative(sourceDir, file.path).replace(/\\/g, '/');
       console.log(`Processing file: ${file.path}, source-relative path: ${relativePath}`);
       
-      if (ig.ignores(relativePath)) {
-        noContents.push(relativePath); // Add to noContents if ignored
+      if (ig.ignores(relativePath) || noc.ignores(relativePath)) { // Check against both ignore and no contents
         console.log(`Ignoring file: ${relativePath}`);
         continue; // Skip processing this file
       }
@@ -63,7 +62,6 @@ async function createDiff(preferredDir) {
       try {
         modifiedContent = await fs.readFile(file.path, 'utf8'); // Modify content as needed
       } catch (error) {
-        // Handle error if needed
       }
 
       console.log('Including content for file:', file.path);
@@ -79,8 +77,6 @@ async function createDiff(preferredDir) {
   
   const diffSize = Buffer.byteLength(diffOutput, 'utf8');
   console.log(`Generated diff size: ${diffSize} bytes`);
-  
-  console.log('Files ignored (no contents):', noContents);
   
   return diffOutput || `No files found in ${sourceDir} directory`;
 }

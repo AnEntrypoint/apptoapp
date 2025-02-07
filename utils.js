@@ -54,6 +54,19 @@ async function loadIgnorePatterns(ignoreFile = '.llmignore') {
     }
 }
 
+async function loadNoContentsPatterns(ignoreFile = '.nocontents') {
+    try {
+        const ignoreContent = await fsp.readFile(ignoreFile, 'utf8');
+        return ignore().add(ignoreContent.split('\n').filter(l => !l.startsWith('#')));
+    } catch (error) {
+        if (error.code === 'ENOENT') {
+            console.log(`No ${ignoreFile} found, using empty no contents list`);
+            return ignore();
+        }
+        throw error;
+    }
+}
+
 function formatBytes(bytes) {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -162,6 +175,7 @@ async function createErrorNote(errorDetails) {
 
 module.exports = {
     loadIgnorePatterns,
+    loadNoContentsPatterns,
     formatBytes,
     makeApiRequest,
     directoryExists,
