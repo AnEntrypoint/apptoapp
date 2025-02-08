@@ -266,7 +266,7 @@ async function main(instruction, previousLogs = '') {
   } catch (e) {
     //console.error('Error during rebuild:', e);
     setTimeout(async () => {
-      await main(e.message);
+      await main(instruction, e.message);
     }, 0);
 
   }
