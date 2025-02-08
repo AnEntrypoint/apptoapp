@@ -20,7 +20,6 @@ async function readDirRecursive(dir, ig) {
       }
     }
   }));
-
   return result;
 }
 
