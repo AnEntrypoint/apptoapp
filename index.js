@@ -162,9 +162,9 @@ async function main(instruction, previousLogs = '') {
     const messages = [
       {
         role: 'system',
-        content: `Plan this instruction: "${instruction}" into a bullet list summary of instructions for code transformations, only include code transformations, dont include any system or devops tasks or other instructions. The current path is the project root. The current directory is ${process.cwd()}.`+
+        content: `Plan this instruction: "${instruction}" into instructions for code transformations, only include code transformations as complete files, dont include any system or devops tasks or other instructions or advice.`+
         `${cmdhistory.length > 0 ? 'Here is the logs, also plan the task based on the logs fixing any errors: '+cmdhistory.join('\n') : ''}\n\n`+
-        `${previousLogs ? "\n\n and resolve this error: " + previousLogs : ''}\n\n`
+        `${previousLogs ? "\n\n and resolve these errors: " + previousLogs : ''}\n\n`
       },
       {
         role: 'user',
@@ -201,11 +201,12 @@ async function main(instruction, previousLogs = '') {
   const messages = [
     {
       role: 'system',
-      content: `Implement the following code changes using only tool calls: ${content}`
+      content: `Respond only in multiple tool calls to write all the listed files and execute cli commands.`
     },
+
     {
       role: 'user',
-      content: diff
+      content: content
     }
 
 
@@ -218,6 +219,9 @@ async function main(instruction, previousLogs = '') {
       process.env.MISTRAL_API_KEY,
       'https://codestral.mistral.ai/v1/chat/completions'
     );
+    console.log('Response:', response.choices[0].message.content);
+    console.log('Tools:', response.choices[0].message.tool_calls.map(t => t.function.name));
+    //process.exit(1);
     if (response.choices[0].message.tool_calls) {
       for (const toolCall of response.choices[0].message.tool_calls) {
         try {

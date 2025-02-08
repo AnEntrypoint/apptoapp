@@ -37,13 +37,13 @@ async function createDiff(preferredDir) {
   const files = await readDirRecursive(sourceDir, ig);
   console.log(`Total files to process: ${files.length}`);
   
-  let diffOutput = '';
+  let textOutput = '';
   
   for (const file of files) {
     try {
       const relativePath = path.relative(sourceDir, file.path).replace(/\\/g, '/');
       
-      // Check if the current file path is actually a directory.
+      // Check if the current file path is a directory.
       let fileStats;
       try {
         fileStats = await fs.stat(file.path);
@@ -52,45 +52,43 @@ async function createDiff(preferredDir) {
         continue;
       }
       if (fileStats.isDirectory()) {
-        //console.log(`Skipping directory: ${file.path}`);
-        continue; // Skip directories to avoid EISDIR error
+        continue; // Skip directories
       }
       
-      if (ig.ignores(relativePath) || noc.ignores(relativePath)) { // Check against both ignore and no contents
-        //console.log(`Ignoring file: ${relativePath}`);
-        continue; // Skip processing this file
+      // Skip files that match the ignore patterns
+      if (ig.ignores(relativePath)) {
+        continue;
+      }
+      
+      // If file is marked to have no contents, output just its path
+      if (noc.ignores(relativePath)) {
+        textOutput += `${relativePath}\n\n`;
+        continue;
       }
       
       let originalContent = '';
       try {
-        originalContent = await fs.readFile(file.path, 'utf8'); // Read original content
+        originalContent = await fs.readFile(file.path, 'utf8');
       } catch (error) {
         console.log(`Error reading file ${file.path}:`, error);
-        continue; // Skip to the next file if there's an error
+        continue;
       }
-
-      // Include file path and content for diff output
-      if (noc.ignores(relativePath)) {
-        diffOutput += `${relativePath}\n`; // Just the relative path for no contents files
-      } else {
-        const originalLines = originalContent.split('\n');
-        
-        originalLines.forEach((line) => {
-          diffOutput += `+ ${line.trim()}\n`; // Add all lines as additions
-        });
-        
-        diffOutput += `\n+++ ${relativePath}\n`; // Add file path to the diff output with a newline before
-      }
+      
+      // Write file path and its content, separated clearly by dividers
+      textOutput += `File: ${relativePath}\n`;
+      textOutput += '-----------------------------\n';
+      textOutput += originalContent;
+      textOutput += '\n-----------------------------\n\n';
       
     } catch (error) {
       console.error(`Error processing file ${file.path}:`, error);
     }
   }
   
-  const diffSize = Buffer.byteLength(diffOutput, 'utf8');
-  console.log(`Generated diff size: ${diffSize} bytes`);
+  const outputSize = Buffer.byteLength(textOutput, 'utf8');
+  console.log(`Generated text output size: ${outputSize} bytes`);
   
-  return diffOutput || `No files found in ${sourceDir} directory`;
+  return textOutput || `No files found in ${sourceDir} directory`;
 }
 
 module.exports = { createDiff };

@@ -16,7 +16,8 @@ out/
 .output/
 .cache/
 .parcel-cache/
-
+package-lock.json
+package.json
 # Environment and config files
 .env
 .env.*
@@ -26,12 +27,16 @@ out/
 .pnpmrc
 config.local.js
 *.config.local.js
+.llmignore
+.nocontents
+NOTES.txt
 
 # IDE and editor files
 .idea/
 .vscode/
 *.swp
 *.swo
+
 .DS_Store
 Thumbs.db
 
