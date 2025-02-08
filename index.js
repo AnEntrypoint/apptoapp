@@ -103,8 +103,13 @@ async function runBuild() {
   return `Build exit code: ${code}\nSTDOUT:\n${stdout}\nSTDERR:\n${stderr}`;
 
 }
-
+let count = 0;
 async function main(instruction, previousLogs = '') {
+  if(count++ > 5){
+    console.log('Too many attempts, exiting');
+    process.exit(1);
+  }
+
 
   process.on('uncaughtException', async (error) => {
     console.error('Uncaught exception:', error);
