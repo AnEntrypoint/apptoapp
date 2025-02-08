@@ -1,13 +1,12 @@
 const fs = require('fs').promises;
 const path = require('path');
 const { loadIgnorePatterns, loadNoContentsPatterns, scanDirectory } = require('./utils');
-const { diffLines } = require('diff');
 
 async function readDirRecursive(dir, ig) {
   console.log(`Reading directory recursively: ${dir}`);
   const result = await scanDirectory(dir, ig, (fullPath, relativePath) => {
     console.log(`[DEBUG] Processing path: ${relativePath}`);
-    return { path: path.relative(process.cwd(), fullPath) }; // Use relative path
+    return { path: path.resolve(fullPath) }; // Use absolute path
   });
   
   // Output empty folders as their paths
@@ -19,7 +18,7 @@ async function readDirRecursive(dir, ig) {
       const filesInFolder = await fs.readdir(fullPath);
       if (filesInFolder.length === 0) {
         console.log(`Found empty folder: ${fullPath}`);
-        result.push({ path: path.relative(process.cwd(), fullPath) + '/' }); // Add empty folder to result with trailing slash
+        result.push({ path: path.resolve(fullPath) + '/' }); // Add empty folder to result with trailing slash
       }
     }
   }));
@@ -73,15 +72,8 @@ async function createDiff(preferredDir) {
       try {
         originalContent = await fs.readFile(file.path, 'utf8'); // Read original content
       } catch (error) {
-        console.log(`Error reading original file ${file.path}:`, error);
+        console.log(`Error reading file ${file.path}:`, error);
         continue; // Skip to the next file if there's an error
-      }
-
-      let modifiedContent = '';
-      try {
-        modifiedContent = await fs.readFile(file.path, 'utf8');
-      } catch (error) {
-        console.log(`Error reading modified file ${file.path}:`, error);
       }
 
       // Include file path and content for diff output
@@ -89,12 +81,13 @@ async function createDiff(preferredDir) {
         diffOutput += `${relativePath}\n`; // Just the relative path for no contents files
       } else {
         console.log('Including content for file:', file.path);
-        const diff = diffLines(originalContent, modifiedContent);
-        diff.forEach(part => {
-          const prefix = part.added ? '+' : part.removed ? '-' : ' ';
-          diffOutput += `${prefix} ${part.value.trim()}\n`; // Proper diff format with trimmed output
+        const originalLines = originalContent.split('\n');
+        
+        originalLines.forEach((line) => {
+          diffOutput += `+ ${line.trim()}\n`; // Add all lines as additions
         });
-        diffOutput += `--- ${relativePath}\n`; // Add file path to the diff output
+        
+        diffOutput += `\n+++ ${relativePath}\n`; // Add file path to the diff output with a newline before
       }
       
     } catch (error) {

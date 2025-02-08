@@ -72,6 +72,7 @@ async function loadTools() {
                 }
             }
         } catch (error) {
+            console.error(error);
             console.log(`No local tools directory found at ${toolsDir}. Continuing...`);
         }
     }
@@ -120,7 +121,6 @@ async function executeToolCall(toolCall) {
         } else if (Array.isArray(args)) {
             orderedArgs = args;
         }
-        
         const result = await toolImplementations[name](...orderedArgs);
         return result;
     } catch (error) {

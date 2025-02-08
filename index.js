@@ -132,9 +132,9 @@ async function main(instruction, previousNotes = [], previousLogs = '') {
   const fileList = await listFiles(dir, ig);
 
   console.log(`Total Size: ${formatBytes(totalSize)}`);
-  //console.log('Files and Directories:');
-  //fileList.forEach(f => console.log(`- ${f}`));
-  //console.log('');
+  console.log('Files and Directories:');
+  fileList.forEach(f => console.log(`- ${f}`));
+  console.log('');
 
   /*console.log('\nRunning initial build');
   let buildLogs;
@@ -147,15 +147,67 @@ async function main(instruction, previousNotes = [], previousLogs = '') {
   }*/
 
   let diff = await createDiff('.');
+  const diffContent = diff; // Store the diff content
+  try {
+    await fsp.writeFile(path.join('..', 'diff.txt'), diffContent, 'utf8');
+    console.log('Diff written to ../diff.txt successfully');
+  } catch (error) {
+    console.error('Error writing diff to file:', error);
+  }
 
+  /*console.log('Brainstorming the task based on the instruction:', instruction);
+  
+  // Here we can define a function to brainstorm the task using an LLM call
+  async function brainstormTaskWithLLM(instruction) {
+    console.log('Starting brainstorming process with LLM...');
+    
+    const messages = [
+      {
+        role: 'system',
+        content: `Plan this instruction: "${instruction}" into a bullet list of changes that are needed to complete the task. The current path is the project root. The current directory is ${process.cwd()}.`+
+        `${cmdhistory.length > 0 ? 'Here is the logs: '+cmdhistory.join('\n') : ''}\n\n`+
+        `${previousLogs ? "\n\n and resolve this error: " + previousLogs : ''}\n\n`
+
+      },
+      {
+        role: 'user',
+        content: diff
+      }
+    ];
+    
+    try {
+      const response = await makeApiRequest(
+        messages,
+        [],
+        process.env.MISTRAL_API_KEY,
+        'https://codestral.mistral.ai/v1/chat/completions'
+      );
+      
+      const brainstormedTasks = response.choices[0].message.content;
+      console.log('Brainstorming completed. Tasks identified:', brainstormedTasks);
+      return brainstormedTasks;
+    } catch (error) {
+      console.error('Error during LLM brainstorming:', error);
+      return [];
+    }
+  }
+
+  const brainstormedTasks = await brainstormTaskWithLLM(instruction);
+  const brainstormedTasksContent = `Brainstormed tasks: ${brainstormedTasks}`;*/
+  const content = `${instruction}\n\n` +
+        `Write all the files that are needed to complete the task using writeFile, then call the cli tools that are needed, if any, for this iteration.\n`
+  try {
+    const contentToWrite = `Instruction: ${instruction}`;
+
+    await fsp.writeFile(path.join('..', 'content.txt'), contentToWrite, 'utf8');
+    console.log('Content written to ../content.txt successfully');
+  } catch (error) {
+    console.error('Error writing content to file:', error);
+  }
   const messages = [
     {
       role: 'system',
-      content: `Perform the following task: ${instruction}\n\n` +
-        `${cmdhistory.length > 0 ? 'Here is the logs: '+cmdhistory.join('\n') : ''}${previousLogs ? "\n\n and resolve this error: " + previousLogs : ''}\n\n`+
-        `./components/ui, are standard shadcn/ui components.\n`+
-        `Only respond with tool calls, respond with as many calls as is needed to perform the task. Do not respond with any other text.\n\n`+
-        `When installing shadcn components, use npx commands for shadcn@latest\n`
+      content
     },
     {
       role: 'user',
@@ -171,7 +223,7 @@ async function main(instruction, previousNotes = [], previousLogs = '') {
       process.env.MISTRAL_API_KEY,
       'https://codestral.mistral.ai/v1/chat/completions'
     );
-
+    console.log(JSON.stringify(response.choices[0].message, null, 2));
     if (response.choices[0].message.tool_calls) {
       for (const toolCall of response.choices[0].message.tool_calls) {
         try {
@@ -209,31 +261,7 @@ async function main(instruction, previousNotes = [], previousLogs = '') {
 }
 
 
-async function handleContentToolCalls(response, notes) {
-  try {
-    const toolCalls = JSON.parse(response.choices[0].message.content.replace('```json', '').replace('```', ''));
-    console.log('Parsed %d tool calls from content', toolCalls.length);
-    for (const toolCall of toolCalls) {
-      try {
-        await executeToolCall(toolCall);
-      } catch (error) {
-        const noteContent = await createErrorNote({
-          tool: toolCall.function.name,
-          error: error.message,
-          phase: 'content-failover'
-        });
-        notes.push(noteContent);
-      }
-    }
-  } catch (e) {
-    console.error('Content-based failover failed:', e);
-    const noteContent = await createErrorNote({
-      error: `Failed to parse tool calls from content: ${e.message}`,
-      rawContent: response.choices[0].message.content.substring(0, 200) + '...'
-    });
-    notes.push(noteContent);
-  }
-}
+
 
 const instruction = process.argv[2];
 main(instruction).catch(error => {
