@@ -43,7 +43,8 @@ async function executeCommand(command, options = {}) {
         });
 
         // Auto-answer 'yes' to any y/n questions
-        child.stdin.write('yes\n');
+        child.stdin.write('Y\n');
+        child.stdin.write('Y\n');
         child.stdin.end();
     });
 }

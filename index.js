@@ -152,10 +152,10 @@ async function main(instruction, previousNotes = [], previousLogs = '') {
     {
       role: 'system',
       content: `Perform the following task: ${instruction}\n\n` +
-        `Here is the logs: ${cmdhistory.join('\n')+"\n\n"+previousLogs?" and resolve this error: "+previousLogs:""}\n\n`+
-        `Ignore ./components/ui, they are standard shadcn/ui components, their source has been excluded to save tokens.\n`+
+        `${cmdhistory.length > 0 ? 'Here is the logs: '+cmdhistory.join('\n') : ''}${previousLogs ? "\n\n and resolve this error: " + previousLogs : ''}\n\n`+
+        `./components/ui, are standard shadcn/ui components.\n`+
         `Only respond with tool calls, respond with as many calls as is needed to perform the task. Do not respond with any other text.\n\n`+
-        `Source code is provided in diff format. When installing shadcn components, use npx commands for shadcn@latest\n`
+        `When installing shadcn components, use npx commands for shadcn@latest\n`
     },
     {
       role: 'user',
@@ -177,18 +177,11 @@ async function main(instruction, previousNotes = [], previousLogs = '') {
         try {
           await executeToolCall(toolCall);
         } catch (error) {
-          console.error('Tool call failed, attempting failover:', error);
-          const noteContent = await createErrorNote({
-            tool: toolCall.function.name,
-            error: error.message,
-            phase: 'primary-execution'
-          });
-          notes.push(noteContent);
-
-          if (response.choices[0].message.content) {
-            console.log('Attempting content-based failover');
-            await handleContentToolCalls(response, notes);
-          }
+          console.error('Tool call failed, restarting:', error);
+          setTimeout(async () => {
+            await main(instruction, notes, error.message);
+          }, 0);
+          return;
         }
       }
     } else {
