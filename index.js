@@ -155,7 +155,7 @@ async function main(instruction, previousNotes = [], previousLogs = '') {
     console.error('Error writing diff to file:', error);
   }
 
-  /*console.log('Brainstorming the task based on the instruction:', instruction);
+  console.log('Brainstorming the task based on the instruction:', instruction);
   
   // Here we can define a function to brainstorm the task using an LLM call
   async function brainstormTaskWithLLM(instruction) {
@@ -193,13 +193,10 @@ async function main(instruction, previousNotes = [], previousLogs = '') {
   }
 
   const brainstormedTasks = await brainstormTaskWithLLM(instruction);
-  const brainstormedTasksContent = `Brainstormed tasks: ${brainstormedTasks}`;*/
-  const content = `${instruction}\n\n` +
-        `Write all the files that are needed to complete the task using writeFile, then call the cli tools that are needed, if any, for this iteration.\n`
+  const content = `${brainstormedTasks}\n\nComplete all the tasks\n\nUse as many calls as needed to complete the task.`
   try {
-    const contentToWrite = `Instruction: ${instruction}`;
 
-    await fsp.writeFile(path.join('..', 'content.txt'), contentToWrite, 'utf8');
+    await fsp.writeFile(path.join('..', 'content.txt'), content, 'utf8');
     console.log('Content written to ../content.txt successfully');
   } catch (error) {
     console.error('Error writing content to file:', error);
@@ -213,6 +210,7 @@ async function main(instruction, previousNotes = [], previousLogs = '') {
       role: 'user',
       content: diff
     }
+
 
   ];
 
