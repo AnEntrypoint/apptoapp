@@ -258,7 +258,6 @@ async function main(instruction, previousLogs = '') {
     
   } catch (error) {
     console.error('Error during transformation:', error);
-    process.exit(1);
   }
   try {
     const buildLogs = await runBuild();
