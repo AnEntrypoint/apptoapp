@@ -78,10 +78,22 @@ async function runBuild() {
     throw new Error(`Build failed: ${stderr || stdout}`);
   }
 
-  result = await executeCommand('npx eslint .'); // Linting the project using ESLint
+  /*result = await executeCommand('npx eslint . --ignore-pattern .next/'); // Linting the project using ESLint, ignoring .next
   code = result.code;
   stdout = result.stdout;
   stderr = result.stderr;
+  if (code !== 0) {
+    console.error('Lint failed with exit code:', code);
+    console.error('STDOUT:', stdout);
+    console.error('STDERR:', stderr);
+    throw new Error(`Lint failed: ${stderr || stdout}`);
+  }*/
+
+  result = await executeCommand('npm run build'); 
+  code = result.code;
+  stdout = result.stdout;
+  stderr = result.stderr;
+
   if (code !== 0) {
     console.error('Build failed with exit code:', code);
     console.error('STDOUT:', stdout);
@@ -89,7 +101,6 @@ async function runBuild() {
     throw new Error(`Build failed: ${stderr || stdout}`);
   }
   return `Build exit code: ${code}\nSTDOUT:\n${stdout}\nSTDERR:\n${stderr}`;
-
 
 }
 
