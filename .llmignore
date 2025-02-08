@@ -3,6 +3,9 @@ node_modules/
 package-lock.json
 yarn.lock
 pnpm-lock.yaml
+.llmignore
+.nocontents
+NOTES.txt
 public/
 # Build outputs
 dist/

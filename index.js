@@ -105,7 +105,6 @@ async function runBuild() {
 }
 
 async function main(instruction, previousNotes = [], previousLogs = '') {
-  console.log('Starting main application');
   const notes = [...previousNotes];
 
   process.on('uncaughtException', async (error) => {
@@ -122,8 +121,7 @@ async function main(instruction, previousNotes = [], previousLogs = '') {
     console.error('Error: No instruction provided');
     process.exit(1);
   }
-
-  console.log('Processing instruction:', instruction);
+  console.log(`\n\n--------------------------------\n\nProcessing instruction:\n\n--------------------------------\n${instruction}\n\n`);
   const ig = await loadIgnorePatterns();
 
   const dir = process.cwd();
@@ -132,9 +130,10 @@ async function main(instruction, previousNotes = [], previousLogs = '') {
   const fileList = await listFiles(dir, ig);
 
   console.log(`Total Size: ${formatBytes(totalSize)}`);
-  console.log('Files and Directories:');
-  fileList.forEach(f => console.log(`- ${f}`));
-  console.log('');
+  //console.log('Files and Directories:');
+  //fileList.forEach(f => console.log(`- ${f}`));
+  //console.log('');
+
 
   /*console.log('\nRunning initial build');
   let buildLogs;
@@ -150,24 +149,19 @@ async function main(instruction, previousNotes = [], previousLogs = '') {
   const diffContent = diff; // Store the diff content
   try {
     await fsp.writeFile(path.join('..', 'diff.txt'), diffContent, 'utf8');
-    console.log('Diff written to ../diff.txt successfully');
   } catch (error) {
     console.error('Error writing diff to file:', error);
   }
 
-  console.log('Brainstorming the task based on the instruction:', instruction);
   
   // Here we can define a function to brainstorm the task using an LLM call
   async function brainstormTaskWithLLM(instruction) {
-    console.log('Starting brainstorming process with LLM...');
-    
     const messages = [
       {
         role: 'system',
-        content: `Plan this instruction: "${instruction}" into a bullet list of changes that are needed to complete the task. The current path is the project root. The current directory is ${process.cwd()}.`+
-        `${cmdhistory.length > 0 ? 'Here is the logs: '+cmdhistory.join('\n') : ''}\n\n`+
+        content: `Plan this instruction: "${instruction}" into a bullet list summary of instructions for code transformations, only include code transformations, dont include any system or devops tasks or other instructions. The current path is the project root. The current directory is ${process.cwd()}.`+
+        `${cmdhistory.length > 0 ? 'Here is the logs, also plan the task based on the logs fixing any errors: '+cmdhistory.join('\n') : ''}\n\n`+
         `${previousLogs ? "\n\n and resolve this error: " + previousLogs : ''}\n\n`
-
       },
       {
         role: 'user',
@@ -193,18 +187,18 @@ async function main(instruction, previousNotes = [], previousLogs = '') {
   }
 
   const brainstormedTasks = await brainstormTaskWithLLM(instruction);
-  const content = `${brainstormedTasks}\n\nComplete all the tasks\n\nUse as many calls as needed to complete the task.`
+  const content = `${brainstormedTasks}`
   try {
 
+
     await fsp.writeFile(path.join('..', 'content.txt'), content, 'utf8');
-    console.log('Content written to ../content.txt successfully');
   } catch (error) {
     console.error('Error writing content to file:', error);
   }
   const messages = [
     {
       role: 'system',
-      content
+      content: `Implement the following code changes using only tool calls: ${content}`
     },
     {
       role: 'user',
@@ -221,7 +215,6 @@ async function main(instruction, previousNotes = [], previousLogs = '') {
       process.env.MISTRAL_API_KEY,
       'https://codestral.mistral.ai/v1/chat/completions'
     );
-    console.log(JSON.stringify(response.choices[0].message, null, 2));
     if (response.choices[0].message.tool_calls) {
       for (const toolCall of response.choices[0].message.tool_calls) {
         try {
@@ -240,7 +233,36 @@ async function main(instruction, previousNotes = [], previousLogs = '') {
       });
       notes.push(noteContent);
     }
+    if (response.choices[0].message.content) {
+      const diffContent = response.choices[0].message.content;
+      console.log('Received diff content from API, attempting to apply diff patch.');
+      try {
+        const tempDiffFile = path.join(process.cwd(), '.tmp_patch.diff');
+        await fsp.writeFile(tempDiffFile, diffContent, 'utf8');
+        console.log('Temporary diff file created at:', tempDiffFile);
+
+        // Execute the patch command. (Using powershell syntax if needed.)
+        const patchCmd = `patch -p1 < ${tempDiffFile}`;
+        console.log('Executing patch command:', patchCmd);
+        const patchResult = await executeCommand(patchCmd);
+        if (patchResult.code !== 0) {
+          console.error('Patch command failed with exit code:', patchResult.code);
+          console.error('Patch STDOUT:', patchResult.stdout);
+          console.error('Patch STDERR:', patchResult.stderr);
+          throw new Error(`Patch command failed: ${patchResult.stderr || patchResult.stdout}`);
+        }
+        console.log('Diff patch applied successfully.');
+        await fsp.unlink(tempDiffFile);
+        console.log('Temporary diff file removed.');
+      } catch (patchError) {
+        console.error('Error applying diff patch:', patchError);
+        throw patchError;
+      }
+    } else {
+      console.log('No text found in the response to process as diff.');
+    }
     console.log('Transformation complete!');
+    
   } catch (error) {
     console.error('Error during transformation:', error);
     process.exit(1);
@@ -252,7 +274,7 @@ async function main(instruction, previousNotes = [], previousLogs = '') {
   } catch (e) {
     //console.error('Error during rebuild:', e);
     setTimeout(async () => {
-      await main(instruction, notes, e.message);
+      await main(brainstormedTasks, notes, e.message);
     }, 0);
 
   }

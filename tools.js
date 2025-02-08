@@ -72,8 +72,7 @@ async function loadTools() {
                 }
             }
         } catch (error) {
-            console.error(error);
-            console.log(`No local tools directory found at ${toolsDir}. Continuing...`);
+            // dont log errors
         }
     }
     
@@ -84,7 +83,6 @@ async function executeToolCall(toolCall) {
     
     // Get the function details from the tool call.
     const toolFunc = toolCall.function;
-    console.log('Tool call received:', toolFunc.name);
     if (!toolFunc || !toolFunc.name) {
         throw new Error('Invalid tool call: missing function definition.');
     }
@@ -93,17 +91,15 @@ async function executeToolCall(toolCall) {
     
     // Use arguments from toolCall or from toolFunc.
     let args = toolCall.arguments || toolFunc.arguments;
-
-    console.log('Executing tool:', name);
     
     // If arguments are provided as a JSON string, parse them.
     if (typeof args === 'string') {
         try {
             args = JSON.parse(args);
             if (typeof args === 'object' && !Array.isArray(args) && Object.keys(args).length > 10) {
-                console.log('Arguments (truncated):', JSON.stringify(args).slice(0, 100) + '...'); // Truncate long arguments
+                //console.log('Arguments (truncated):', JSON.stringify(args).slice(0, 100) + '...'); // Truncate long arguments
             } else {
-                console.log('Arguments:', args);
+                //console.log('Arguments:', args);
             }
         } catch (err) {
             console.error('Error parsing tool arguments:', err);
@@ -138,9 +134,6 @@ async function executeToolCall(toolCall) {
 let tools = [];
 (async () => {
     tools = await loadTools();
-    tools.forEach(tool => {
-        console.log('Loaded tool:', tool.function.name);
-    }); 
 })();
 
 function getTools() {

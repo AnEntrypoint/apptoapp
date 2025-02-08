@@ -50,25 +50,54 @@ async function executeCommand(command, options = {}) {
 }
 
 async function loadIgnorePatterns(ignoreFile = '.llmignore') {
-    try {
-        const ignoreContent = await fsp.readFile(ignoreFile, 'utf8');
-        return ignore().add(ignoreContent.split('\n').filter(l => !l.startsWith('#')));
-    } catch (error) {
-        if (error.code === 'ENOENT') {
-            console.log(`No ${ignoreFile} found, using empty ignore list`);
-            return ignore();
+    const currentPath = process.cwd();
+    const sourcePath = path.join(__dirname, ignoreFile); // Assuming the library is in the same directory as this file
+
+    const ignoreFiles = [ignoreFile, sourcePath];
+    let ignoreContent = '';
+
+    for (const file of ignoreFiles) {
+        try {
+            ignoreContent = await fsp.readFile(file, 'utf8');
+            return ignore().add(ignoreContent.split('\n').filter(l => !l.startsWith('#')));
+        } catch (error) {
+            if (error.code === 'ENOENT') {
+                console.log(`No ${file} found, trying next path`);
+            } else {
+                throw error;
+            }
         }
-        throw error;
     }
+
+    console.log(`No ignore files found, using empty ignore list`);
+    return ignore();
 }
 
 async function loadNoContentsPatterns(ignoreFile = '.nocontents') {
+    const currentPath = process.cwd();
+    const sourcePath = path.join(__dirname, ignoreFile); // Path of the library
+
+    let ignoreContent = '';
+
+    // Check current path first
     try {
-        const ignoreContent = await fsp.readFile(ignoreFile, 'utf8');
+        ignoreContent = await fsp.readFile(ignoreFile, 'utf8');
         return ignore().add(ignoreContent.split('\n').filter(l => !l.startsWith('#')));
     } catch (error) {
         if (error.code === 'ENOENT') {
-            console.log(`No ${ignoreFile} found, using empty no contents list`);
+            console.log(`No ${ignoreFile} found in current path, trying library path`);
+        } else {
+            throw error;
+        }
+    }
+
+    // Check library path
+    try {
+        ignoreContent = await fsp.readFile(sourcePath, 'utf8');
+        return ignore().add(ignoreContent.split('\n').filter(l => !l.startsWith('#')));
+    } catch (error) {
+        if (error.code === 'ENOENT') {
+            console.log(`No ${ignoreFile} found in library path, using empty no contents list`);
             return ignore();
         }
         throw error;
@@ -104,7 +133,6 @@ async function makeApiRequest(messages, tools, apiKey, endpoint) {
     async function writeToLastCall(data) {
         try {
             await fsp.writeFile('../lastcall.txt', data, 'utf8');
-            console.log('Data written to lastcall.txt successfully');
         } catch (error) {
             console.error('Error writing to lastcall.txt:', error);
         }
@@ -136,7 +164,6 @@ async function directoryExists(dir) {
 // scanDirectory is a unified directory scanner.
 // handler is a function(fullPath, relativePath) that returns an item (or null) for each file.
 async function scanDirectory(dir, ig, handler, baseDir = dir) {
-    console.log(`[SCAN] Scanning directory: ${dir} (base: ${baseDir})`);
     const entries = await fsp.readdir(dir, { withFileTypes: true });
     const results = [];
     
@@ -145,17 +172,14 @@ async function scanDirectory(dir, ig, handler, baseDir = dir) {
         // Normalize path to POSIX style and make relative to original base
         const relativePath = path.relative(baseDir, fullPath).replace(/\\/g, '/');
         
-        console.log(`[SCAN] Checking: ${relativePath}`);
         if (ig.ignores(relativePath)) {
-            console.log(`Ignoring: ${relativePath} matched pattern: `, ig.test(relativePath));
+            //console.log(`Ignoring: ${relativePath} matched pattern: `, ig.test(relativePath));
             continue;
         }
 
         if (entry.isDirectory()) {
-            console.log(`[SCAN] Entering directory: ${relativePath}`);
             results.push(...await scanDirectory(fullPath, ig, handler, baseDir));
         } else {
-            console.log(`[SCAN] Processing file: ${relativePath}`);
             const result = handler(fullPath, relativePath);
             results.push(result);
         }

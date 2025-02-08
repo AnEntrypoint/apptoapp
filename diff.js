@@ -3,9 +3,7 @@ const path = require('path');
 const { loadIgnorePatterns, loadNoContentsPatterns, scanDirectory } = require('./utils');
 
 async function readDirRecursive(dir, ig) {
-  console.log(`Reading directory recursively: ${dir}`);
   const result = await scanDirectory(dir, ig, (fullPath, relativePath) => {
-    console.log(`[DEBUG] Processing path: ${relativePath}`);
     return { path: path.resolve(fullPath) }; // Use absolute path
   });
   
@@ -23,13 +21,11 @@ async function readDirRecursive(dir, ig) {
     }
   }));
 
-  console.log(`Finished reading directory: ${dir}, found ${result.length} files and folders`);
   return result;
 }
 
 async function createDiff(preferredDir) {
   const sourceDir = preferredDir || process.cwd();
-  console.log(`Creating diff for source directory: ${sourceDir}`);
   
   if (!sourceDir) {
     console.log('No source directory found');
@@ -38,7 +34,6 @@ async function createDiff(preferredDir) {
   
   const ig = await loadIgnorePatterns();
   const noc = await loadNoContentsPatterns(); // Load no contents patterns
-  console.log('Loaded ignore patterns and no contents patterns');
   
   const files = await readDirRecursive(sourceDir, ig);
   console.log(`Total files to process: ${files.length}`);
@@ -48,7 +43,6 @@ async function createDiff(preferredDir) {
   for (const file of files) {
     try {
       const relativePath = path.relative(sourceDir, file.path).replace(/\\/g, '/');
-      console.log(`Processing file: ${file.path}, source-relative path: ${relativePath}`);
       
       // Check if the current file path is actually a directory.
       let fileStats;
@@ -59,12 +53,12 @@ async function createDiff(preferredDir) {
         continue;
       }
       if (fileStats.isDirectory()) {
-        console.log(`Skipping directory: ${file.path}`);
+        //console.log(`Skipping directory: ${file.path}`);
         continue; // Skip directories to avoid EISDIR error
       }
       
       if (ig.ignores(relativePath) || noc.ignores(relativePath)) { // Check against both ignore and no contents
-        console.log(`Ignoring file: ${relativePath}`);
+        //console.log(`Ignoring file: ${relativePath}`);
         continue; // Skip processing this file
       }
       
@@ -80,7 +74,6 @@ async function createDiff(preferredDir) {
       if (noc.ignores(relativePath)) {
         diffOutput += `${relativePath}\n`; // Just the relative path for no contents files
       } else {
-        console.log('Including content for file:', file.path);
         const originalLines = originalContent.split('\n');
         
         originalLines.forEach((line) => {
