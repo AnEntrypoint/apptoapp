@@ -12,5 +12,5 @@ async function executeCommand(command) {
     const { stdout, stderr } = await runCmd(command);
     return `Command executed: ${command}\nOutput: ${stdout}${stderr}`;
 }
-
+ 
 module.exports = executeCommand; 
