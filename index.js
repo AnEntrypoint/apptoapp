@@ -104,8 +104,7 @@ async function runBuild() {
 
 }
 
-async function main(instruction, previousNotes = [], previousLogs = '') {
-  const notes = [...previousNotes];
+async function main(instruction, previousLogs = '') {
 
   process.on('uncaughtException', async (error) => {
     console.error('Uncaught exception:', error);
@@ -113,7 +112,6 @@ async function main(instruction, previousNotes = [], previousLogs = '') {
       error: error.message,
       stack: error.stack
     });
-    notes.push(noteContent);
     process.exit(1);
   });
 
@@ -222,16 +220,11 @@ async function main(instruction, previousNotes = [], previousLogs = '') {
         } catch (error) {
           console.error('Tool call failed, restarting:', error);
           setTimeout(async () => {
-            await main(instruction, notes, error.message);
+            await main(instruction, error.message);
           }, 0);
           return;
         }
       }
-    } else {
-      const noteContent = await createErrorNote({
-        error: 'API response contained no tool calls or actionable content'
-      });
-      notes.push(noteContent);
     }
     if (response.choices[0].message.content) {
       const diffContent = response.choices[0].message.content;
@@ -274,7 +267,7 @@ async function main(instruction, previousNotes = [], previousLogs = '') {
   } catch (e) {
     //console.error('Error during rebuild:', e);
     setTimeout(async () => {
-      await main(brainstormedTasks, notes, e.message);
+      await main(e.message);
     }, 0);
 
   }
