@@ -78,7 +78,7 @@ async function runBuild() {
     throw new Error(`Build failed: ${stderr || stdout}`);
   }
 
-  result = await executeCommand('npm run build');
+  result = await executeCommand('npx eslint .'); // Linting the project using ESLint
   code = result.code;
   stdout = result.stdout;
   stderr = result.stderr;
@@ -140,16 +140,17 @@ async function main(instruction, previousNotes = [], previousLogs = '') {
   const messages = [
     {
       role: 'system',
-      content: `Inspect these logs, and perform the necessary transformations to this codebase or cli instructions (if using npm install always --save or --save-dev) required to fulfill the following request: ${instruction}\n\n` +
-        `Here is the cli history: ${cmdhistory.join('\n')}`+
-        `The files under components/ui are not to be modified, they're standard shadcn/ui components, their source has been excluded to save tokens.\n`+
+      content: `Perform the following task: ${instruction}\n\n` +
+        `Here is the logs: ${cmdhistory.join('\n')+"\n\n"+previousLogs?" and resolve this error: "+previousLogs:""}\n\n`+
+        `Ignore ./components/ui, they are standard shadcn/ui components, their source has been excluded to save tokens.\n`+
         `Only respond with tool calls, respond with as many calls as is needed to perform the task. Do not respond with any other text.\n\n`+
-        `Here is the current directory: ${dir}`
+        `Source code is provided in diff format. When installing shadcn components, use npx commands for shadcn@latest\n`
     },
     {
       role: 'user',
       content: diff
     }
+
   ];
 
   try {
@@ -192,6 +193,7 @@ async function main(instruction, previousNotes = [], previousLogs = '') {
   }
   try {
     const buildLogs = await runBuild();
+    
     console.log('Build logs:', buildLogs);
   } catch (e) {
     //console.error('Error during rebuild:', e);

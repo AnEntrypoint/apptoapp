@@ -13,21 +13,24 @@ async function executeCommand(command, options = {}) {
             ...options
         });
         cmdhistory.push(command);
+        if (cmdhistory.length > 100) cmdhistory.splice(0, cmdhistory.length - 100); // Limit cmdhistory to 100 lines
 
         const output = { stdout: [], stderr: [] };
 
         child.stdout.on('data', (data) => {
             const trimmed = data.toString().trim();
             cmdhistory.push(trimmed);
+            if (cmdhistory.length > 100) cmdhistory.splice(0, cmdhistory.length - 100); // Limit cmdhistory to 100 lines
             output.stdout.push(trimmed);
-            //console.log(`[CMD] ${trimmed}`); // Added console log for stdout
+            console.log(`[CMD] ${trimmed}`); // Added console log for stdout
         });
 
         child.stderr.on('data', (data) => {
             const trimmed = data.toString().trim();
             cmdhistory.push(trimmed);
+            if (cmdhistory.length > 100) cmdhistory.splice(0, cmdhistory.length - 100); // Limit cmdhistory to 100 lines
             output.stderr.push(trimmed);
-            //console.error(`[CMD-ERR] ${trimmed}`); // Added console log for stderr
+            console.error(`[CMD-ERR] ${trimmed}`); // Added console log for stderr
         });
 
         child.on('close', (code) => {
@@ -38,6 +41,10 @@ async function executeCommand(command, options = {}) {
                 stderr: output.stderr.join('\n')
             });
         });
+
+        // Auto-answer 'yes' to any y/n questions
+        child.stdin.write('yes\n');
+        child.stdin.end();
     });
 }
 
@@ -104,7 +111,6 @@ async function makeApiRequest(messages, tools, apiKey, endpoint) {
 
     await writeToLastCall(JSON.stringify(JSON.parse(data[1].body), null, 2)); // Replace with actual data as needed
 
-
     if (!response.ok) {
         const error = await response.json();
         console.error('API Error:', JSON.stringify(error, null, 2));
@@ -129,7 +135,7 @@ async function directoryExists(dir) {
 // scanDirectory is a unified directory scanner.
 // handler is a function(fullPath, relativePath) that returns an item (or null) for each file.
 async function scanDirectory(dir, ig, handler, baseDir = dir) {
-    //console.log(`[SCAN] Scanning directory: ${dir} (base: ${baseDir})`);
+    console.log(`[SCAN] Scanning directory: ${dir} (base: ${baseDir})`);
     const entries = await fsp.readdir(dir, { withFileTypes: true });
     const results = [];
     
@@ -138,18 +144,16 @@ async function scanDirectory(dir, ig, handler, baseDir = dir) {
         // Normalize path to POSIX style and make relative to original base
         const relativePath = path.relative(baseDir, fullPath).replace(/\\/g, '/');
         
-        //console.log(`[SCAN] Checking: ${relativePath}`);
+        console.log(`[SCAN] Checking: ${relativePath}`);
         if (ig.ignores(relativePath)) {
-            //console.log(`Ignoring: ${relativePath} matched pattern: `, ig.test(relativePath));
+            console.log(`Ignoring: ${relativePath} matched pattern: `, ig.test(relativePath));
             continue;
         }
 
-        
         if (entry.isDirectory()) {
-            //console.log(`[SCAN] Entering directory: ${relativePath}`);
+            console.log(`[SCAN] Entering directory: ${relativePath}`);
             results.push(...await scanDirectory(fullPath, ig, handler, baseDir));
         } else {
-
             console.log(`[SCAN] Processing file: ${relativePath}`);
             const result = handler(fullPath, relativePath);
             results.push(result);
