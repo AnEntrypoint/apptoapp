@@ -62,7 +62,6 @@ async function loadIgnorePatterns(ignoreFile = '.llmignore') {
             return ignore().add(ignoreContent.split('\n').filter(l => !l.startsWith('#')));
         } catch (error) {
             if (error.code === 'ENOENT') {
-                console.log(`No ${file} found, trying next path`);
             } else {
                 throw error;
             }
@@ -85,7 +84,6 @@ async function loadNoContentsPatterns(ignoreFile = '.nocontents') {
         return ignore().add(ignoreContent.split('\n').filter(l => !l.startsWith('#')));
     } catch (error) {
         if (error.code === 'ENOENT') {
-            console.log(`No ${ignoreFile} found in current path, trying library path`);
         } else {
             throw error;
         }
@@ -97,7 +95,6 @@ async function loadNoContentsPatterns(ignoreFile = '.nocontents') {
         return ignore().add(ignoreContent.split('\n').filter(l => !l.startsWith('#')));
     } catch (error) {
         if (error.code === 'ENOENT') {
-            console.log(`No ${ignoreFile} found in library path, using empty no contents list`);
             return ignore();
         }
         throw error;
@@ -138,7 +135,7 @@ async function makeApiRequest(messages, tools, apiKey, endpoint) {
         }
     }
 
-    await writeToLastCall(JSON.stringify(JSON.parse(data[1].body), null, 2)); // Replace with actual data as needed
+    await writeToLastCall(JSON.stringify(JSON.parse(data[1].body), null, 2));
 
     if (!response.ok) {
         const error = await response.json();
@@ -146,7 +143,7 @@ async function makeApiRequest(messages, tools, apiKey, endpoint) {
         throw new Error(`API error: ${error.message || response.statusText}`);
     }
     const val = await response.json();
-    console.log('API Response:', val); // Shortened log for API response
+    console.log('API Response:', val);
     return val;
 }
 
@@ -172,8 +169,9 @@ async function scanDirectory(dir, ig, handler, baseDir = dir) {
         // Normalize path to POSIX style and make relative to original base
         const relativePath = path.relative(baseDir, fullPath).replace(/\\/g, '/');
         
+        // Skip both files and directories that match the ignore patterns
         if (ig.ignores(relativePath)) {
-            //console.log(`Ignoring: ${relativePath} matched pattern: `, ig.test(relativePath));
+            console.log(`Ignoring: ${relativePath} matched pattern.`);
             continue;
         }
 

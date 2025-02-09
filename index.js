@@ -70,7 +70,7 @@ async function runBuild() {
   console.log('Starting build process');
 
   let result, code, stdout, stderr;
-  result = await executeCommand('npm install --legacy-peer-deps');
+  result = await executeCommand('npm upgrade --save');
   code = result.code;
   stdout = result.stdout;
   stderr = result.stderr;
@@ -78,30 +78,30 @@ async function runBuild() {
     throw new Error(`Build failed: ${stderr || stdout}`);
   }
 
-  /*result = await executeCommand('npx eslint . --ignore-pattern .next/'); // Linting the project using ESLint, ignoring .next
+  result = await executeCommand('npm run lint');
   code = result.code;
   stdout = result.stdout;
   stderr = result.stderr;
-  if (code !== 0) {
+  console.log('Lint result:', result);
+  if (code) {
     console.error('Lint failed with exit code:', code);
     console.error('STDOUT:', stdout);
     console.error('STDERR:', stderr);
     throw new Error(`Lint failed: ${stderr || stdout}`);
-  }*/
+  }
 
   result = await executeCommand('npm run build'); 
   code = result.code;
   stdout = result.stdout;
   stderr = result.stderr;
-
-  if (code !== 0) {
+  if (code) {
     console.error('Build failed with exit code:', code);
     console.error('STDOUT:', stdout);
     console.error('STDERR:', stderr);
     throw new Error(`Build failed: ${stderr || stdout}`);
   }
+  process.exit(1);
   return `Build exit code: ${code}\nSTDOUT:\n${stdout}\nSTDERR:\n${stderr}`;
-
 }
 let count = 0;
 async function main(instruction, previousLogs = '') {
@@ -162,16 +162,20 @@ async function main(instruction, previousLogs = '') {
     const messages = [
       {
         role: 'system',
-        content: `Plan this instruction: "${instruction}" into instructions for code transformations, only include code transformations as complete files, dont include any system or devops tasks or other instructions or advice.`+
-        `${cmdhistory.length > 0 ? 'Here is the logs, also plan the task based on the logs fixing any errors: '+cmdhistory.join('\n') : ''}\n\n`+
-        `${previousLogs ? "\n\n and resolve these errors: " + previousLogs : ''}\n\n`
+        content: `You're a code editor, edit the files to do this: ${instruction}\n\n`+
+        ` - respond only with file names and their full file contents\n`+
+        ` - avoid editing the frameworks configuration files\n`+
+        ` - add as many files as are needed to complete the instruction\n`+
+        ` - only mention files that were edited\n`+
+        `${cmdhistory.length > 0 ? 'Logs: (fix the errors in the logs if needed) '+cmdhistory.join('\n')+'\n' : ''}`+
+        `${previousLogs ? previousLogs : ''}`
       },
       {
         role: 'user',
         content: diff
       }
     ];
-    
+    console.log({messages: messages[0].content});
     try {
       const response = await makeApiRequest(
         messages,
@@ -180,8 +184,8 @@ async function main(instruction, previousLogs = '') {
         'https://codestral.mistral.ai/v1/chat/completions'
       );
       
-      const brainstormedTasks = response.choices[0].message.content;
-      console.log('Brainstorming completed. Tasks identified:', brainstormedTasks);
+      const brainstormedTasks = response.choices[0].message.content.replace(/```diff\n/g, '').replace(/```/g, '');
+      console.log({brainstormedTasks});
       return brainstormedTasks;
     } catch (error) {
       console.error('Error during LLM brainstorming:', error);
@@ -189,8 +193,22 @@ async function main(instruction, previousLogs = '') {
     }
   }
 
-  const brainstormedTasks = await brainstormTaskWithLLM(instruction);
-  const content = `${brainstormedTasks}`
+ const brainstormedTasks = await brainstormTaskWithLLM(instruction);
+ /*  if (brainstormedTasks) {
+    console.log('Received diff content from API, attempting to apply diff programmatically.');
+    try {
+      console.log('Processing diff content:');
+      await applyDiffManually(brainstormedTasks);
+      console.log('Diff applied successfully.');
+    } catch (patchError) {
+      console.error('Error applying diff patch:', patchError);
+      throw patchError;
+    }
+  } else {
+    console.log('No text found in the response to process as diff.');
+  }*/
+  console.log('Transformation complete!'); 
+  const content = brainstormedTasks
   try {
 
 
@@ -201,7 +219,7 @@ async function main(instruction, previousLogs = '') {
   const messages = [
     {
       role: 'system',
-      content: `Respond only in multiple tool calls to write all the listed files and execute cli commands.`
+      content: `Respond only in multiple tool calls to write all the listed files, follow that with any cli commands to run.`
     },
 
     {
@@ -235,36 +253,7 @@ async function main(instruction, previousLogs = '') {
         }
       }
     }
-    if (response.choices[0].message.content) {
-      const diffContent = response.choices[0].message.content;
-      console.log('Received diff content from API, attempting to apply diff patch.');
-      try {
-        const tempDiffFile = path.join(process.cwd(), '.tmp_patch.diff');
-        await fsp.writeFile(tempDiffFile, diffContent, 'utf8');
-        console.log('Temporary diff file created at:', tempDiffFile);
-
-        // Execute the patch command. (Using powershell syntax if needed.)
-        const patchCmd = `patch -p1 < ${tempDiffFile}`;
-        console.log('Executing patch command:', patchCmd);
-        const patchResult = await executeCommand(patchCmd);
-        if (patchResult.code !== 0) {
-          console.error('Patch command failed with exit code:', patchResult.code);
-          console.error('Patch STDOUT:', patchResult.stdout);
-          console.error('Patch STDERR:', patchResult.stderr);
-          throw new Error(`Patch command failed: ${patchResult.stderr || patchResult.stdout}`);
-        }
-        console.log('Diff patch applied successfully.');
-        await fsp.unlink(tempDiffFile);
-        console.log('Temporary diff file removed.');
-      } catch (patchError) {
-        console.error('Error applying diff patch:', patchError);
-        throw patchError;
-      }
-    } else {
-      console.log('No text found in the response to process as diff.');
-    }
-    console.log('Transformation complete!');
-    
+ 
   } catch (error) {
     console.error('Error during transformation:', error);
   }
@@ -273,7 +262,7 @@ async function main(instruction, previousLogs = '') {
     
     console.log('Build logs:', buildLogs);
   } catch (e) {
-    //console.error('Error during rebuild:', e);
+    console.error('Error during rebuild:', e);
     setTimeout(async () => {
       await main(instruction, e.message);
     }, 0);
@@ -281,8 +270,51 @@ async function main(instruction, previousLogs = '') {
   }
 }
 
+async function applyDiffManually(diffContent) {
+  const diffLines = diffContent.split('\n');
+  let currentFile = null;
+  let newContent = [];
 
+  for (const line of diffLines) {
+    if (line.startsWith('---')) {
+      // Start of file diff - reset state
+      if (currentFile) {
+        await fsp.writeFile(currentFile, newContent.join('\n'));
+      }
+      currentFile = null;
+      newContent = [];
+    } 
+    else if (line.startsWith('+++')) {
+      currentFile = line
+        .replace(/^\+\+\+ /, '')      // Remove +++ prefix
+        .replace(/^\.\//, '')         // Remove leading ./
+        .replace(/^a\//, '')          // Remove git diff a/ prefix if present
+        .replace(/^b\//, '');         // Remove git diff b/ prefix if present
+    }
+    else if (currentFile) {
+      if (line.startsWith('+')) {
+        newContent.push(line.slice(1));
+      } 
+      else if (line.startsWith('-')) {
+        // Skip deletions as we're building new content
+      } 
+      else if (line.startsWith('@@')) {
+        // Reset content for the hunk
+        const originalContent = await fsp.readFile(currentFile, 'utf8');
+        newContent = originalContent.split('\n');
+      }
+      else {
+        newContent.push(line);
+      }
+    }
+  }
 
+  // Write final file
+  if (currentFile) {
+    await fsp.mkdir(path.dirname(currentFile), { recursive: true });
+    await fsp.writeFile(currentFile, newContent.join('\n'));
+  }
+}
 
 const instruction = process.argv[2];
 main(instruction).catch(error => {

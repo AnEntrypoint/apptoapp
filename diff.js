@@ -37,7 +37,8 @@ async function createDiff(preferredDir) {
   const files = await readDirRecursive(sourceDir, ig);
   console.log(`Total files to process: ${files.length}`);
   
-  let textOutput = '';
+  let textOutput = '---\n'; // Start of diff format
+  let fileCount = 0; // To track the number of files processed
   
   for (const file of files) {
     try {
@@ -55,14 +56,9 @@ async function createDiff(preferredDir) {
         continue; // Skip directories
       }
       
-      // Skip files that match the ignore patterns
-      if (ig.ignores(relativePath)) {
-        continue;
-      }
-      
-      // If file is marked to have no contents, output just its path
-      if (noc.ignores(relativePath)) {
-        textOutput += `${relativePath}\n\n`;
+      // Skip files and folders that match the ignore patterns
+      if (ig.ignores(relativePath) || noc.ignores(relativePath)) {
+        console.log(`Ignoring file/folder: ${relativePath}`);
         continue;
       }
       
@@ -74,11 +70,12 @@ async function createDiff(preferredDir) {
         continue;
       }
       
-      // Write file path and its content, separated clearly by dividers
-      textOutput += `File: ${relativePath}\n`;
-      textOutput += '-----------------------------\n';
-      textOutput += originalContent;
-      textOutput += '\n-----------------------------\n\n';
+      // Write file path and its content in diff format
+      textOutput += `--- ${relativePath}\n`;
+      textOutput += `+++ ${relativePath}\n`;
+      textOutput += originalContent.split('\n').map(line => `+ ${line}`).join('\n') + '\n'; // Add '+' to each line
+      textOutput += '\n';
+      fileCount++;
       
     } catch (error) {
       console.error(`Error processing file ${file.path}:`, error);
@@ -88,7 +85,7 @@ async function createDiff(preferredDir) {
   const outputSize = Buffer.byteLength(textOutput, 'utf8');
   console.log(`Generated text output size: ${outputSize} bytes`);
   
-  return textOutput || `No files found in ${sourceDir} directory`;
+  return fileCount > 0 ? textOutput : `No files found in ${sourceDir} directory`;
 }
 
 module.exports = { createDiff };
