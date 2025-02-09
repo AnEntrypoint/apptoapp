@@ -1,5 +1,6 @@
 # Dependencies
 @/components/ui
+components/ui
 node_modules/
 package-lock.json
 yarn.lock
