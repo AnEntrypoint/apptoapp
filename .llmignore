@@ -32,7 +32,6 @@ config.local.js
 *.config.local.js
 .llmignore
 .nocontents
-NOTES.txt
 
 # IDE and editor files
 .idea/

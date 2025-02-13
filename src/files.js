@@ -2,6 +2,10 @@ const fs = require('fs').promises;
 const path = require('path');
 const { loadIgnorePatterns, loadNoContentsPatterns, scanDirectory } = require('./utils');
 
+function diff(a, b) {
+  return a - b;
+}
+
 async function readDirRecursive(dir, ig) {
   const result = await scanDirectory(dir, ig, (fullPath, relativePath) => ({ path: path.resolve(fullPath) }));
 
@@ -83,4 +87,4 @@ async function getFiles(preferredDir) {
   return fileCount > 0 ? textOutput : `No files found in ${sourceDir} directory`;
 }
 
-module.exports = { getFiles };
+module.exports = { getFiles, diff };

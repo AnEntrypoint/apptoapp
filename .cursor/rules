@@ -2,9 +2,7 @@ this program is an automated tool that edits other projects
 
 it is a command line tool that uses llm to edit files in the local directory, and iterate on testing the code
 
-make sure all unit tests time out after 10 seconds
+write unit tests to discover and fix any problem you're dealing with, dont fix anything without unit testing
 
-use unit tests to discover and fix any problem you're dealing with, dont fix anythign without unit testing
-
-when you are sure that there are files that you can confirm to be old left-behind unused code, they can be deleted
+when you are sure that there are files that you can confirm to be old left-behind unused code, they can be deleted using the cli
 

@@ -25,6 +25,7 @@ async function executeCommand(command, logHandler = null, options = {}) {
     if (cmdhistory.length > 100) cmdhistory.splice(0, cmdhistory.length - 100);
 
     const output = { stdout: [], stderr: [] };
+    let isResolved = false;
 
     child.stdout.on('data', (data) => {
       const trimmed = data.toString().trim();
@@ -46,23 +47,37 @@ async function executeCommand(command, logHandler = null, options = {}) {
       // console.error(`[CMD-ERR] ${trimmed}`);
     });
 
+    const cleanup = () => {
+      if (!isResolved) {
+        isResolved = true;
+        child.stdout.removeAllListeners();
+        child.stderr.removeAllListeners();
+        child.removeAllListeners();
+      }
+    };
+
     child.on('close', (code) => {
-      console.log(`Command closed with code: ${code}`);
-      resolve({
-        code,
-        stdout: output.stdout.join('\n'),
-        stderr: output.stderr.join('\n'),
-        kill: () => child.kill(),
-      });
+      if (!isResolved) {
+        cleanup();
+        resolve({
+          code,
+          stdout: output.stdout.join('\n'),
+          stderr: output.stderr.join('\n'),
+          kill: () => child.kill(),
+        });
+      }
     });
 
     child.on('error', (error) => {
-      console.error(`Command error: ${error}`);
-      reject(error);
+      if (!isResolved) {
+        cleanup();
+        reject(error);
+      }
     });
 
     // Attach kill method to the promise
     child.kill = () => {
+      cleanup();
       child.kill('SIGTERM');
     };
   });
@@ -175,24 +190,12 @@ async function scanDirectory(dir, ig, handler, baseDir = dir) {
   return results;
 }
 
-async function createErrorNote(errorDetails) {
-  const timestamp = new Date().toISOString();
-  const noteContent = `[${timestamp}] Error in ${errorDetails.tool || 'unknown-tool'} (${errorDetails.phase || 'unknown-phase'}): ${errorDetails.error}\n${
-    errorDetails.stack ? `Stack: ${errorDetails.stack}\n` : ''}`;
-  try {
-    await fsp.appendFile('NOTES.txt', `\n${noteContent}\n`, 'utf8');
-  } catch (err) {
-    console.error('Failed to write error note:', err);
-  }
-  return noteContent;
-}
-
 async function loadCursorRules() {
   try {
     const rulesContent = await fsp.readFile('.cursor/rules', 'utf8');
     return rulesContent;
   } catch (error) {
-    console.error('Error reading .cursor/rules:', error);
+    //console.error('Error reading .cursor/rules:', error);
     return '';
   }
 }
@@ -203,7 +206,6 @@ module.exports = {
   makeApiRequest,
   directoryExists,
   scanDirectory,
-  createErrorNote,
   executeCommand,
   cmdhistory,
   sum,

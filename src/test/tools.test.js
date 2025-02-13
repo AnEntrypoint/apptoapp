@@ -1,4 +1,4 @@
-const executeCommand = require('../../tools/executeCommand');
+const { executeCommand } = require('../tools');
 
 describe('tools', () => {
   test('should execute a command and return the output', async () => {

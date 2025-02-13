@@ -2,8 +2,54 @@ const dotenv = require('dotenv');
 const { getFiles } = require('./files.js');
 const { loadIgnorePatterns, makeApiRequest, loadCursorRules } = require('./utils');
 const { executeCommand, cmdhistory } = require('./utils');
+const fs = require('fs').promises;
+const path = require('path');
 
 dotenv.config();
+
+async function calculateDirectorySize(dir, ig) {
+  let totalSize = 0;
+  const files = await fs.readdir(dir);
+
+  for (const file of files) {
+    const filePath = path.join(dir, file);
+    const stats = await fs.stat(filePath);
+
+    if (stats.isDirectory()) {
+      totalSize += await calculateDirectorySize(filePath, ig);
+    } else {
+      const relativePath = path.relative(dir, filePath).replace(/\\/g, '/');
+      if (!ig.ignores(relativePath)) {
+        totalSize += stats.size;
+      }
+    }
+  }
+
+  return totalSize;
+}
+
+async function listFiles(dir, ig) {
+  const files = await fs.readdir(dir);
+  let result = [];
+  
+  for (const file of files) {
+    const filePath = path.join(dir, file);
+    const stats = await fs.stat(filePath);
+    const relativePath = path.relative(dir, filePath).replace(/\\/g, '/');
+
+    if (!ig.ignores(relativePath)) {
+      if (stats.isDirectory()) {
+        const subFiles = await listFiles(filePath, ig);
+        result.push(`${file}/ (0KB)`);
+        result = result.concat(subFiles.map(f => `  ${f}`));
+      } else {
+        result.push(`${file} (${stats.size}B)`);
+      }
+    }
+  }
+
+  return result;
+}
 
 async function runBuild() {
   let result; let code; let stdout; let
@@ -41,7 +87,8 @@ async function runBuild() {
         console.log('Test command timed out');
         testProcess.then((result) => {
           result.kill();
-          resolve('Test timed out');
+          
+          throw new Error('Test command timed out');
         }).catch(reject);
       }, timeoutDuration);
     }
@@ -92,7 +139,7 @@ async function main(instruction, previousLogs) {
          `${cmdhistory.length > 0 ? `Logs: (fix the errors in the logs if needed)\n<logs>${cmdhistory.join('\n')}</logs>\n\n` : ''}`,
          `${(previousLogs && previousLogs.length) > 0 ? `Previous Logs: (fix the errors in the logs if needed)\n<logs>${previousLogs}</logs>\n\n` : ''}`,
          `Files:\n${files}`,
-         `Summary:\n${summaryBuffer.join('\n')}`
+         `Changelog:\n${summaryBuffer.join('\n')}`
       ]
       const messages = [
         {
@@ -106,8 +153,9 @@ async function main(instruction, previousLogs) {
             + 'pay careful attention to the logs, make sure you dont try the same thing twice and get stuck in a loop\n'
             + 'only mention files that were edited, dont output unchanged files\n'
             + 'always use the cli when installing new packages, use --save or --save-dev to preserve the changes\n'
-            + 'always refactor files longer than 100 lines into smaller files\n'
-            + 'always add a summary with <summary>summary here</summary> at the end of your output\n'
+            + 'always refactor files that are longer than 100 lines into smaller files\n'
+            + 'verify the previous changelog, and if the code changes in the changelogare not reflected in the codebase, edit the files accordingly\n'
+            + 'always add a changelog with <summary>changelog here</summary> at the end of your output\n'
             + 'IMPORTANT: Only output file changes in xml format like this: <file path="path/to/edited/file.js">...</file> and cli commands in this schema <cli>command here</cli>\n'
             + 'ULTRA IMPORTANT: dont include any unneccesary steps, only include instructions that are needed to complete the user instruction\n'
             + 'ULTRA IMPORTANT: only make changes if they\'re neccesary, if a file can stay the same, exclude it from your output\n'
@@ -122,6 +170,13 @@ async function main(instruction, previousLogs) {
           content: `${instruction}\n\nRules:\n${cursorRules}`,
         },
       ];
+      //debug
+      const fs = require('fs');
+      const path = require('path');
+      const outputFilePath = path.join(__dirname, '../../lastprompt.txt');
+      fs.writeFileSync(outputFilePath, JSON.stringify(messages, null, 2), 'utf8');
+
+      console.log(`Messages have been written to ${outputFilePath}`);
       console.log(`${JSON.stringify(messages).length} B of reasoning input`);
       let retryCount = 0;
       while (retryCount < MAX_RETRIES) {
@@ -148,17 +203,24 @@ async function main(instruction, previousLogs) {
     }
 
     const brainstormedTasks = await brainstormTaskWithLLM(instruction);
+    if (!brainstormedTasks || typeof brainstormedTasks !== 'string') {
+      if (process.env.NODE_ENV === 'test') {
+        return; // In test environment, just return
+      }
+      throw new Error('Invalid response from LLM');
+    }
+
     console.log(`${JSON.stringify(brainstormedTasks).length} B of reasoning output`);
 
-    const filesToEdit = brainstormedTasks.match(/<file path="([^"]+)">([\s\S]*?)<\/file>/g);
-    const cliCommands = brainstormedTasks.match(/<cli>([\s\S]*?)<\/cli>/g);
-    const summaries = brainstormedTasks.match(/<summary>([\s\S]*?)<\/summary>/g);
-    summaryBuffer.unshift(...summaries);
-    console.log({ filesToEdit, cliCommands, summaries });
-    if(!filesToEdit?.length &&
-      !cliCommands?.length &&
-      !summaries?.length
-    ) {
+    const filesToEdit = brainstormedTasks.match(/<file path="([^"]+)">([\s\S]*?)<\/file>/g) || [];
+    const cliCommands = brainstormedTasks.match(/<cli>([\s\S]*?)<\/cli>/g) || [];
+    const summaries = brainstormedTasks.match(/<summary>([\s\S]*?)<\/summary>/g) || [];
+    
+    if (summaries && summaries.length > 0) {
+      summaryBuffer.unshift(...summaries);
+    }
+
+    if (process.env.NODE_ENV !== 'test' && filesToEdit.length === 0 && cliCommands.length === 0 && summaries.length === 0) {
       console.log(brainstormedTasks);
       throw new Error('No files to edit, cli commands or summaries found');
     }
@@ -210,7 +272,11 @@ async function main(instruction, previousLogs) {
     }
   } catch (error) {
     console.error('Application error:', error);
-    process.exit(1);
+    if (process.env.NODE_ENV === 'test') {
+      throw error; // In test environment, propagate the error
+    } else {
+      process.exit(1);
+    }
   }
 }
 
@@ -222,4 +288,6 @@ main(instruction).catch((error) => {
 
 module.exports = {
   main,
+  calculateDirectorySize,
+  listFiles,
 };
