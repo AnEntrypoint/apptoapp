@@ -125,9 +125,7 @@ async function main(instruction, previousLogs) {
             + 'always add a changelog with <summary>changelog here</summary> at the end of your output\n'
             + 'IMPORTANT: Only output file changes in xml format like this: <file path="path/to/edited/file.js">...</file> and cli commands in this schema <cli>command here</cli>\n'
             + 'ULTRA IMPORTANT: dont include any unneccesary steps, only include instructions that are needed to complete the user instruction\n'
-            + 'ULTRA IMPORTANT: only make changes if they\'re neccesary, if a file can stay the same, exclude it from your output\n'
             + 'ULTRA IMPORTANT: make sure you dont regress any parts of any file, features, depedencies and settings need to remain if they\'re used in the codebase\n'
-            + 'ULTRA IMPORTANT: only output complete files, no partial changes to files\n'
             + artifacts.join('\n')
         },
         {
