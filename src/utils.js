@@ -131,8 +131,8 @@ async function makeApiRequest(messages, tools, apiKey, endpoint) {
       console.error('Error writing to lastcall.txt:', error);
     }
   }
-
   if (!response.ok) {
+    writeToLastCall(response);
     const error = await response.json();
     console.error('API Error:', JSON.stringify(error, null, 2));
     throw new Error(`API error: ${error.message || response.statusText}`);

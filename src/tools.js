@@ -93,25 +93,9 @@ function getTools() {
   ];
 }
 
-async function executeToolCall(toolCall) {
-  const toolName = toolCall.function.name;
-  const args = JSON.parse(toolCall.function.arguments);
-  const argsString = JSON.stringify(args);
-  const truncatedArgs = argsString.length > 100 ? `${argsString.substring(0, 97)}...` : argsString;
-  console.log('Calling tool:', toolName, truncatedArgs);
-  switch (toolName) {
-    case 'executeCommand':
-      return await executeCommand(args.command);
-    case 'writeFile':
-      return await writeFile(args.filePath, args.content);
-    default:
-      throw new Error(`Unknown tool: ${toolName}`);
-  }
-}
+
 
 module.exports = {
   executeCommand,
-  writeFile,
-  getTools,
-  executeToolCall,
+  writeFile
 };
