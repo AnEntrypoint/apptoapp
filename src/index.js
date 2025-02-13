@@ -1,55 +1,10 @@
 const dotenv = require('dotenv');
 const { getFiles } = require('./files.js');
-const { loadIgnorePatterns, makeApiRequest, loadCursorRules } = require('./utils');
+const { makeApiRequest, loadCursorRules } = require('./utils');
 const { executeCommand, cmdhistory } = require('./utils');
-const fs = require('fs').promises;
-const path = require('path');
 
 dotenv.config();
 
-async function calculateDirectorySize(dir, ig) {
-  let totalSize = 0;
-  const files = await fs.readdir(dir);
-
-  for (const file of files) {
-    const filePath = path.join(dir, file);
-    const stats = await fs.stat(filePath);
-
-    if (stats.isDirectory()) {
-      totalSize += await calculateDirectorySize(filePath, ig);
-    } else {
-      const relativePath = path.relative(dir, filePath).replace(/\\/g, '/');
-      if (!ig.ignores(relativePath)) {
-        totalSize += stats.size;
-      }
-    }
-  }
-
-  return totalSize;
-}
-
-async function listFiles(dir, ig) {
-  const files = await fs.readdir(dir);
-  let result = [];
-  
-  for (const file of files) {
-    const filePath = path.join(dir, file);
-    const stats = await fs.stat(filePath);
-    const relativePath = path.relative(dir, filePath).replace(/\\/g, '/');
-
-    if (!ig.ignores(relativePath)) {
-      if (stats.isDirectory()) {
-        const subFiles = await listFiles(filePath, ig);
-        result.push(`${file}/ (0KB)`);
-        result = result.concat(subFiles.map(f => `  ${f}`));
-      } else {
-        result.push(`${file} (${stats.size}B)`);
-      }
-    }
-  }
-
-  return result;
-}
 
 async function runBuild() {
   let result; let code; let stdout; let
@@ -77,7 +32,7 @@ async function runBuild() {
     }
     lastLogTime = Date.now();
   };
-
+ 
   return new Promise((resolve, reject) => {
     let timeoutId;
     const testProcess = executeCommand('npm run test', logHandler);
@@ -287,7 +242,5 @@ main(instruction).catch((error) => {
 });
 
 module.exports = {
-  main,
-  calculateDirectorySize,
-  listFiles,
+  main
 };

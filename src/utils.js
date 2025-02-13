@@ -137,7 +137,9 @@ async function makeApiRequest(messages, tools, apiKey, endpoint) {
       stream: false,
     }),
   }];
+  console.log('waiting for api request...');
   const response = await fetch(...data);
+  console.log('api request done');
 
   async function writeToLastCall(data) {
     try {
