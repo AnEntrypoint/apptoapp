@@ -1,6 +1,6 @@
 {
   "name": "apptoapp",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "CLI tool for automated debugging",
   "main": "node src/index.js",
   "scripts": {
