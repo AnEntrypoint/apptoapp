@@ -91,41 +91,49 @@ async function executeCommand(command, logHandler = null, options = {}) {
 }
 
 async function loadIgnorePatterns(ignoreFile = '.llmignore') {
-  const sourcePath = path.join(__dirname, ignoreFile);
-
-  const ignoreFiles = [ignoreFile, sourcePath];
-  let ignoreContent = '';
-
-  for (const file of ignoreFiles) {
+  // Check both current working directory and codebase directory
+  const ignorePaths = [
+    path.join(process.cwd(), ignoreFile),
+    path.join(__dirname, ignoreFile)
+  ];
+  const ig = ignore();
+  
+  for (const filePath of ignorePaths) {
     try {
-      ignoreContent = await fsp.readFile(file, 'utf8');
-      return ignore().add(ignoreContent.split('\n').filter((l) => !l.startsWith('#')));
+      const content = await fsp.readFile(filePath, 'utf8');
+      ig.add(content.split('\n').filter(l => !l.startsWith('#')));
+      console.log(`Loaded ignore patterns from ${path.relative(process.cwd(), filePath)}`);
     } catch (error) {
-      if (error.code === 'ENOENT') {
-      } else {
+      if (error.code !== 'ENOENT') {
         throw error;
       }
     }
   }
 
-  console.log('No ignore files found, using empty ignore list');
-  return ignore();
+  return ig;
 }
 
 async function loadNoContentsPatterns(ignoreFile = '.nocontents') {
-  const currentPath = process.cwd();
-  const sourcePath = path.join(__dirname, ignoreFile);
+  // Check both current working directory and codebase directory
+  const ignorePaths = [
+    path.join(process.cwd(), ignoreFile),
+    path.join(__dirname, ignoreFile)
+  ];
+  const ig = ignore();
 
-  let ignoreContent = '';
-
-  try {
-    ignoreContent = await fsp.readFile(sourcePath, 'utf8');
-    return ignore().add(ignoreContent.split('\n').filter((l) => !l.startsWith('#')));
-  } catch (error) {
-    if (error.code === 'ENOENT') {
-      return ignore();
+  for (const filePath of ignorePaths) {
+    try {
+      const content = await fsp.readFile(filePath, 'utf8');
+      ig.add(content.split('\n').filter(l => !l.startsWith('#')));
+      console.log(`Loaded nocontents patterns from ${path.relative(process.cwd(), filePath)}`);
+    } catch (error) {
+      if (error.code !== 'ENOENT') {
+        throw error;
+      }
     }
   }
+
+  return ig;
 }
 
 async function makeApiRequest(messages, tools, apiKey, endpoint) {
