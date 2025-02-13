@@ -34,7 +34,7 @@ async function getFiles() {
   const currentIgnores = await loadIgnoreFiles(currentDir);
   
   const files = await fastGlob(['**/*'], {
-    cwd: codebaseDir,
+    cwd: currentDir,
     ignore: [
       ...new Set([...codebaseIgnores, ...currentIgnores]), // Remove duplicates
       '**/.git/**'
@@ -47,12 +47,12 @@ async function getFiles() {
   
   console.log(`Total files included: ${files.length}`);
   console.log(`Mapping files to relative paths...`);
-  const relativeFiles = files.map(file => path.relative(codebaseDir, file));
+  const relativeFiles = files.map(file => path.relative(currentDir, file));
   console.log(`Total relative files: ${relativeFiles.length}`);
   
   // Format files in XML schema
   const xmlFiles = await Promise.all(relativeFiles.map(async (file) => {
-    const filePath = path.join(codebaseDir, file);
+    const filePath = path.join(currentDir, file);
     try {
       const content = await fs.promises.readFile(filePath, 'utf-8');
       return `<file path="${file}">${content}</file>`;

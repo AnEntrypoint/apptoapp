@@ -103,31 +103,30 @@ async function main(instruction, previousLogs) {
         cmdhistory.unshift(newcmdhistory);
       }
       const artifacts = [
-         `${cmdhistory.length > 0 ? `Logs: (fix the errors in the logs if needed)\n<logs>${cmdhistory.join('\n')}</logs>\n\n` : ''}`,
-         `${(previousLogs && previousLogs.length) > 0 ? `Previous Logs: (fix the errors in the logs if needed)\n<logs>${previousLogs}</logs>\n\n` : ''}`,
-         `Files:\n\n${files}\n\n`,
-         `<changelog>${summaryBuffer.join('\n')}</changelog>`
+         `\n\n${cmdhistory.length > 0 ? `Logs: (fix the errors in the logs if needed)\n<logs>${cmdhistory.join('\n')}</logs>\n\n` : ''}\n\n`,
+         `\n\n${(previousLogs && previousLogs.length) > 0 ? `Previous Logs: (fix the errors in the logs if needed)\n<logs>${previousLogs}</logs>\n\n` : ''}\n\n`,
+         `\n\nFiles:\n\n${files}\n\n`,
+         `\n\n<changelog>${summaryBuffer.join('\n')}</changelog>\n\n`
       ]
       const messages = [
         {
           role: 'system',
           content: 'You are a senior programmer with over 20 years of experience, you make expert and mature software development choices, your main goal is to complete the user instruction\n'
             + '\n// Code Quality & Best Practices\n'
-            + 'always discover and solve all solutions by writing unit tests\n'
+            + 'IMPORTANT: always discover and solve all solutions by writing unit tests\n'
             + 'fix as many linting errors as possible, the backend will run npm run test automatically which lints the codebase\n'
             + 'always refactor files that are longer than 100 lines into smaller files\n'
-            + 'avoid editing the frameworks configuration files or any settings file when possible\n'
             
             + '\n// File Management\n'
             + 'add as many files as are needed to complete the instruction\n'
-            + 'always ensure you\'re writing the files in the correct place, never put them in the wrong folder\n'
-            + 'only mention files that were edited, dont output unchanged files\n'
+            + 'always ensure you\'re writing the files in the correct folder\n'
+            + 'dont output unchanged files\n'
             
             + '\n// Dependency Management\n'
             + 'always use the cli when installing new packages, use --save or --save-dev to preserve the changes\n'
             
             + '\n// Change Tracking\n'
-            + 'verify the previous changelog, and if the code changes in the changelogare not reflected in the codebase, edit the files accordingly\n'
+            + 'verify the previous changelog, and if the code changes in the changelog are not reflected in the codebase, edit the files accordingly\n'
             + 'always add a changelog with <summary>changelog here</summary> at the end of your output\n'
             
             + '\n// Output Formatting\n'
@@ -137,7 +136,7 @@ async function main(instruction, previousLogs) {
             + 'pay careful attention to the logs, make sure you dont try the same thing twice and get stuck in a loop\n'
             
             + '\n// Critical Rules\n'
-            + 'ULTRA IMPORTANT: dont include any unneccesary steps, only include instructions that are needed to complete the user instruction\n'
+            + 'only output tags containing files, cli commands and summaries, no other text\n'
             + 'ULTRA IMPORTANT: make sure you dont regress any parts of any file, features, depedencies and settings need to remain if they\'re used in the codebase\n'
             + artifacts.join('\n')
         },
@@ -248,7 +247,7 @@ async function main(instruction, previousLogs) {
       if (attempts < MAX_ATTEMPTS) {
         attempts++;
         console.log(`Retrying main function (attempt ${attempts}/${MAX_ATTEMPTS})...`);
-        await main("fix the errors in the logs, and confirm in the summary that this instruction was completed:"+instruction, error.message);
+        await main("fix the errors in the logs, and confirm in the summary that this instruction was completed:"+process.argv[2], error.message);
       } else {
         throw new Error('Max attempts reached');
       }
