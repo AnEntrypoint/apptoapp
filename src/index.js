@@ -131,7 +131,7 @@ async function main(instruction, previousLogs) {
             + 'only mention files that were edited, dont output unchanged files\n'
             + 'If installing new packages use --save or --save-dev to preserve the changes\n'
             + 'never remove dependencies from package.json, unless theres evidence its no longer needed\n'
-            + 'Only output file changes in xml format with this schema: <file path="path/to/file.js">...</file> and cli commands in this schema <cli>ls -l</cli>'
+            + 'Only output file changes in xml format with this schema: <file path="path/to/edited/file.js">...</file> and cli commands in this schema <cli>command here</cli>'
             + 'ULTRA IMPORTANT: dont include any unneccesary steps, only include instructions that are needed to complete the user instruction'
             + 'ULTRA IMPORTANT: only make changes if they\'re neccesary, if a file can stay the same, exclude it from your output'
             + 'ULTRA IMPORTANT: make sure you dont regress any parts of any file, features, depedencies and settings need to remain if they\'re used in the codebase\n'
@@ -195,49 +195,6 @@ async function main(instruction, previousLogs) {
         await executeCommand(command); // Execute the command using the executeCommand tool
       }
     }
-
-    /* const messages = [
-      {
-        role: 'system',
-        content: `Respond only in multiple tool calls to write all the files in the user prompt\n\nULTRA IMPORTANT: only output complete files, no partial changes to files\n\nfollow that with any cli commands to run, and finally call the explanation tool to report to the user.\n\n`
-      },
-      {
-        role: 'user',
-        content: brainstormedTasks
-      }
-    ];
-    console.log(JSON.stringify(messages).length+' B of tool call message input');
-    let retryCount = 0;
-    while (retryCount < MAX_RETRIES) {
-      try {
-        const response = await makeApiRequest(
-          messages,
-          getTools(),
-          process.env.MISTRAL_API_KEY,
-          'https://codestral.mistral.ai/v1/chat/completions'
-        );
-
-        if (response.choices[0].message.tool_calls) {
-          for (const toolCall of response.choices[0].message.tool_calls) {
-            try {
-              await executeToolCall(toolCall);
-            } catch (error) {
-              console.error('Tool call failed:', error);
-              throw error; // Let the outer try-catch handle retries
-            }
-          }
-        }
-        break; // Success, exit the loop
-      } catch (error) {
-        console.error(`Transformation failed (attempt ${retryCount + 1}/${MAX_RETRIES}):`, error);
-        retryCount++;
-        if (retryCount >= MAX_RETRIES) {
-          throw error;
-        }
-        // Wait before retrying
-        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
-      }
-    } */
 
     try {
       await runBuild();

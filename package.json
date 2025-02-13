@@ -8,7 +8,8 @@
     "lint": "eslint . --ext .js",
     "test": "jest --forceExit --detectOpenHandles --runInBand --testTimeout=10000",
     "test:e2e": "jest --forceExit --detectOpenHandles --runInBand --testTimeout=10000 --testMatch='**/test/e2e/**/*.js'",
-    "build": "babel src --out-dir dist"
+    "build": "babel src --out-dir dist",
+    "release": "git commit -a -m ranrelease && npm version patch  && npm publish --tag latest"
   },
   "dependencies": {
     "@babel/core": "^7.26.8",
