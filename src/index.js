@@ -70,6 +70,7 @@ async function runBuild() {
     });
   });
 }
+let retryCount = 0;
 
 async function main(instruction, previousLogs) {
   const MAX_RETRIES = 3;
@@ -124,7 +125,7 @@ async function main(instruction, previousLogs) {
         },
         {
           role: 'user',
-          content: `${instruction}\n\nRules:\n${cursorRules}`,
+          content: `discover and implement a solution for the folowing instruction using unit tests: ${instruction}\n\nRules:\n${cursorRules}`,
         },
       ];
       //debug
@@ -135,7 +136,6 @@ async function main(instruction, previousLogs) {
 
       console.log(`Messages have been written to ${outputFilePath}`);
       console.log(`${JSON.stringify(messages).length} B of reasoning input`);
-      let retryCount = 0;
       while (retryCount < MAX_RETRIES) {
         try {
           const response = await makeApiRequest(
@@ -222,7 +222,7 @@ async function main(instruction, previousLogs) {
       if (attempts < MAX_ATTEMPTS) {
         attempts++;
         console.log(`Retrying main function (attempt ${attempts}/${MAX_ATTEMPTS})...`);
-        await main(instruction, error.message);
+        await main("fix the errors in the logs", error.message);
       } else {
         throw new Error('Max attempts reached');
       }

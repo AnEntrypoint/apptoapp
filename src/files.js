@@ -37,8 +37,6 @@ async function getFiles() {
   // Then check current directory
   const currentIgnores = await loadIgnoreFiles(currentDir);
   
-  console.log('Merged ignore patterns:', [...codebaseIgnores, ...currentIgnores]);
-  
   const files = await fastGlob(['**/*'], {
     cwd: codebaseDir,
     ignore: [
@@ -79,7 +77,6 @@ async function loadIgnoreFiles(directory) {
           }
           return pattern;
         });
-      console.log(`Cleaned patterns from ${filePath}:`, cleaned);
       patterns.push(...cleaned);
     }
   }

@@ -2,7 +2,7 @@
 
 Transform your code effortlessly with just a single command:
 
-  npx apptoapp
+  npx apptoapp "make a snake game"
 
 Harness the power of CodeMistral 25 to convert, optimize, and enhance your application code with ease. This tool acts like a coding companion, ready to assist you in making your code better.
 

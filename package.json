@@ -13,7 +13,8 @@
     "dotenv": "^16.4.7",
     "fast-glob": "^3.3.3",
     "fetch-blob": "^4.0.0",
-    "ignore": "^7.0.3"
+    "ignore": "^7.0.3",
+    "openai": "^4.85.0"
   },
   "bin": {
     "apptoapp": "./src/index.js"
