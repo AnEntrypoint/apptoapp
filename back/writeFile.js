@@ -1,5 +1,6 @@
 const { exec } = require('child_process');
-const fs = require('fs').promises;
+const fs = require('fs');
+const fsp = require('fs').promises;
 const path = require('path');
 
 async function executeCommand(command, options = {}) {
@@ -22,22 +23,16 @@ async function writeFile(filePath, content) {
     // Ensure the directory exists
     const dir = path.dirname(filePath);
 
-    // Check if the directory exists
+    // Check if the directory exists and is writable
     try {
-      await fs.access(dir);
+      await fsp.access(dir, fs.constants.F_OK | fs.constants.W_OK);
     } catch (accessError) {
-      throw new Error(`Directory does not exist: ${dir}`);
-    }
-
-    // Check if the directory is writable
-    try {
-      await fs.access(dir, fs.constants.W_OK);
-    } catch (accessError) {
-      throw new Error(`Cannot write to directory: ${dir}`);
+      // Explicitly throw an error if the directory does not exist or is not writable
+      throw new Error(`Cannot write to path: ${filePath}`);
     }
 
     // Write the file
-    await fs.writeFile(filePath, content, 'utf-8');
+    await fsp.writeFile(filePath, content, 'utf-8');
   } catch (error) {
     // Explicitly handle different error cases
     if (error.code === 'ENOENT') {
@@ -50,4 +45,4 @@ async function writeFile(filePath, content) {
   }
 }
 
-module.exports = executeCommand;
+module.exports = writeFile;

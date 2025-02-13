@@ -9,6 +9,8 @@ pnpm-lock.yaml
 .nocontents
 NOTES.txt
 public/
+test-results/
+
 # Build outputs
 dist/
 build/
