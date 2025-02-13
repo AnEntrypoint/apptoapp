@@ -1,6 +1,7 @@
 const fs = require('fs').promises;
 const path = require('path');
 const { loadIgnorePatterns, loadNoContentsPatterns, scanDirectory } = require('./utils');
+const fastGlob = require('fast-glob');
 
 function diff(a, b) {
   return a - b;
@@ -24,67 +25,41 @@ async function readDirRecursive(dir, ig) {
   return result;
 }
 
-async function getFiles(preferredDir) {
-  const sourceDir = preferredDir || process.cwd();
+async function getFiles() {
+  const codebaseDir = path.join(__dirname, '..'); // Parent directory of src
+  const currentDir = process.cwd();
+  
+  // Check for ignore files in codebase directory first
+  const codebaseIgnores = await loadIgnoreFiles(codebaseDir);
+  // Then check current directory
+  const currentIgnores = await loadIgnoreFiles(currentDir);
+  
+  const ignorePatterns = [...codebaseIgnores, ...currentIgnores];
+  
+  const files = await fastGlob(['**/*'], {
+    cwd: codebaseDir, // Always scope to codebase directory
+    ignore: ignorePatterns,
+    dot: true,
+    onlyFiles: true,
+    absolute: true
+  });
+  
+  return files.map(file => path.relative(codebaseDir, file)).join('\n');
+}
 
-  if (!sourceDir) {
-    console.log('No source directory found');
-    throw new Error('Neither /app nor /src directory found');
-  }
-
-  const ig = await loadIgnorePatterns();
-  const noc = await loadNoContentsPatterns();
-
-  const files = await readDirRecursive(sourceDir, ig);
-  console.log(`Total files to process: ${files.length}`);
-
-  let textOutput = '';
-  let fileCount = 0;
-
-  for (const file of files) {
-    try {
-      const relativePath = path.relative(sourceDir, file.path).replace(/\\/g, '/');
-
-      let fileStats;
-      try {
-        fileStats = await fs.stat(file.path);
-      } catch (statError) {
-        console.error(`Error getting stats for ${file.path}:`, statError);
-        continue;
-      }
-      if (fileStats.isDirectory()) {
-        continue;
-      }
-
-      if (ig.ignores(relativePath) || noc.ignores(relativePath)) {
-        console.log(`Ignoring file/folder: ${relativePath}`);
-        continue;
-      }
-
-      let originalContent = '';
-      try {
-        originalContent = await fs.readFile(file.path, 'utf8');
-      } catch (error) {
-        console.log(`Error reading file ${file.path}:`, error);
-        textOutput += `<file path=\"${relativePath}\" contentsIncluded=\"false\">\n</file>\n`;
-        continue;
-      }
-      let add;
-      add += `<artifact file=\"${relativePath}\">\n`;
-      add += `${originalContent.split('\n').map((line) => `  ${line}`).join('\n')}\n`;
-      add += '</artifact>\n';
-      textOutput += add;
-      fileCount++;
-      console.log(relativePath, `(${add.length} B)`);
-    } catch (error) {
-      console.error(`Error processing file ${file.path}:`, error);
+async function loadIgnoreFiles(directory) {
+  const ignoreFiles = ['.llmignore', '.nocontents'];
+  const patterns = [];
+  
+  for (const file of ignoreFiles) {
+    const filePath = path.join(directory, file);
+    if (fs.existsSync(filePath)) {
+      const content = fs.readFileSync(filePath, 'utf-8');
+      patterns.push(...content.split('\n').filter(line => line.trim()));
     }
   }
-
-  const outputSize = Buffer.byteLength(textOutput, 'utf8');
-  console.log(`Generated files output size: ${outputSize} bytes`);
-
-  return fileCount > 0 ? textOutput : `No files found in ${sourceDir} directory`;
+  
+  return patterns;
 }
 
 module.exports = { getFiles, diff };
