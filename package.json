@@ -13,7 +13,7 @@
     "fetch-blob": "^4.0.0"
   },
   "bin": {
-    "apptoapp": "src/index.js"
+    "apptoapp": "./src/cli.js"
   },
   "devDependencies": {
     "dotenv": "^16.4.7",
@@ -22,5 +22,11 @@
     "jest-junit": "^16.0.0",
     "jest-mock": "^29.7.0",
     "node-fetch": "^2.7.0"
+  },
+  "files": [
+    "src"
+  ],
+  "engines": {
+    "node": ">=14.0.0"
   }
 }
