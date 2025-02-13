@@ -84,4 +84,32 @@ async function loadIgnoreFiles(directory) {
   return patterns;
 }
 
-module.exports = { getFiles, diff };
+function writeFile(filename, content) {
+    const targetDir = process.cwd();
+    const filePath = path.resolve(targetDir, filename);
+    
+    console.log(`[FS] Attempting write to: ${filePath}`);
+    
+    // Create parent directories if needed
+    const parentDir = path.dirname(filePath);
+    if (!fs.existsSync(parentDir)) {
+        console.log(`[FS] Creating directory: ${parentDir}`);
+        fs.mkdirSync(parentDir, { recursive: true });
+    }
+    
+    // Verify write permissions
+    try {
+        fs.accessSync(parentDir, fs.constants.W_OK);
+    } catch (error) {
+        throw new Error(`No write permissions for directory: ${parentDir}`);
+    }
+    
+    fs.writeFileSync(filePath, content);
+    console.log(`[FS] Write successful: ${filePath}`);
+}
+
+module.exports = { 
+    getFiles, 
+    diff,
+    writeFile  // Add to exports
+};

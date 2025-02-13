@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 
 const dotenv = require('dotenv');
-const { getFiles } = require('./files.js');
-const { makeApiRequest, loadCursorRules } = require('./utils');
+const { getFiles, writeFile } = require('./files.js');
+const { makeApiRequest, loadCursorRules, getCWD } = require('./utils');
 const { executeCommand, cmdhistory } = require('./utils');
+const fs = require('fs');
+const path = require('path');
 
 dotenv.config();
 
@@ -79,6 +81,13 @@ async function main(instruction, previousLogs) {
   const summaryBuffer = [];
 
   try {
+    // Immediate test of file writing
+    console.log('[FILE TEST] Starting file system test...');
+    const testPath = path.join(process.cwd(), 'write-test.txt');
+    fs.writeFileSync(testPath, 'Test content');
+    console.log(`[FILE TEST] Successfully wrote to ${testPath}`);
+    console.log('[FILE TEST] Directory contents:', fs.readdirSync(process.cwd()));
+    
     if (!instruction || instruction.trim() === '') {
       console.log('No specific instruction provided. Running default test mode.');
       instruction = 'Run project tests and verify setup';
@@ -169,7 +178,7 @@ async function main(instruction, previousLogs) {
 
     console.log(`${JSON.stringify(brainstormedTasks).length} B of reasoning output`);
 
-    const filesToEdit = brainstormedTasks.match(/<file path="([^"]+)">([\s\S]*?)<\/file>/g) || [];
+    const filesToEdit = brainstormedTasks.match(/<file\s+path="([^"]+)"[^>]*>([\s\S]*?)<\/file>/gi) || [];
     const cliCommands = brainstormedTasks.match(/<cli>([\s\S]*?)<\/cli>/g) || [];
     const summaries = brainstormedTasks.match(/<summary>([\s\S]*?)<\/summary>/g) || [];
     
@@ -184,14 +193,19 @@ async function main(instruction, previousLogs) {
 
     if (filesToEdit && filesToEdit.length > 0) {
       for (const file of filesToEdit) {
-        const fileMatch = file.match(/<file path="([^"]+)">([\s\S]*?)<\/file>/);
-        if (!fileMatch || fileMatch.length < 3) {
-          console.error('Invalid file format:', file);
-          continue;
-        }
+        const fileMatch = file.match(/<file\s+path="([^"]+)"[^>]*>([\s\S]*?)<\/file>/);
+        if (!fileMatch || fileMatch.length < 3) continue;
+        
         const filePath = fileMatch[1];
         const fileContent = fileMatch[2];
-        console.log({ filePath, fileContentLength: fileContent.length });
+        
+        console.log(`[FS] Writing ${filePath} (${fileContent.length} bytes)`);
+        try {
+          writeFile(filePath, fileContent);
+        } catch (error) {
+          console.error(`Failed to write ${filePath}: ${error.message}`);
+          throw error; // Stop execution on file write failure
+        }
       }
     }
 
@@ -227,6 +241,10 @@ async function main(instruction, previousLogs) {
         throw new Error('Max attempts reached');
       }
     }
+
+    console.log('[FINAL CHECK] Writing final-test.txt');
+    writeFile('final-test.txt', 'Final test content');
+    console.log('Final directory contents:', fs.readdirSync(process.cwd()));
   } catch (error) {
     console.error('Application error:', error);
     if (process.env.NODE_ENV === 'test') {

@@ -37,6 +37,7 @@ async function writeFile(filePath, content) {
     }
 
     // Write the file
+    console.log(`Writing to ${filePath}`);
     await fs.writeFile(filePath, content, 'utf-8');
   } catch (error) {
     // Explicitly handle different error cases

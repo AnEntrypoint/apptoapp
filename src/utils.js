@@ -217,6 +217,11 @@ async function loadCursorRules() {
   }
 }
 
+// Add helper to show current working directory
+function getCWD() {
+    return process.cwd();
+}
+
 module.exports = {
   loadIgnorePatterns,
   loadNoContentsPatterns,
@@ -228,4 +233,5 @@ module.exports = {
   sum,
   product,
   loadCursorRules,
+  getCWD
 };
