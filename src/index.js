@@ -90,7 +90,7 @@ async function main(instruction, previousLogs) {
         const cmdhistorymessages = [
           {
             role: 'system',
-            content: 'pick the 100 most important lines from this history and output them in order',
+            content: 'pick the 100 most important lines from this history and output them in order, the end is the more recent logs',
           },
           {
             role: 'user',
@@ -109,7 +109,7 @@ async function main(instruction, previousLogs) {
             );
             cmdhistory = response.choices[0].message.content.split('\n').map((line) => line.trim());
           } catch (error) {
-            console.error(`API request failed (attempt ${retryCount + 1}/${MAX_RETRIES}):`, error);
+            console.error(`API request failed (attempt ${historyretryCount + 1}/${MAX_RETRIES}):`, error);
             historyretryCount++;
             if (historyretryCount >= MAX_RETRIES) {
               throw error;
