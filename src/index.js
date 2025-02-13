@@ -70,12 +70,12 @@ async function runBuild() {
     });
   });
 }
-let retryCount = 0;
+let attempts = 0;
 
 async function main(instruction, previousLogs) {
+  let retryCount = 0;
   const MAX_RETRIES = 3;
   const MAX_ATTEMPTS = 3;
-  let attempts = 0;
   const summaryBuffer = [];
 
   try {
