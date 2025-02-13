@@ -16,7 +16,7 @@ async function runBuild() {
     stdout = result.stdout;
     stderr = result.stderr;
     if (code !== 0) {
-      throw new Error(`Build failed: ${stderr || stdout}`);
+      throw new Error(`Test failed: ${stderr || stdout}`);
     }
   }
 
@@ -53,7 +53,7 @@ async function runBuild() {
         if (process.env.NODE_ENV === 'test') {
           resolve(`Test failed with code ${result.code}`);
         } else {
-          console.error('Build failed with exit code:', result.code);
+          console.error('Failed with exit code:', result.code);
           console.error('STDOUT:', result.stdout);
           console.error('STDERR:', result.stderr);
           reject(new Error(`Test failed: ${result.stderr || result.stdout}`));
@@ -86,7 +86,7 @@ async function main(instruction, previousLogs) {
       if (cmdhistory.length > 0) {
         const newcmdhistory = cmdhistory.join('\n').split('\n').slice(cmdhistory.length - 1000, cmdhistory.length).join('\n');
         cmdhistory.length = 0;
-        cmdhistory.push(newcmdhistory);
+        cmdhistory.unshift(newcmdhistory);
       }
       const messages = [
         {
@@ -99,8 +99,7 @@ async function main(instruction, previousLogs) {
             + 'always ensure you\'re writing the files in the correct place, never put them in the wrong folder\n'
             + 'pay careful attention to the logs, make sure you dont try the same thing twice and get stuck in a loop\n'
             + 'only mention files that were edited, dont output unchanged files\n'
-            + 'If installing new packages using the cli, use --save or --save-dev to preserve the changes\n'
-            + 'never remove dependencies from package.json, unless theres evidence its no longer needed\n'
+            + 'always use the cli when installing new packages, use --save or --save-dev to preserve the changes\n'
             + 'IMPORTANT: Only output file changes in xml format like this: <file path="path/to/edited/file.js">...</file> and cli commands in this schema <cli>command here</cli>\n'
             + 'ULTRA IMPORTANT: dont include any unneccesary steps, only include instructions that are needed to complete the user instruction\n'
             + 'ULTRA IMPORTANT: only make changes if they\'re neccesary, if a file can stay the same, exclude it from your output\n'
@@ -169,7 +168,7 @@ async function main(instruction, previousLogs) {
     try {
       await runBuild();
     } catch (error) {
-      console.error('Build failed:', error);
+      console.error('Failed:', error);
       if (attempts < MAX_ATTEMPTS) {
         attempts++;
         console.log(`Retrying main function (attempt ${attempts}/${MAX_ATTEMPTS})...`);

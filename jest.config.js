@@ -5,7 +5,7 @@ module.exports = {
     '^.+\\.js$': '<rootDir>/jest-transformer.js',
   },
   transformIgnorePatterns: [
-    'node_modules/(?!(node-fetch|data-uri-to-buffer|fetch-blob|formdata-polyfill)/)', // Allow transforming specific ESM packages
+    'node_modules/(?!(node-fetch|data-uri-to-buffer|fetch-blob)/)', // Allow transforming specific ESM packages
   ],
   reporters: [
     'default',
