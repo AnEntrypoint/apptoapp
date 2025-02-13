@@ -14,72 +14,79 @@ function product(a, b) {
 }
 
 async function executeCommand(command, logHandler = null, options = {}) {
+  console.log('Executing command:', command);
   console.log('Command history size:', cmdhistory.join().length, 'B');
   return new Promise((resolve, reject) => {
-    const child = exec(command, {
-      timeout: 120000,
-      cwd: process.cwd(),
-      ...options,
-    });
-    cmdhistory.push(command);
-    if (cmdhistory.length > 100) cmdhistory.splice(0, cmdhistory.length - 100);
-
-    const output = { stdout: [], stderr: [] };
-    let isResolved = false;
-
-    child.stdout.on('data', (data) => {
-      const trimmed = data.toString().trim();
-      cmdhistory.push(trimmed);
+    try {
+      const child = exec(command, {
+        timeout: 120000,
+        cwd: process.cwd(),
+        ...options,
+      });
+      cmdhistory.push(command);
       if (cmdhistory.length > 100) cmdhistory.splice(0, cmdhistory.length - 100);
-      output.stdout.push(trimmed);
-      if (logHandler) {
-        logHandler(trimmed);
-      } else {
-        console.log(`[CMD] ${trimmed}`);
-      }
-    });
 
-    child.stderr.on('data', (data) => {
-      const trimmed = data.toString().trim();
-      cmdhistory.push(trimmed);
-      if (cmdhistory.length > 100) cmdhistory.splice(0, cmdhistory.length - 100);
-      output.stderr.push(trimmed);
-      // console.error(`[CMD-ERR] ${trimmed}`);
-    });
+      const output = { stdout: [], stderr: [] };
+      let isResolved = false;
 
-    const cleanup = () => {
-      if (!isResolved) {
-        isResolved = true;
-        child.stdout.removeAllListeners();
-        child.stderr.removeAllListeners();
-        child.removeAllListeners();
-      }
-    };
+      child.stdout.on('data', (data) => {
+        const trimmed = data.toString().trim();
+        cmdhistory.push(trimmed);
+        if (cmdhistory.length > 100) cmdhistory.splice(0, cmdhistory.length - 100);
+        output.stdout.push(trimmed);
+        if (logHandler) {
+          logHandler(trimmed);
+        } else {
+          console.log(`[CMD] ${trimmed}`);
+        }
+      });
 
-    child.on('close', (code) => {
-      if (!isResolved) {
+      child.stderr.on('data', (data) => {
+        const trimmed = data.toString().trim();
+        cmdhistory.push(trimmed);
+        if (cmdhistory.length > 100) cmdhistory.splice(0, cmdhistory.length - 100);
+        output.stderr.push(trimmed);
+        // console.error(`[CMD-ERR] ${trimmed}`);
+      });
+
+      const cleanup = () => {
+        if (!isResolved) {
+          isResolved = true;
+          child.stdout.removeAllListeners();
+          child.stderr.removeAllListeners();
+          child.removeAllListeners();
+        }
+      };
+
+      child.on('close', (code) => {
+        if (!isResolved) {
+          cleanup();
+          resolve({
+            code,
+            stdout: output.stdout.join('\n'),
+            stderr: output.stderr.join('\n'),
+            kill: () => child.kill(),
+          });
+        }
+      });
+
+      child.on('error', (error) => {
+        console.error('Command execution error:', error);
+        if (!isResolved) {
+          cleanup();
+          reject(new Error(`Command failed: ${error.message}`));
+        }
+      });
+
+      // Attach kill method to the promise
+      child.kill = () => {
         cleanup();
-        resolve({
-          code,
-          stdout: output.stdout.join('\n'),
-          stderr: output.stderr.join('\n'),
-          kill: () => child.kill(),
-        });
-      }
-    });
-
-    child.on('error', (error) => {
-      if (!isResolved) {
-        cleanup();
-        reject(error);
-      }
-    });
-
-    // Attach kill method to the promise
-    child.kill = () => {
-      cleanup();
-      child.kill('SIGTERM');
-    };
+        child.kill('SIGTERM');
+      };
+    } catch (error) {
+      console.error('Command initialization error:', error);
+      reject(new Error(`Command initialization failed: ${error.message}`));
+    }
   });
 }
 
