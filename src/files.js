@@ -4,9 +4,6 @@ const path = require('path');
 const { loadIgnorePatterns, loadNoContentsPatterns, scanDirectory } = require('./utils');
 const fastGlob = require('fast-glob');
 
-function diff(a, b) {
-  return a - b;
-}
 
 async function readDirRecursive(dir, ig) {
   const result = await scanDirectory(dir, ig, (fullPath, relativePath) => ({ path: path.resolve(fullPath) }));
@@ -25,7 +22,6 @@ async function readDirRecursive(dir, ig) {
   }));
   return result;
 }
-
 async function getFiles() {
   const codebaseDir = path.join(__dirname, '..'); // Parent directory of src
   const currentDir = process.cwd();
@@ -50,7 +46,22 @@ async function getFiles() {
   });
   
   console.log(`Total files included: ${files.length}`);
-  return files.map(file => path.relative(codebaseDir, file)).join('\n');
+  console.log(`Mapping files to relative paths...`);
+  const relativeFiles = files.map(file => path.relative(codebaseDir, file));
+  console.log(`Total relative files: ${relativeFiles.length}`);
+  
+  // Format files in XML schema
+  const xmlFiles = await Promise.all(relativeFiles.map(async (file) => {
+    const filePath = path.join(codebaseDir, file);
+    try {
+      const content = await fs.promises.readFile(filePath, 'utf-8');
+      return `<file path="${file}">${content}</file>`;
+    } catch (error) {
+      console.error(`Error reading file ${filePath}: ${error.message}`);
+      return `<file path="${file}"></file>`;
+    }
+  })).then(files => files.join('\n'));
+  return xmlFiles;
 }
 
 async function loadIgnoreFiles(directory) {
@@ -84,32 +95,41 @@ async function loadIgnoreFiles(directory) {
   return patterns;
 }
 
-function writeFile(filename, content) {
-    const targetDir = process.cwd();
-    const filePath = path.resolve(targetDir, filename);
-    
-    console.log(`[FS] Attempting write to: ${filePath}`);
-    
-    // Create parent directories if needed
-    const parentDir = path.dirname(filePath);
-    if (!fs.existsSync(parentDir)) {
-        console.log(`[FS] Creating directory: ${parentDir}`);
-        fs.mkdirSync(parentDir, { recursive: true });
-    }
-    
-    // Verify write permissions
+async function writeFile(filePath, content) {
+  try {
+    // Ensure the directory exists
+    const dir = path.dirname(filePath);
+
+    // Check if the directory exists
     try {
-        fs.accessSync(parentDir, fs.constants.W_OK);
-    } catch (error) {
-        throw new Error(`No write permissions for directory: ${parentDir}`);
+      await fs.access(dir);
+    } catch (accessError) {
+      throw new Error(`Directory does not exist: ${dir}`);
     }
-    
-    fs.writeFileSync(filePath, content);
-    console.log(`[FS] Write successful: ${filePath}`);
+
+    // Check if the directory is writable
+    try {
+      await fs.access(dir, fs.constants.W_OK);
+    } catch (accessError) {
+      throw new Error(`Cannot write to directory: ${dir}`);
+    }
+
+    // Write the file
+    console.log(`Writing to ${filePath}`);
+    await fs.writeFile(filePath, content, 'utf-8');
+  } catch (error) {
+    // Explicitly handle different error cases
+    if (error.code === 'ENOENT') {
+      throw new Error(`Cannot write to path: ${filePath}`);
+    }
+    if (error.code === 'EACCES') {
+      throw new Error(`Permission denied: ${filePath}`);
+    }
+    throw error;
+  }
 }
 
-module.exports = { 
-    getFiles, 
-    diff,
-    writeFile  // Add to exports
+module.exports = {
+  getFiles,
+  writeFile
 };

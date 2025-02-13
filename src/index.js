@@ -77,7 +77,7 @@ let attempts = 0;
 async function main(instruction, previousLogs) {
   let retryCount = 0;
   const MAX_RETRIES = 3;
-  const MAX_ATTEMPTS = 3;
+  const MAX_ATTEMPTS = 20;
   const summaryBuffer = [];
 
   try {
@@ -105,8 +105,8 @@ async function main(instruction, previousLogs) {
       const artifacts = [
          `${cmdhistory.length > 0 ? `Logs: (fix the errors in the logs if needed)\n<logs>${cmdhistory.join('\n')}</logs>\n\n` : ''}`,
          `${(previousLogs && previousLogs.length) > 0 ? `Previous Logs: (fix the errors in the logs if needed)\n<logs>${previousLogs}</logs>\n\n` : ''}`,
-         `Files:\n${files}`,
-         `Changelog:\n${summaryBuffer.join('\n')}`
+         `Files:\n\n${files}\n\n`,
+         `<changelog>${summaryBuffer.join('\n')}</changelog>`
       ]
       const messages = [
         {
@@ -128,8 +128,6 @@ async function main(instruction, previousLogs) {
             + 'ULTRA IMPORTANT: only make changes if they\'re neccesary, if a file can stay the same, exclude it from your output\n'
             + 'ULTRA IMPORTANT: make sure you dont regress any parts of any file, features, depedencies and settings need to remain if they\'re used in the codebase\n'
             + 'ULTRA IMPORTANT: only output complete files, no partial changes to files\n'
-            + 'ULTRA IMPORTANT: be careful to preserve all the existing functionality that the codebase still needs, especially package.json, edit it only if needed\n\n'
-            + 'ULTRA IMPORTANT: if a library is referenced anywhere in the code, do not produce a package.json that excludes it.'
             + artifacts.join('\n')
         },
         {
@@ -141,7 +139,7 @@ async function main(instruction, previousLogs) {
       const fs = require('fs');
       const path = require('path');
       const outputFilePath = path.join(__dirname, '../../lastprompt.txt');
-      fs.writeFileSync(outputFilePath, JSON.stringify(messages, null, 2), 'utf8');
+      fs.writeFileSync(outputFilePath, messages[0].content);
 
       console.log(`Messages have been written to ${outputFilePath}`);
       console.log(`${JSON.stringify(messages).length} B of reasoning input`);
@@ -201,10 +199,13 @@ async function main(instruction, previousLogs) {
         
         console.log(`[FS] Writing ${filePath} (${fileContent.length} bytes)`);
         try {
-          writeFile(filePath, fileContent);
+          const fullPath = path.join(process.cwd(), filePath);
+          fs.mkdirSync(path.dirname(fullPath), { recursive: true });
+          fs.writeFileSync(fullPath, fileContent);
+          console.log(`[FS] Successfully wrote ${filePath}`);
         } catch (error) {
           console.error(`Failed to write ${filePath}: ${error.message}`);
-          throw error; // Stop execution on file write failure
+          throw error;
         }
       }
     }
@@ -236,14 +237,12 @@ async function main(instruction, previousLogs) {
       if (attempts < MAX_ATTEMPTS) {
         attempts++;
         console.log(`Retrying main function (attempt ${attempts}/${MAX_ATTEMPTS})...`);
-        await main("fix the errors in the logs", error.message);
+        await main("fix the errors in the logs, and confirm in the summary that this instruction was completed:"+instruction, error.message);
       } else {
         throw new Error('Max attempts reached');
       }
     }
 
-    console.log('[FINAL CHECK] Writing final-test.txt');
-    writeFile('final-test.txt', 'Final test content');
     console.log('Final directory contents:', fs.readdirSync(process.cwd()));
   } catch (error) {
     console.error('Application error:', error);
