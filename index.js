@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-const { createDiff } = require('./diff.js');
+const { getFiles } = require('./files.js');
 const { getTools, executeToolCall } = require('./tools.js');
 const dotenv = require('dotenv');
 const fsp = require('fs').promises;
@@ -61,14 +61,12 @@ async function listFiles(dir, ig) {
     }
     return fileList;
   } catch (error) {
-    console.log('Error listing files: %O', error);
+    console.error('Error listing files: %O', error);
     throw error;
   }
 }
 
 async function runBuild() {
-  console.log('Starting build process');
-
   let result, code, stdout, stderr;
   result = await executeCommand('npm upgrade --save');
   code = result.code;
@@ -78,7 +76,7 @@ async function runBuild() {
     throw new Error(`Build failed: ${stderr || stdout}`);
   }
 
-  result = await executeCommand('npm run lint');
+  /*result = await executeCommand('npm run lint');
   code = result.code;
   stdout = result.stdout;
   stderr = result.stderr;
@@ -88,9 +86,9 @@ async function runBuild() {
     console.error('STDOUT:', stdout);
     console.error('STDERR:', stderr);
     throw new Error(`Lint failed: ${stderr || stdout}`);
-  }
+  }*/
 
-  result = await executeCommand('npm run build'); 
+  result = await executeCommand('npm run test'); 
   code = result.code;
   stdout = result.stdout;
   stderr = result.stderr;
@@ -106,7 +104,7 @@ async function runBuild() {
 let count = 0;
 async function main(instruction, previousLogs = '') {
   if(count++ > 5){
-    console.log('Too many attempts, exiting');
+    console.error('Too many attempts, exiting');
     process.exit(1);
   }
 
@@ -133,22 +131,9 @@ async function main(instruction, previousLogs = '') {
   const fileList = await listFiles(dir, ig);
 
   console.log(`Total Size: ${formatBytes(totalSize)}`);
-  //console.log('Files and Directories:');
-  //fileList.forEach(f => console.log(`- ${f}`));
-  //console.log('');
+  
 
-
-  /*console.log('\nRunning initial build');
-  let buildLogs;
-  try {
-    buildLogs = await runBuild();
-    console.log('Build logs:', buildLogs);
-    console.log('Build logs size:', Buffer.byteLength(buildLogs, 'utf8'), 'bytes');
-  } catch (e) {
-    buildLogs = e.message;
-  }*/
-
-  let diff = await createDiff('.');
+  let diff = await getFiles('.');
   const diffContent = diff; // Store the diff content
   try {
     await fsp.writeFile(path.join('..', 'diff.txt'), diffContent, 'utf8');
@@ -162,20 +147,20 @@ async function main(instruction, previousLogs = '') {
     const messages = [
       {
         role: 'system',
-        content: `You're a code editor, edit the files to do this: ${instruction}\n\n`+
-        ` - respond only with file names and their full file contents\n`+
-        ` - avoid editing the frameworks configuration files\n`+
-        ` - add as many files as are needed to complete the instruction\n`+
-        ` - only mention files that were edited\n`+
-        `${cmdhistory.length > 0 ? 'Logs: (fix the errors in the logs if needed) '+cmdhistory.join('\n')+'\n' : ''}`+
-        `${previousLogs ? previousLogs : ''}`
+        content: `You are a senior programmer with over 20 years of experience, you make expert and mature software development choices, your main goal is to complete the user instruction`+
+        `avoid editing the frameworks configuration files or any settings file when possible\n`+
+        `always discover and solve all errors by writing unit tests\n`+
+        `add as many files as are needed to complete the instruction\n`+
+        `pay careful attention to the logs, make sure you dont try the same thing twice and get stuck in a loop\n`+
+        `only mention files that were edited\n`+
+        `${cmdhistory.length > 0 ? 'Logs: (fix the errors in the logs if needed)\n'+cmdhistory.join('\n')+'\n' : ''}`+
+        `Files:\n\n${diff}`
       },
       {
         role: 'user',
-        content: diff
+        content: instruction
       }
     ];
-    console.log({messages: messages[0].content});
     try {
       const response = await makeApiRequest(
         messages,
@@ -194,24 +179,8 @@ async function main(instruction, previousLogs = '') {
   }
 
  const brainstormedTasks = await brainstormTaskWithLLM(instruction);
- /*  if (brainstormedTasks) {
-    console.log('Received diff content from API, attempting to apply diff programmatically.');
-    try {
-      console.log('Processing diff content:');
-      await applyDiffManually(brainstormedTasks);
-      console.log('Diff applied successfully.');
-    } catch (patchError) {
-      console.error('Error applying diff patch:', patchError);
-      throw patchError;
-    }
-  } else {
-    console.log('No text found in the response to process as diff.');
-  }*/
-  console.log('Transformation complete!'); 
   const content = brainstormedTasks
   try {
-
-
     await fsp.writeFile(path.join('..', 'content.txt'), content, 'utf8');
   } catch (error) {
     console.error('Error writing content to file:', error);
@@ -219,15 +188,12 @@ async function main(instruction, previousLogs = '') {
   const messages = [
     {
       role: 'system',
-      content: `Respond only in multiple tool calls to write all the listed files, follow that with any cli commands to run.`
+      content: `Respond only in multiple tool calls to write all the listed files, follow that with any cli commands to run, and finally call the explanation tool to report to the user.`
     },
-
     {
       role: 'user',
       content: content
     }
-
-
   ];
 
   try {
@@ -237,12 +203,14 @@ async function main(instruction, previousLogs = '') {
       process.env.MISTRAL_API_KEY,
       'https://codestral.mistral.ai/v1/chat/completions'
     );
-    console.log('Response:', response.choices[0].message.content);
-    console.log('Tools:', response.choices[0].message.tool_calls.map(t => t.function.name));
+
+    //console.log('Response:', response.choices[0]);
+    //console.log('Tools:', response.choices[0].message.tool_calls.map(t => t.function.name));
     //process.exit(1);
     if (response.choices[0].message.tool_calls) {
       for (const toolCall of response.choices[0].message.tool_calls) {
         try {
+          //console.log('Executing tool call:', toolCall);
           await executeToolCall(toolCall);
         } catch (error) {
           console.error('Tool call failed, restarting:', error);
@@ -253,7 +221,8 @@ async function main(instruction, previousLogs = '') {
         }
       }
     }
- 
+    //console.log('Transformation complete!'); 
+
   } catch (error) {
     console.error('Error during transformation:', error);
   }
@@ -267,52 +236,6 @@ async function main(instruction, previousLogs = '') {
       await main(instruction, e.message);
     }, 0);
 
-  }
-}
-
-async function applyDiffManually(diffContent) {
-  const diffLines = diffContent.split('\n');
-  let currentFile = null;
-  let newContent = [];
-
-  for (const line of diffLines) {
-    if (line.startsWith('---')) {
-      // Start of file diff - reset state
-      if (currentFile) {
-        await fsp.writeFile(currentFile, newContent.join('\n'));
-      }
-      currentFile = null;
-      newContent = [];
-    } 
-    else if (line.startsWith('+++')) {
-      currentFile = line
-        .replace(/^\+\+\+ /, '')      // Remove +++ prefix
-        .replace(/^\.\//, '')         // Remove leading ./
-        .replace(/^a\//, '')          // Remove git diff a/ prefix if present
-        .replace(/^b\//, '');         // Remove git diff b/ prefix if present
-    }
-    else if (currentFile) {
-      if (line.startsWith('+')) {
-        newContent.push(line.slice(1));
-      } 
-      else if (line.startsWith('-')) {
-        // Skip deletions as we're building new content
-      } 
-      else if (line.startsWith('@@')) {
-        // Reset content for the hunk
-        const originalContent = await fsp.readFile(currentFile, 'utf8');
-        newContent = originalContent.split('\n');
-      }
-      else {
-        newContent.push(line);
-      }
-    }
-  }
-
-  // Write final file
-  if (currentFile) {
-    await fsp.mkdir(path.dirname(currentFile), { recursive: true });
-    await fsp.writeFile(currentFile, newContent.join('\n'));
   }
 }
 

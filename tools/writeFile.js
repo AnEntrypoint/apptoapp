@@ -15,15 +15,12 @@ async function writeFile(filePath, content) {
     }
 
     console.log('Writing file at path:', filePath);
-    cmdhistory.push(`Writing file at path: ${filePath}`); // Log to cmdhistory
 
-    // Ensure the directory exists recursively
     const dir = path.dirname(filePath);
     await fs.mkdir(dir, { recursive: true });
-
-    await fs.writeFile(filePath, content, 'utf8'); // Using fs to write the file
-    cmdhistory.push(`File written successfully at: ${filePath}`); // Log to cmdhistory
+    await fs.writeFile(filePath, content, 'utf8');
+    cmdhistory.push(`File written: ${filePath}`);
     return `File written: ${filePath}`;
 }
 
-module.exports = writeFile; 
+module.exports = writeFile;

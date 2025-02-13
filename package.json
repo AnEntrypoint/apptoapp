@@ -1,20 +1,19 @@
 {
-  "name": "apptoapp",
-  "version": "0.2.22",
-  "main": "node index.js",
+  "name": "your-project-name",
+  "version": "1.0.0",
+  "description": "A CLI tool that edits other projects",
+  "main": "index.js",
   "scripts": {
-    "start": "DEBUG=codestral:* node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "release": "git commit -a -m ranrelease && npm version patch  && npm publish --tag latest"
+    "dev": "jest",
+    "test": "jest"
   },
   "dependencies": {
-    "debug": "^4.3.4",
-    "diff": "^5.1.0",
-    "doctrine": "^3.0.0",
-    "dotenv": "^16.4.1",
-    "ignore": "^5.3.1"
+    "commander": "^9.1.0",
+    "dotenv": "^16.0.1",
+    "ignore": "^5.2.0",
+    "puppeteer": "^14.4.1"
   },
-  "bin": {
-    "apptoapp": "index.js"
+  "devDependencies": {
+    "jest": "^28.1.0"
   }
 }

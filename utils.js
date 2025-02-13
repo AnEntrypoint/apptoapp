@@ -13,28 +13,28 @@ async function executeCommand(command, options = {}) {
             ...options
         });
         cmdhistory.push(command);
-        if (cmdhistory.length > 100) cmdhistory.splice(0, cmdhistory.length - 100); // Limit cmdhistory to 100 lines
+        if (cmdhistory.length > 100) cmdhistory.splice(0, cmdhistory.length - 100);
 
         const output = { stdout: [], stderr: [] };
 
         child.stdout.on('data', (data) => {
             const trimmed = data.toString().trim();
             cmdhistory.push(trimmed);
-            if (cmdhistory.length > 100) cmdhistory.splice(0, cmdhistory.length - 100); // Limit cmdhistory to 100 lines
+            if (cmdhistory.length > 100) cmdhistory.splice(0, cmdhistory.length - 100);
             output.stdout.push(trimmed);
-            console.log(`[CMD] ${trimmed}`); // Added console log for stdout
+            console.log(`[CMD] ${trimmed}`);
         });
 
         child.stderr.on('data', (data) => {
             const trimmed = data.toString().trim();
             cmdhistory.push(trimmed);
-            if (cmdhistory.length > 100) cmdhistory.splice(0, cmdhistory.length - 100); // Limit cmdhistory to 100 lines
+            if (cmdhistory.length > 100) cmdhistory.splice(0, cmdhistory.length - 100);
             output.stderr.push(trimmed);
-            console.error(`[CMD-ERR] ${trimmed}`); // Added console log for stderr
+            console.error(`[CMD-ERR] ${trimmed}`);
         });
 
         child.on('close', (code) => {
-            console.log(`Command closed with code: ${code}`); // Added log for command close
+            console.log(`Command closed with code: ${code}`);
             resolve({
                 code,
                 stdout: output.stdout.join('\n'),
@@ -42,7 +42,6 @@ async function executeCommand(command, options = {}) {
             });
         });
 
-        // Auto-answer 'yes' to any y/n questions
         child.stdin.write('Y\n');
         child.stdin.write('Y\n');
         child.stdin.end();
@@ -51,7 +50,7 @@ async function executeCommand(command, options = {}) {
 
 async function loadIgnorePatterns(ignoreFile = '.llmignore') {
     const currentPath = process.cwd();
-    const sourcePath = path.join(__dirname, ignoreFile); // Assuming the library is in the same directory as this file
+    const sourcePath = path.join(__dirname, ignoreFile);
 
     const ignoreFiles = [ignoreFile, sourcePath];
     let ignoreContent = '';
@@ -74,11 +73,10 @@ async function loadIgnorePatterns(ignoreFile = '.llmignore') {
 
 async function loadNoContentsPatterns(ignoreFile = '.nocontents') {
     const currentPath = process.cwd();
-    const sourcePath = path.join(__dirname, ignoreFile); // Path of the library
+    const sourcePath = path.join(__dirname, ignoreFile);
 
     let ignoreContent = '';
 
-    // Check current path first
     try {
         ignoreContent = await fsp.readFile(ignoreFile, 'utf8');
         return ignore().add(ignoreContent.split('\n').filter(l => !l.startsWith('#')));
@@ -89,7 +87,6 @@ async function loadNoContentsPatterns(ignoreFile = '.nocontents') {
         }
     }
 
-    // Check library path
     try {
         ignoreContent = await fsp.readFile(sourcePath, 'utf8');
         return ignore().add(ignoreContent.split('\n').filter(l => !l.startsWith('#')));
@@ -158,18 +155,14 @@ async function directoryExists(dir) {
     }
 }
 
-// scanDirectory is a unified directory scanner.
-// handler is a function(fullPath, relativePath) that returns an item (or null) for each file.
 async function scanDirectory(dir, ig, handler, baseDir = dir) {
     const entries = await fsp.readdir(dir, { withFileTypes: true });
     const results = [];
     
     for (const entry of entries) {
         const fullPath = path.join(dir, entry.name);
-        // Normalize path to POSIX style and make relative to original base
         const relativePath = path.relative(baseDir, fullPath).replace(/\\/g, '/');
         
-        // Skip both files and directories that match the ignore patterns
         if (ig.ignores(relativePath)) {
             console.log(`Ignoring: ${relativePath} matched pattern.`);
             continue;
@@ -186,8 +179,6 @@ async function scanDirectory(dir, ig, handler, baseDir = dir) {
     return results;
 }
 
-// createErrorNote consolidates error note creation.
-// It appends a formatted note to NOTES.txt and returns the note string.
 async function createErrorNote(errorDetails) {
     const timestamp = new Date().toISOString();
     const noteContent = `[${timestamp}] Error in ${errorDetails.tool || 'unknown-tool'} (${errorDetails.phase || 'unknown-phase'}): ${errorDetails.error}\n` +
