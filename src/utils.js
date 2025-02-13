@@ -97,27 +97,17 @@ async function loadNoContentsPatterns(ignoreFile = '.nocontents') {
   let ignoreContent = '';
 
   try {
-    ignoreContent = await fsp.readFile(ignoreFile, 'utf8');
-    return ignore().add(ignoreContent.split('\n').filter((l) => !l.startsWith('#')));
-  } catch (error) {
-    if (error.code === 'ENOENT') {
-    } else {
-      throw error;
-    }
-  }
-
-  try {
     ignoreContent = await fsp.readFile(sourcePath, 'utf8');
     return ignore().add(ignoreContent.split('\n').filter((l) => !l.startsWith('#')));
   } catch (error) {
     if (error.code === 'ENOENT') {
       return ignore();
     }
-    throw error;
   }
 }
 
 async function makeApiRequest(messages, tools, apiKey, endpoint) {
+  //console.trace();
   const data = [endpoint, {
     method: 'POST',
     headers: {
@@ -141,8 +131,6 @@ async function makeApiRequest(messages, tools, apiKey, endpoint) {
       console.error('Error writing to lastcall.txt:', error);
     }
   }
-
-  await writeToLastCall(JSON.stringify(JSON.parse(data[1].body), null, 2));
 
   if (!response.ok) {
     const error = await response.json();

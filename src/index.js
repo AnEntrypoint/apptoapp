@@ -1,8 +1,5 @@
-const { getFiles } = require('./files.js');
-const { getTools, executeToolCall } = require('./tools.js');
 const dotenv = require('dotenv');
-const fsp = require('fs').promises;
-const path = require('path');
+const { getFiles } = require('./files.js');
 const { loadIgnorePatterns, makeApiRequest, loadCursorRules } = require('./utils');
 const { executeCommand, cmdhistory } = require('./utils');
 
@@ -87,61 +84,33 @@ async function main(instruction, previousLogs) {
     async function brainstormTaskWithLLM(instruction) {
       const cursorRules = await loadCursorRules();
       if (cmdhistory.length > 0) {
-        const cmdhistorymessages = [
-          {
-            role: 'system',
-            content: 'pick up to 100 most important lines and output them in order, the end is the more recent, we want to fix errors, errors are most important',
-          },
-          {
-            role: 'user',
-            content: cmdhistory.join('\n'),
-          },
-        ];
-        console.log(`${JSON.stringify(cmdhistorymessages).length} B of command history input`);
-        let historyretryCount = 0;
-        while (historyretryCount < MAX_RETRIES) {
-          try {
-            const response = await makeApiRequest(
-              cmdhistorymessages,
-              [],
-              process.env.MISTRAL_API_KEY,
-              'https://codestral.mistral.ai/v1/chat/completions',
-            );
-            cmdhistory.length = 0;
-            cmdhistory.push(response.choices[0].message.content.split('\n').map((line) => line.trim()));
-          } catch (error) {
-            console.error(`API request failed (attempt ${historyretryCount + 1}/${MAX_RETRIES}):`, error);
-            historyretryCount++;
-            if (historyretryCount >= MAX_RETRIES) {
-              throw error;
-            }
-          }
-        }
+        const newcmdhistory = cmdhistory.join('\n').split('\n').slice(cmdhistory.length - 100, cmdhistory.length).join('\n');
+        cmdhistory.length = 0;
+        cmdhistory.push(newcmdhistory);
       }
-
       const messages = [
         {
           role: 'system',
-          content: 'You are a senior programmer with over 20 years of experience, you make expert and mature software development choices, your main goal is to complete the user instruction'
-            + 'avoid editing the frameworks configuration files or any settings file when possible\n'
-            + 'always discover and solve all solutions by writing unit tests\n'+
-            + 'focus on one issue at a time, the backend will rerun this part to allow you to make more changes down the line\n'
-            + 'add as many files as are needed to complete the instruction\n'
-            + 'always ensure you\'re writing the files in the correct place, never put them in the wrong folder\n'
-            + 'pay careful attention to the logs, make sure you dont try the same thing twice and get stuck in a loop\n'
-            + 'only mention files that were edited, dont output unchanged files\n'
-            + 'If installing new packages use --save or --save-dev to preserve the changes\n'
-            + 'never remove dependencies from package.json, unless theres evidence its no longer needed\n'
-            + 'Only output file changes in xml format with this schema: <file path="path/to/edited/file.js">...</file> and cli commands in this schema <cli>command here</cli>'
-            + 'ULTRA IMPORTANT: dont include any unneccesary steps, only include instructions that are needed to complete the user instruction'
-            + 'ULTRA IMPORTANT: only make changes if they\'re neccesary, if a file can stay the same, exclude it from your output'
-            + 'ULTRA IMPORTANT: make sure you dont regress any parts of any file, features, depedencies and settings need to remain if they\'re used in the codebase\n'
-            + 'ULTRA IMPORTANT: only output complete files, no partial changes to files\n'
-            + 'ULTRA IMPORTANT: be careful to preserve all the existing functionality that the codebase still needs, especially package.json, edit it only if needed\n\n'
-            + 'ULTRA IMPORTANT: if a library is referenced anywhere in the code, do not produce a package.json that excludes it.'
-            + `${cmdhistory.length > 0 ? `Logs: (fix the errors in the logs if needed)\n<logs>${cmdhistory.join('\n')}</logs>\n\n` : ''}`
-            + `${(previousLogs && previousLogs.length) > 0 ? `Previous Logs: (fix the errors in the logs if needed)\n<logs>${previousLogs}</logs>\n\n` : ''}`
-            + `Files:\n${files}`,
+          content: 'You are a senior programmer with over 20 years of experience, you make expert and mature software development choices, your main goal is to complete the user instruction\n' +
+            'avoid editing the frameworks configuration files or any settings file when possible\n' +
+            'always discover and solve all solutions by writing unit tests\n' +
+            'fix as many linting errors as possible, the backend will run npm run test automatically which lints the codebase\n' +
+            'add as many files as are needed to complete the instruction\n' +
+            'always ensure you\'re writing the files in the correct place, never put them in the wrong folder\n' +
+            'pay careful attention to the logs, make sure you dont try the same thing twice and get stuck in a loop\n' +
+            'only mention files that were edited, dont output unchanged files\n' +
+            'If installing new packages using the cli, use --save or --save-dev to preserve the changes\n' +
+            'never remove dependencies from package.json, unless theres evidence its no longer needed\n' +
+            'IMPORTANT: Only output file changes in xml format like this: <file path="path/to/edited/file.js">...</file> and cli commands in this schema <cli>command here</cli>\n' +
+            'ULTRA IMPORTANT: dont include any unneccesary steps, only include instructions that are needed to complete the user instruction\n' +
+            'ULTRA IMPORTANT: only make changes if they\'re neccesary, if a file can stay the same, exclude it from your output\n' +
+            'ULTRA IMPORTANT: make sure you dont regress any parts of any file, features, depedencies and settings need to remain if they\'re used in the codebase\n' +
+            'ULTRA IMPORTANT: only output complete files, no partial changes to files\n' +
+            'ULTRA IMPORTANT: be careful to preserve all the existing functionality that the codebase still needs, especially package.json, edit it only if needed\n\n' +
+            'ULTRA IMPORTANT: if a library is referenced anywhere in the code, do not produce a package.json that excludes it.' +
+            (cmdhistory.length > 0 ? `Logs: (fix the errors in the logs if needed)\n<logs>${cmdhistory.join('\n')}</logs>\n\n` : '') +
+            ((previousLogs && previousLogs.length) > 0 ? `Previous Logs: (fix the errors in the logs if needed)\n<logs>${previousLogs}</logs>\n\n` : '') +
+            `Files:\n${files}`,
         },
         {
           role: 'user',

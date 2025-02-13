@@ -6,15 +6,12 @@
   "scripts": {
     "start": "node src/cli.js",
     "lint": "eslint . --ext .js",
-    "test": "jest --forceExit --detectOpenHandles --runInBand --testTimeout=10000",
+    "test": "npm run lint; jest --forceExit --detectOpenHandles --runInBand --testTimeout=10000",
     "test:e2e": "jest --forceExit --detectOpenHandles --runInBand --testTimeout=10000 --testMatch='**/test/e2e/**/*.js'",
     "build": "babel src --out-dir dist",
     "release": "git commit -a -m ranrelease && npm version patch  && npm publish --tag latest"
   },
   "dependencies": {
-    "@babel/core": "^7.26.8",
-    "@babel/plugin-transform-modules-commonjs": "^7.26.3",
-    "@babel/preset-env": "^7.26.8",
     "babel-jest": "^27.5.1",
     "commander": "^8.3.0",
     "dotenv": "^10.0.0",
@@ -25,6 +22,9 @@
     "puppeteer": "^13.7.0"
   },
   "devDependencies": {
+    "@babel/core": "^7.26.8",
+    "@babel/plugin-transform-modules-commonjs": "^7.26.3",
+    "@babel/preset-env": "^7.26.8",
     "eslint": "^7.32.0",
     "eslint-config-airbnb-base": "^14.2.1",
     "eslint-plugin-import": "^2.31.0",
