@@ -4,7 +4,6 @@
   "description": "CLI tool for automated debugging",
   "main": "node src/index.js",
   "scripts": {
-    "start": "node src/cli.js",
     "test": "jest --detectOpenHandles",
     "release": "git commit -a -m ranrelease && npm version patch  && npm publish --tag latest"
   },
