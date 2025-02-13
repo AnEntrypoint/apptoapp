@@ -107,7 +107,7 @@ async function loadNoContentsPatterns(ignoreFile = '.nocontents') {
 }
 
 async function makeApiRequest(messages, tools, apiKey, endpoint) {
-  //console.trace();
+  // console.trace();
   const data = [endpoint, {
     method: 'POST',
     headers: {

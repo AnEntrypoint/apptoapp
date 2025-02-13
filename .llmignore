@@ -21,7 +21,6 @@ out/
 .cache/
 .parcel-cache/
 package-lock.json
-package.json
 # Environment and config files
 .env
 .env.*

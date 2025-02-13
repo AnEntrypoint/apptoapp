@@ -21,7 +21,7 @@ jest.mock('../utils', () => ({
     }],
   }),
 }));
-z
+z;
 // Mock process.exit
 const mockExit = jest.fn();
 process.exit = mockExit;

@@ -93,9 +93,7 @@ function getTools() {
   ];
 }
 
-
-
 module.exports = {
   executeCommand,
-  writeFile
+  writeFile,
 };

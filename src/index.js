@@ -35,7 +35,7 @@ async function runBuild() {
 
   return new Promise((resolve, reject) => {
     let timeoutId;
-    const testProcess = executeCommand('npm run lint --fix; npm run test', logHandler);
+    const testProcess = executeCommand('npm run test', logHandler);
 
     if (process.env.NODE_ENV !== 'test') {
       timeoutId = setTimeout(() => {
@@ -56,10 +56,10 @@ async function runBuild() {
           console.error('Build failed with exit code:', result.code);
           console.error('STDOUT:', result.stdout);
           console.error('STDERR:', result.stderr);
-          reject(new Error(`Build failed: ${result.stderr || result.stdout}`));
+          reject(new Error(`Test failed: ${result.stderr || result.stdout}`));
         }
       } else {
-        resolve(`Build exit code: ${result.code}\nSTDOUT:\n${result.stdout}\nSTDERR:\n${result.stderr}`);
+        resolve(`Test exit code: ${result.code}\nSTDOUT:\n${result.stdout}\nSTDERR:\n${result.stderr}`);
       }
     }).catch((error) => {
       if (timeoutId) clearTimeout(timeoutId);
@@ -84,40 +84,40 @@ async function main(instruction, previousLogs) {
     async function brainstormTaskWithLLM(instruction) {
       const cursorRules = await loadCursorRules();
       if (cmdhistory.length > 0) {
-        const newcmdhistory = cmdhistory.join('\n').split('\n').slice(cmdhistory.length - 100, cmdhistory.length).join('\n');
+        const newcmdhistory = cmdhistory.join('\n').split('\n').slice(cmdhistory.length - 1000, cmdhistory.length).join('\n');
         cmdhistory.length = 0;
         cmdhistory.push(newcmdhistory);
       }
       const messages = [
         {
           role: 'system',
-          content: 'You are a senior programmer with over 20 years of experience, you make expert and mature software development choices, your main goal is to complete the user instruction\n' +
-            'avoid editing the frameworks configuration files or any settings file when possible\n' +
-            'always discover and solve all solutions by writing unit tests\n' +
-            'fix as many linting errors as possible, the backend will run npm run test automatically which lints the codebase\n' +
-            'add as many files as are needed to complete the instruction\n' +
-            'always ensure you\'re writing the files in the correct place, never put them in the wrong folder\n' +
-            'pay careful attention to the logs, make sure you dont try the same thing twice and get stuck in a loop\n' +
-            'only mention files that were edited, dont output unchanged files\n' +
-            'If installing new packages using the cli, use --save or --save-dev to preserve the changes\n' +
-            'never remove dependencies from package.json, unless theres evidence its no longer needed\n' +
-            'IMPORTANT: Only output file changes in xml format like this: <file path="path/to/edited/file.js">...</file> and cli commands in this schema <cli>command here</cli>\n' +
-            'ULTRA IMPORTANT: dont include any unneccesary steps, only include instructions that are needed to complete the user instruction\n' +
-            'ULTRA IMPORTANT: only make changes if they\'re neccesary, if a file can stay the same, exclude it from your output\n' +
-            'ULTRA IMPORTANT: make sure you dont regress any parts of any file, features, depedencies and settings need to remain if they\'re used in the codebase\n' +
-            'ULTRA IMPORTANT: only output complete files, no partial changes to files\n' +
-            'ULTRA IMPORTANT: be careful to preserve all the existing functionality that the codebase still needs, especially package.json, edit it only if needed\n\n' +
-            'ULTRA IMPORTANT: if a library is referenced anywhere in the code, do not produce a package.json that excludes it.' +
-            (cmdhistory.length > 0 ? `Logs: (fix the errors in the logs if needed)\n<logs>${cmdhistory.join('\n')}</logs>\n\n` : '') +
-            ((previousLogs && previousLogs.length) > 0 ? `Previous Logs: (fix the errors in the logs if needed)\n<logs>${previousLogs}</logs>\n\n` : '') +
-            `Files:\n${files}`,
+          content: `${'You are a senior programmer with over 20 years of experience, you make expert and mature software development choices, your main goal is to complete the user instruction\n'
+            + 'avoid editing the frameworks configuration files or any settings file when possible\n'
+            + 'always discover and solve all solutions by writing unit tests\n'
+            + 'fix as many linting errors as possible, the backend will run npm run test automatically which lints the codebase\n'
+            + 'add as many files as are needed to complete the instruction\n'
+            + 'always ensure you\'re writing the files in the correct place, never put them in the wrong folder\n'
+            + 'pay careful attention to the logs, make sure you dont try the same thing twice and get stuck in a loop\n'
+            + 'only mention files that were edited, dont output unchanged files\n'
+            + 'If installing new packages using the cli, use --save or --save-dev to preserve the changes\n'
+            + 'never remove dependencies from package.json, unless theres evidence its no longer needed\n'
+            + 'IMPORTANT: Only output file changes in xml format like this: <file path="path/to/edited/file.js">...</file> and cli commands in this schema <cli>command here</cli>\n'
+            + 'ULTRA IMPORTANT: dont include any unneccesary steps, only include instructions that are needed to complete the user instruction\n'
+            + 'ULTRA IMPORTANT: only make changes if they\'re neccesary, if a file can stay the same, exclude it from your output\n'
+            + 'ULTRA IMPORTANT: make sure you dont regress any parts of any file, features, depedencies and settings need to remain if they\'re used in the codebase\n'
+            + 'ULTRA IMPORTANT: only output complete files, no partial changes to files\n'
+            + 'ULTRA IMPORTANT: be careful to preserve all the existing functionality that the codebase still needs, especially package.json, edit it only if needed\n\n'
+            + 'ULTRA IMPORTANT: if a library is referenced anywhere in the code, do not produce a package.json that excludes it.'}${
+            cmdhistory.length > 0 ? `Logs: (fix the errors in the logs if needed)\n<logs>${cmdhistory.join('\n')}</logs>\n\n` : ''
+          }${(previousLogs && previousLogs.length) > 0 ? `Previous Logs: (fix the errors in the logs if needed)\n<logs>${previousLogs}</logs>\n\n` : ''
+          }Files:\n${files}`,
         },
         {
           role: 'user',
           content: `${instruction}\n\nRules:\n${cursorRules}`,
         },
       ];
-      console.log(`${JSON.stringify(messages).length} B of reasonsing input`);
+      console.log(`${JSON.stringify(messages).length} B of reasoning input`);
       let retryCount = 0;
       while (retryCount < MAX_RETRIES) {
         try {
