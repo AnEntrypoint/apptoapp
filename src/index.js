@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 const dotenv = require('dotenv');
 const { getFiles } = require('./files.js');
 const { makeApiRequest, loadCursorRules } = require('./utils');

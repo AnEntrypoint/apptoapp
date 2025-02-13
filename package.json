@@ -15,7 +15,7 @@
     "fetch-blob": "^4.0.0"
   },
   "bin": {
-    "apptoapp": "./src/cli.js"
+    "apptoapp": "./src/index.js"
   },
   "devDependencies": {
     "jest": "^29.7.0",
