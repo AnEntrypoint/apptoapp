@@ -1,5 +1,5 @@
 const { diff } = require('../files');
-
+ 
 describe('diff', () => {
   test('should return the difference between two numbers', () => {
     expect(diff(5, 3)).toBe(2);

@@ -23,7 +23,6 @@ async function runBuild() {
   const timeoutDuration = process.env.NODE_ENV === 'test' ? 5000 : 10000;
   let lastLogTime = Date.now();
   const logBuffer = [];
-
   const logHandler = (data) => {
     if (process.env.NODE_ENV === 'test') {
       logBuffer.push(data);
@@ -72,6 +71,7 @@ async function main(instruction, previousLogs) {
   const MAX_RETRIES = 3;
   const MAX_ATTEMPTS = 3;
   let attempts = 0;
+  const summaryBuffer = [];
 
   try {
     if (!instruction || instruction.trim() === '') {
@@ -88,10 +88,16 @@ async function main(instruction, previousLogs) {
         cmdhistory.length = 0;
         cmdhistory.unshift(newcmdhistory);
       }
+      const artifacts = [
+         `${cmdhistory.length > 0 ? `Logs: (fix the errors in the logs if needed)\n<logs>${cmdhistory.join('\n')}</logs>\n\n` : ''}`,
+         `${(previousLogs && previousLogs.length) > 0 ? `Previous Logs: (fix the errors in the logs if needed)\n<logs>${previousLogs}</logs>\n\n` : ''}`,
+         `Files:\n${files}`,
+         `Summary:\n${summaryBuffer.join('\n')}`
+      ]
       const messages = [
         {
           role: 'system',
-          content: `${'You are a senior programmer with over 20 years of experience, you make expert and mature software development choices, your main goal is to complete the user instruction\n'
+          content: 'You are a senior programmer with over 20 years of experience, you make expert and mature software development choices, your main goal is to complete the user instruction\n'
             + 'avoid editing the frameworks configuration files or any settings file when possible\n'
             + 'always discover and solve all solutions by writing unit tests\n'
             + 'fix as many linting errors as possible, the backend will run npm run test automatically which lints the codebase\n'
@@ -100,16 +106,16 @@ async function main(instruction, previousLogs) {
             + 'pay careful attention to the logs, make sure you dont try the same thing twice and get stuck in a loop\n'
             + 'only mention files that were edited, dont output unchanged files\n'
             + 'always use the cli when installing new packages, use --save or --save-dev to preserve the changes\n'
+            + 'always refactor files longer than 100 lines into smaller files\n'
+            + 'always add a summary with <summary>summary here</summary> at the end of your output\n'
             + 'IMPORTANT: Only output file changes in xml format like this: <file path="path/to/edited/file.js">...</file> and cli commands in this schema <cli>command here</cli>\n'
             + 'ULTRA IMPORTANT: dont include any unneccesary steps, only include instructions that are needed to complete the user instruction\n'
             + 'ULTRA IMPORTANT: only make changes if they\'re neccesary, if a file can stay the same, exclude it from your output\n'
             + 'ULTRA IMPORTANT: make sure you dont regress any parts of any file, features, depedencies and settings need to remain if they\'re used in the codebase\n'
             + 'ULTRA IMPORTANT: only output complete files, no partial changes to files\n'
             + 'ULTRA IMPORTANT: be careful to preserve all the existing functionality that the codebase still needs, especially package.json, edit it only if needed\n\n'
-            + 'ULTRA IMPORTANT: if a library is referenced anywhere in the code, do not produce a package.json that excludes it.'}${
-            cmdhistory.length > 0 ? `Logs: (fix the errors in the logs if needed)\n<logs>${cmdhistory.join('\n')}</logs>\n\n` : ''
-          }${(previousLogs && previousLogs.length) > 0 ? `Previous Logs: (fix the errors in the logs if needed)\n<logs>${previousLogs}</logs>\n\n` : ''
-          }Files:\n${files}`,
+            + 'ULTRA IMPORTANT: if a library is referenced anywhere in the code, do not produce a package.json that excludes it.'
+            + artifacts.join('\n')
         },
         {
           role: 'user',
@@ -144,24 +150,49 @@ async function main(instruction, previousLogs) {
     const brainstormedTasks = await brainstormTaskWithLLM(instruction);
     console.log(`${JSON.stringify(brainstormedTasks).length} B of reasoning output`);
 
-    const filesToEdit = brainstormedTasks.match(/<file path="([^"]+)">(.*?)<\/file>/g);
-    const cliCommands = brainstormedTasks.match(/<cli>(.*?)<\/cli>/g);
-
-    console.log({ filesToEdit, cliCommands });
+    const filesToEdit = brainstormedTasks.match(/<file path="([^"]+)">([\s\S]*?)<\/file>/g);
+    const cliCommands = brainstormedTasks.match(/<cli>([\s\S]*?)<\/cli>/g);
+    const summaries = brainstormedTasks.match(/<summary>([\s\S]*?)<\/summary>/g);
+    summaryBuffer.unshift(...summaries);
+    console.log({ filesToEdit, cliCommands, summaries });
+    if(!filesToEdit?.length &&
+      !cliCommands?.length &&
+      !summaries?.length
+    ) {
+      console.log(brainstormedTasks);
+      throw new Error('No files to edit, cli commands or summaries found');
+    }
 
     if (filesToEdit && filesToEdit.length > 0) {
       for (const file of filesToEdit) {
-        const filePath = file.match(/<file path="([^"]+)">/)[1];
-        const fileContent = file.match(/>(.*?)<\/file>/)[1];
-        console.log({ filePath, fileContent });
+        const fileMatch = file.match(/<file path="([^"]+)">([\s\S]*?)<\/file>/);
+        if (!fileMatch || fileMatch.length < 3) {
+          console.error('Invalid file format:', file);
+          continue;
+        }
+        const filePath = fileMatch[1];
+        const fileContent = fileMatch[2];
+        console.log({ filePath, fileContentLength: fileContent.length });
       }
     }
 
+    if (summaries && summaries.length > 0) {
+      for (const summary of summaries) {
+        const summaryMatch = summary.match(/<summary>([\s\S]*?)<\/summary>/);
+        if (summaryMatch) {
+          console.log('Summary:', summaryMatch[1].trim());
+        }
+      }
+    }
+    
     if (cliCommands && cliCommands.length > 0) {
       for (const cliCommand of cliCommands) {
-        const command = cliCommand.match(/<cli>(.*?)<\/cli>/)[1];
-        console.log({ command });
-        await executeCommand(command); // Execute the command using the executeCommand tool
+        const commandMatch = cliCommand.match(/<cli>([\s\S]*?)<\/cli>/);
+        if (commandMatch) {
+          const command = commandMatch[1].trim();
+          console.log('Executing:', command);
+          await executeCommand(command);
+        }
       }
     }
 
