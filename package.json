@@ -2,7 +2,7 @@
   "name": "apptoapp",
   "version": "1.0.4",
   "description": "CLI tool for automated debugging",
-  "main": "src/index.js",
+  "main": "node src/index.js",
   "scripts": {
     "start": "node src/cli.js",
     "test": "jest --detectOpenHandles",
