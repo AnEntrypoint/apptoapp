@@ -90,7 +90,7 @@ async function main(instruction, previousLogs) {
         const cmdhistorymessages = [
           {
             role: 'system',
-            content: 'pick the 100 most important lines from this history and output them in order, the end is the more recent logs',
+            content: 'pick up to 100 most important lines and output them in order, the end is the more recent, we want to fix errors, errors are most important',
           },
           {
             role: 'user',
@@ -107,7 +107,8 @@ async function main(instruction, previousLogs) {
               process.env.MISTRAL_API_KEY,
               'https://codestral.mistral.ai/v1/chat/completions',
             );
-            cmdhistory = response.choices[0].message.content.split('\n').map((line) => line.trim());
+            cmdhistory.length = 0;
+            cmdhistory.push(response.choices[0].message.content.split('\n').map((line) => line.trim()));
           } catch (error) {
             console.error(`API request failed (attempt ${historyretryCount + 1}/${MAX_RETRIES}):`, error);
             historyretryCount++;
@@ -123,7 +124,7 @@ async function main(instruction, previousLogs) {
           role: 'system',
           content: 'You are a senior programmer with over 20 years of experience, you make expert and mature software development choices, your main goal is to complete the user instruction'
             + 'avoid editing the frameworks configuration files or any settings file when possible\n'
-            + 'always discover and solve all solutions by writing unit tests'
+            + 'always discover and solve all solutions by writing unit tests\n'+
             + 'focus on one issue at a time, the backend will rerun this part to allow you to make more changes down the line\n'
             + 'add as many files as are needed to complete the instruction\n'
             + 'always ensure you\'re writing the files in the correct place, never put them in the wrong folder\n'
