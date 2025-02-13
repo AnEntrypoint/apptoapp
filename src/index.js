@@ -35,7 +35,7 @@ async function runBuild() {
 
   return new Promise((resolve, reject) => {
     let timeoutId;
-    const testProcess = executeCommand('npm run test', logHandler);
+    const testProcess = executeCommand('npm run lint --fix; npm run test', logHandler);
 
     if (process.env.NODE_ENV !== 'test') {
       timeoutId = setTimeout(() => {
