@@ -27,5 +27,5 @@ async function cycleTasks(url, instruction) {
 
 module.exports = {
   cycleTasks,
-  transform
+  transform,
 };

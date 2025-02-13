@@ -24,8 +24,8 @@ module.exports = {
     'jest/valid-expect': 'error',
     'no-trailing-spaces': 'error', // Ensure no trailing spaces
     'no-multiple-empty-lines': ['error', { max: 1 }], // Limit multiple empty lines
-    'quotes': ['error', 'single'], // Enforce single quotes
-    'semi': ['error', 'always'], // Enforce semicolons
+    quotes: ['error', 'single'], // Enforce single quotes
+    semi: ['error', 'always'], // Enforce semicolons
     'comma-dangle': ['error', 'always-multiline'], // Enforce trailing commas in multiline objects/arrays
   },
   plugins: ['jest'],

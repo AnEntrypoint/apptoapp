@@ -16,10 +16,10 @@ jest.mock('../utils', () => ({
     choices: [{
       message: {
         content: 'Test response',
-        tool_calls: []
-      }
-    }]
-  })
+        tool_calls: [],
+      },
+    }],
+  }),
 }));
 
 // Mock process.exit
@@ -53,7 +53,7 @@ describe('calculateDirectorySize', () => {
     await Promise.all([
       fsp.writeFile(path.join(tempDir, 'file1.txt'), 'Hello'),
       fsp.writeFile(path.join(tempDir, 'file2.txt'), 'World'),
-      fsp.writeFile(path.join(subdirPath, 'file3.txt'), 'Nested')
+      fsp.writeFile(path.join(subdirPath, 'file3.txt'), 'Nested'),
     ]);
   });
 
@@ -86,7 +86,7 @@ describe('calculateDirectorySize', () => {
   it('should ignore files matching ignore patterns', async () => {
     // Create an ignore file with specific patterns
     const ignoreContent = 'file2.txt\n*.ignored';
-    const ig = ignore().add(ignoreContent.split('\n').filter(l => !l.startsWith('#')));
+    const ig = ignore().add(ignoreContent.split('\n').filter((l) => !l.startsWith('#')));
 
     // Create an additional ignored file
     await fsp.writeFile(path.join(tempDir, 'test.ignored'), 'Should be ignored');
@@ -115,7 +115,7 @@ describe('listFiles', () => {
     await Promise.all([
       fsp.writeFile(path.join(tempDir, 'file1.txt'), 'Hello'),
       fsp.writeFile(path.join(tempDir, 'file2.txt'), 'World'),
-      fsp.writeFile(path.join(subdirPath, 'file3.txt'), 'Nested')
+      fsp.writeFile(path.join(subdirPath, 'file3.txt'), 'Nested'),
     ]);
   });
 
@@ -178,10 +178,10 @@ describe('main', () => {
         choices: [{
           message: {
             content: 'Test response',
-            tool_calls: []
-          }
-        }]
-      })
+            tool_calls: [],
+          },
+        }],
+      }),
     });
     global.fetch = mockFetch;
 
@@ -189,7 +189,7 @@ describe('main', () => {
     await Promise.all([
       fsp.mkdir(path.join(tempDir, 'node_modules'), { recursive: true }),
       fsp.writeFile(path.join(tempDir, 'file1.txt'), 'Hello'),
-      fsp.writeFile(path.join(tempDir, 'file2.txt'), 'World')
+      fsp.writeFile(path.join(tempDir, 'file2.txt'), 'World'),
     ]);
 
     // Reset mocks
@@ -250,12 +250,10 @@ test('calculateDirectorySize calculates size correctly', async () => {
 });
 
 // Mock fetch
-global.fetch = jest.fn(() =>
-  Promise.resolve({
-    ok: true,
-    json: () => Promise.resolve({ choices: [{ message: { content: 'Test response' } }] })
-  })
-);
+global.fetch = jest.fn(() => Promise.resolve({
+  ok: true,
+  json: () => Promise.resolve({ choices: [{ message: { content: 'Test response' } }] }),
+}));
 
 // Mock the tools module
 jest.mock('../tools', () => ({
@@ -263,15 +261,15 @@ jest.mock('../tools', () => ({
     {
       name: 'executeCommand',
       description: 'Execute a shell command',
-      execute: jest.fn().mockResolvedValue('mocked output')
+      execute: jest.fn().mockResolvedValue('mocked output'),
     },
     {
       name: 'writeFile',
       description: 'Write content to a file',
-      execute: jest.fn().mockResolvedValue(undefined)
-    }
+      execute: jest.fn().mockResolvedValue(undefined),
+    },
   ]),
-  executeToolCall: jest.fn().mockResolvedValue('mocked tool result')
+  executeToolCall: jest.fn().mockResolvedValue('mocked tool result'),
 }));
 
 jest.setTimeout(30000); // Increase timeout to 30 seconds

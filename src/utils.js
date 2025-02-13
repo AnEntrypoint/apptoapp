@@ -19,7 +19,7 @@ async function executeCommand(command, logHandler = null, options = {}) {
     const child = exec(command, {
       timeout: 120000,
       cwd: process.cwd(),
-      ...options
+      ...options,
     });
     cmdhistory.push(command);
     if (cmdhistory.length > 100) cmdhistory.splice(0, cmdhistory.length - 100);
@@ -43,7 +43,7 @@ async function executeCommand(command, logHandler = null, options = {}) {
       cmdhistory.push(trimmed);
       if (cmdhistory.length > 100) cmdhistory.splice(0, cmdhistory.length - 100);
       output.stderr.push(trimmed);
-      //console.error(`[CMD-ERR] ${trimmed}`);
+      // console.error(`[CMD-ERR] ${trimmed}`);
     });
 
     child.on('close', (code) => {
@@ -52,7 +52,7 @@ async function executeCommand(command, logHandler = null, options = {}) {
         code,
         stdout: output.stdout.join('\n'),
         stderr: output.stderr.join('\n'),
-        kill: () => child.kill()
+        kill: () => child.kill(),
       });
     });
 
@@ -77,7 +77,7 @@ async function loadIgnorePatterns(ignoreFile = '.llmignore') {
   for (const file of ignoreFiles) {
     try {
       ignoreContent = await fsp.readFile(file, 'utf8');
-      return ignore().add(ignoreContent.split('\n').filter(l => !l.startsWith('#')));
+      return ignore().add(ignoreContent.split('\n').filter((l) => !l.startsWith('#')));
     } catch (error) {
       if (error.code === 'ENOENT') {
       } else {
@@ -86,7 +86,7 @@ async function loadIgnorePatterns(ignoreFile = '.llmignore') {
     }
   }
 
-  console.log(`No ignore files found, using empty ignore list`);
+  console.log('No ignore files found, using empty ignore list');
   return ignore();
 }
 
@@ -98,7 +98,7 @@ async function loadNoContentsPatterns(ignoreFile = '.nocontents') {
 
   try {
     ignoreContent = await fsp.readFile(ignoreFile, 'utf8');
-    return ignore().add(ignoreContent.split('\n').filter(l => !l.startsWith('#')));
+    return ignore().add(ignoreContent.split('\n').filter((l) => !l.startsWith('#')));
   } catch (error) {
     if (error.code === 'ENOENT') {
     } else {
@@ -108,7 +108,7 @@ async function loadNoContentsPatterns(ignoreFile = '.nocontents') {
 
   try {
     ignoreContent = await fsp.readFile(sourcePath, 'utf8');
-    return ignore().add(ignoreContent.split('\n').filter(l => !l.startsWith('#')));
+    return ignore().add(ignoreContent.split('\n').filter((l) => !l.startsWith('#')));
   } catch (error) {
     if (error.code === 'ENOENT') {
       return ignore();
@@ -122,15 +122,15 @@ async function makeApiRequest(messages, tools, apiKey, endpoint) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
+      Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: "codestral-latest",
+      model: 'codestral-latest',
       messages,
-      "tool_choice": "any",
+      tool_choice: 'any',
       tools,
-      stream: false
-    })
+      stream: false,
+    }),
   }];
   const response = await fetch(...data);
 
@@ -189,8 +189,8 @@ async function scanDirectory(dir, ig, handler, baseDir = dir) {
 
 async function createErrorNote(errorDetails) {
   const timestamp = new Date().toISOString();
-  const noteContent = `[${timestamp}] Error in ${errorDetails.tool || 'unknown-tool'} (${errorDetails.phase || 'unknown-phase'}): ${errorDetails.error}\n` +
-    (errorDetails.stack ? `Stack: ${errorDetails.stack}\n` : '');
+  const noteContent = `[${timestamp}] Error in ${errorDetails.tool || 'unknown-tool'} (${errorDetails.phase || 'unknown-phase'}): ${errorDetails.error}\n${
+    errorDetails.stack ? `Stack: ${errorDetails.stack}\n` : ''}`;
   try {
     await fsp.appendFile('NOTES.txt', `\n${noteContent}\n`, 'utf8');
   } catch (err) {
@@ -220,5 +220,5 @@ module.exports = {
   cmdhistory,
   sum,
   product,
-  loadCursorRules
+  loadCursorRules,
 };

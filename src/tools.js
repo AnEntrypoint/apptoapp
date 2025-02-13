@@ -6,13 +6,13 @@ async function executeCommand(command, options = {}) {
   return new Promise((resolve, reject) => {
     const child = exec(command, {
       timeout: 5000,
-      ...options
+      ...options,
     }, (error, stdout, stderr) => {
       if (error) {
         reject(error);
         return;
       }
-      resolve(stdout.trim() + '\n');  // Trim and add single newline
+      resolve(`${stdout.trim()}\n`); // Trim and add single newline
     });
   });
 }
@@ -62,12 +62,12 @@ function getTools() {
           properties: {
             command: {
               type: 'string',
-              description: 'The command to execute'
-            }
+              description: 'The command to execute',
+            },
           },
-          required: ['command']
-        }
-      }
+          required: ['command'],
+        },
+      },
     },
     {
       type: 'function',
@@ -79,17 +79,17 @@ function getTools() {
           properties: {
             filePath: {
               type: 'string',
-              description: 'Path to the file to write'
+              description: 'Path to the file to write',
             },
             content: {
               type: 'string',
-              description: 'Content to write to the file'
-            }
+              description: 'Content to write to the file',
+            },
           },
-          required: ['filePath', 'content']
-        }
-      }
-    }
+          required: ['filePath', 'content'],
+        },
+      },
+    },
   ];
 }
 
@@ -113,5 +113,5 @@ module.exports = {
   executeCommand,
   writeFile,
   getTools,
-  executeToolCall
+  executeToolCall,
 };

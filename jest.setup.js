@@ -14,10 +14,10 @@ process.on('unhandledRejection', (reason, promise) => {
 
 // Modify process.exit to prevent hard exits during testing
 const originalExit = process.exit;
-process.exit = function(code) {
+process.exit = function (code) {
   if (process.env.JEST_RUNNING === 'true') {
     console.warn(`Process exit called with code ${code}, but prevented in test environment`);
     return;
   }
   originalExit(code);
-}; 
+};

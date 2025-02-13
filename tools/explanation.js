@@ -9,7 +9,7 @@ async function explanation(message) {
     console.log('No message provided for explanation.');
     return;
   }
-  console.log('---- EXPLANATION ----\n\n', message,'\n\n');
+  console.log('---- EXPLANATION ----\n\n', message, '\n\n');
 }
 
 module.exports = explanation;

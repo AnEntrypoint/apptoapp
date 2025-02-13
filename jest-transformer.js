@@ -5,14 +5,14 @@ module.exports = {
     const result = babel.transformSync(src, {
       filename,
       presets: [
-        ['@babel/preset-env', { 
+        ['@babel/preset-env', {
           targets: { node: 'current' },
-          modules: 'commonjs'
-        }]
+          modules: 'commonjs',
+        }],
       ],
-      plugins: ['@babel/plugin-transform-modules-commonjs']
+      plugins: ['@babel/plugin-transform-modules-commonjs'],
     });
 
     return result ? result.code : src;
-  }
-}; 
+  },
+};

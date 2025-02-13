@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+
 console.log('Current directory:', __dirname);
 console.log('Resolved path:', path.resolve(__dirname, '../../tools/executeCommand'));
 console.log('File exists:', fs.existsSync(path.resolve(__dirname, '../../tools/executeCommand.js')));

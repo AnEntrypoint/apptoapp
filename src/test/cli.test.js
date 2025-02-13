@@ -3,7 +3,7 @@ const { program } = require('commander');
 // Mock the transform module
 jest.mock('../transform', () => ({
   transform: jest.fn(),
-  cycleTasks: jest.fn()
+  cycleTasks: jest.fn(),
 }));
 
 describe('CLI', () => {

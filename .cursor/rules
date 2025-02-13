@@ -4,7 +4,7 @@ it is a command line tool that uses llm to edit files in the local directory, an
 
 make sure all unit tests time out after 10 seconds
 
-always iterate, when iterating, run: npm run lint; npm run test:e2e; npm run build
+always iterate, when iterating, run: npm run lint; npm run test; npm run build
 
 use unit tests to discover and fix any problem you're dealing with, dont fix anythign without unit testing
 

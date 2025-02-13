@@ -3,9 +3,7 @@ const path = require('path');
 const { loadIgnorePatterns, loadNoContentsPatterns, scanDirectory } = require('./utils');
 
 async function readDirRecursive(dir, ig) {
-  const result = await scanDirectory(dir, ig, (fullPath, relativePath) => {
-    return { path: path.resolve(fullPath) };
-  });
+  const result = await scanDirectory(dir, ig, (fullPath, relativePath) => ({ path: path.resolve(fullPath) }));
 
   const emptyFolders = await fs.readdir(dir);
   await Promise.all(emptyFolders.map(async (folder) => {
@@ -15,7 +13,7 @@ async function readDirRecursive(dir, ig) {
       const filesInFolder = await fs.readdir(fullPath);
       if (filesInFolder.length === 0) {
         console.log(`Found empty folder: ${fullPath}`);
-        result.push({ path: path.resolve(fullPath) + '/' });
+        result.push({ path: `${path.resolve(fullPath)}/` });
       }
     }
   }));
@@ -69,12 +67,11 @@ async function getFiles(preferredDir) {
       }
       let add;
       add += `<artifact file=\"${relativePath}\">\n`;
-      add += originalContent.split('\n').map(line => `  ${line}`).join('\n') + '\n';
-      add += `</artifact>\n`;
+      add += `${originalContent.split('\n').map((line) => `  ${line}`).join('\n')}\n`;
+      add += '</artifact>\n';
       textOutput += add;
       fileCount++;
       console.log(relativePath, `(${add.length} B)`);
-
     } catch (error) {
       console.error(`Error processing file ${file.path}:`, error);
     }

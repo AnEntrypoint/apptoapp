@@ -1,6 +1,6 @@
-const writeFile = require('../../../tools/writeFile');
 const fs = require('fs');
 const path = require('path');
+const writeFile = require('../../../tools/writeFile');
 
 describe('writeFile', () => {
   const testFilePath = path.join(__dirname, 'testfile.txt');
