@@ -150,7 +150,7 @@ async function main(instruction, previousLogs) {
             + '\n// Debugging & Logs\n'
             + 'pay careful attention to the logs, make sure you dont try the same thing twice and get stuck in a loop\n'
             + 'always program using unit tests, use unit tests to discover bugs, their solutions and their errors, and then implement code changes to fix the bugs and implement the user instructions\n'
-            
+             
             + '\n// Critical Rules\n'
             + 'only output tags containing files, cli commands and summaries, no other text\n'
             + 'ULTRA IMPORTANT: respond only in xml tags, no other text\n'
