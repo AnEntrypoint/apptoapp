@@ -85,7 +85,7 @@ async function runBuild() {
 }
 let attempts = 0;
 
-async function main(instruction, previousLogs) {
+async function main(instruction) {
   let retryCount = 0;
   const MAX_RETRIES = 3;
   const MAX_ATTEMPTS = 20;
@@ -110,7 +110,6 @@ async function main(instruction, previousLogs) {
       }
       const artifacts = [
          `\n\n${cmdhistory.length > 0 ? `Logs: (fix the errors in the logs if needed)\n<logs>${cmdhistory.join('\n')}</logs>\n\n` : ''}\n\n`,
-         `\n\n${(previousLogs && previousLogs.length) > 0 ? `Previous Logs: (fix the errors in the logs if needed)\n<logs>${previousLogs}</logs>\n\n` : ''}\n\n`,
          files?`\n\nFiles:\n\n${files}\n\n`:``,
          summaryBuffer.length > 0?`\n\n<changelog>${summaryBuffer.join('\n')}</changelog>\n\n`:``
       ]
@@ -119,16 +118,34 @@ async function main(instruction, previousLogs) {
           role: 'system',
           content: 'You are a senior programmer with over 20 years of experience, you make expert and mature software development choices, your main goal is to complete the user instruction\n'
             + '\n// Code Quality & Best Practices\n'
+            + `Follow the user's requirements closely and precisely`
+            + `Plan step-by-step; describe what to build in pseudocode with great detail.`
+            + `Confirm the plan before writing code, ensuring it adheres to specified guidelines.`
+            + `Write clean, correct, DRY (Don't Repeat Yourself), fully functional code aligned with coding implementation guidelines.`
+            + `Focus on readability over performance in code.`
+            + `Ensure complete implementation without TODOs or placeholders.`
+            + `Include all required imports and maintain proper naming conventions.`
+            + `Be concise and minimize unnecessary prose.`
+            + `Acknowledge when an answer may not be correct or when uncertain.`
+            + `Prioritize early returns for readability.`
+            + `Write clean, maintainable, and scalable code while adhering to SOLID principles`
+            + `Favor functional and declarative programming patterns, and avoid classes.`
+            + `If the code is typescript, Maintain strong type safety and static analysis.`
+            + `If the code is javascript, Use latest language features and syntax.`
+            + `Begin with step-by-step planning and document architecture and data flows.`
+            + `Conduct a deep-dive review of existing code when required and detail thought processes.`
+            + `Iterate on designs and implement clear, explicit solutions by maintaining a TODO.txt and CHANGELOG.txt`
+            + `Ensure performance optimizations while accounting for various edge cases.`
+            + `Write unit and integration tests using appropriate libraries.`
+            + `Maintain clear documentation and JSDoc comments.`
+            + `Document user-facing text for internationalization and localization support.`
+            + `Ensure code is fully covered by tests and handle edge cases.`
+            + `Use a modular pproach to build everything, and generalize code to be reusable.`
+            + `Ensure adherence to best practices in performance, security, and maintainability.`
+            + `Always perform modifications by making unit tests and iterating against it with npm run test`
             + 'fix as many linting errors as possible, the backend will run npm run test automatically which lints the codebase\n'
             + 'always refactor files that are longer than 100 lines into smaller files\n'
-            + 'apply DRY principles, if you see duplicate code, refactor it into a function\n'
-            + 'generalize code to be reusable, if you see a function that is only used in one place, refactor it into a reusable function\n'
-            + 'abstract code to be more readable and maintainable, if you see a function that is complex, abstract it into smaller functions\n'
             + 'interdepencency should be minimized, if you see a function that is dependent on another function, refactor it to be more independent\n'
-            + 'use meaningful variable and function names\n'
-            + 'use meaningful comments to explain why behind the code in more complex functions\n'
-            + 'use consistent naming conventions\n'
-            + 'use consistent formatting\n'
             + '\n// File Management\n'
             + 'use consistent file structure\n'
             + 'if the tests are mixed with the code, use the command line to move tests to their own folder\n'
@@ -242,7 +259,19 @@ async function main(instruction, previousLogs) {
         const commandMatch = cliCommand.match(/<cli>([\s\S]*?)<\/cli>/);
         if (commandMatch) {
           const command = commandMatch[1].trim();
-          await executeCommand(command);
+          try {
+            const result = await executeCommand(command);
+            if(result.code !== 0) {
+              setTimeout(() => {
+                main('fix the errors in the logs', result.stderr || result.stdout);
+              }, 0);
+              return;
+              //throw new Error(`Failed to execute ${command}: ${result.stderr || result.stdout}`);
+            }
+          } catch (error) {
+            console.error(`Failed to execute ${command}: ${error.message}`);
+            throw error;
+          }
         }
       }
     }
