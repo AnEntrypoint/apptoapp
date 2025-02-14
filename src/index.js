@@ -129,8 +129,9 @@ async function main(instruction, previousLogs) {
             + 'use meaningful comments to explain why behind the code in more complex functions\n'
             + 'use consistent naming conventions\n'
             + 'use consistent formatting\n'
-            + 'use consistent file structure\n'
             + '\n// File Management\n'
+            + 'use consistent file structure\n'
+            + 'if the tests are mixed with the code, use the command line to move tests to their own folder\n'
             + 'add as many files as are needed to complete the instruction\n'
             + 'always ensure you\'re writing the files in the correct folder\n'
             + 'dont output unchanged files\n'
@@ -140,8 +141,8 @@ async function main(instruction, previousLogs) {
             + 'dont install packages that are not needed or are already installed, only install packages that are needed to complete the instruction\n'
             
             + '\n// Change Tracking\n'
-            + 'verify the previous changelog, and if the code changes in the changelog are not reflected in the codebase, edit the files accordingly\n'
-            + 'always diarize changes wrapped with <text></text>, explain the motivation for the changes and the edited files\n'
+            + 'verify the previous changelog, and if the code changes in the changelog are not fully reflected in the codebase yet or have problems, edit the files accordingly\n'
+            + 'always summarize all the files changes wrapped with <text></text>, explain the motivation for the changes and the edited files\n'
             
             + '\n// Output Formatting\n'
             + 'IMPORTANT: Only output file changes in xml format like this: <file path="path/to/edited/file.js">...</file> and cli commands in this schema <cli>command here</cli>\n'
@@ -157,7 +158,7 @@ async function main(instruction, previousLogs) {
         },
         {
           role: 'user',
-          content: `discover and implement a solution for the folowing instruction using unit tests: ${instruction}\n\nRules:\n${cursorRules}`,
+          content: `discover and implement a solution for the folowing instruction using unit tests: \n\nULTRA IMPORTANT: ${instruction}\n\nRules:\n${cursorRules}`,
         },
       ];
       //debug
@@ -245,22 +246,31 @@ async function main(instruction, previousLogs) {
       }
     }
  
-    if (summaries && summaries.length > 0) {
-      for (const summary of summaries) {
-        const summaryMatch = summary.match(/<text>([\s\S]*?)<\/text>/);
-        if (summaryMatch) {
-          console.log('Changelog:', summaryMatch[1].trim());
+    try {
+      if (summaries && summaries.length > 0) {
+        for (const summary of summaries) {
+          const summaryMatch = summary.match(/<text>([\s\S]*?)<\/text>/);
+          if (summaryMatch) {
+            console.log('\n\n ----- Changelog -----\n\n', summaryMatch[1].trim(), '\n\n');
+          }
         }
       }
-    }
-
-    try {
       await runBuild();
       console.log('Build successful', cmdhistory);
 
     } catch (error) {
-      console.error('Failed:', error);
-      if (attempts < MAX_ATTEMPTS) {
+      console.error('Failed:', error, cmdhistory);
+      if (summaryBuffer && summaryBuffer.length > 0) {
+        console.log('\n\n ----- Summary Buffer -----\n');
+        for (const summary of summaryBuffer) {
+          const summaryMatch = summary.match(/<text>([\s\S]*?)<\/text>/);
+          if (summaryMatch) {
+            console.log(summaryMatch[1].trim(), '\n');
+          }
+        }
+        console.log('\n');
+      }
+    if (attempts < MAX_ATTEMPTS) {
         attempts++;
         console.log(`Retrying main function (attempt ${attempts}/${MAX_ATTEMPTS})...`);
         await main("fix the errors in the logs, and confirm in the changelog that this instruction was completed:"+process.argv[2], error.message);
