@@ -244,7 +244,7 @@ async function main(instruction, previousLogs) {
         }
       }
     }
-
+ 
     if (summaries && summaries.length > 0) {
       for (const summary of summaries) {
         const summaryMatch = summary.match(/<text>([\s\S]*?)<\/text>/);
