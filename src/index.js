@@ -139,7 +139,7 @@ async function main(instruction, previousLogs) {
             + '\n// Dependency Management\n'
             + 'always use the cli when installing new packages, use --save or --save-dev to preserve the changes\n'
             + 'dont install packages that are not needed or are already installed, only install packages that are needed to complete the instruction\n'
-            
+             
             + '\n// Change Tracking\n'
             + 'verify the previous changelog, and if the code changes in the changelog are not fully reflected in the codebase yet or have problems, edit the files accordingly\n'
             + 'always respond with some text wrapped with <text></text> explaining all the file changes, explain the motivation for the changes and the edited files\n'
