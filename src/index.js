@@ -82,11 +82,6 @@ async function main(instruction, previousLogs) {
 
   try {
     // Immediate test of file writing
-    console.log('[FILE TEST] Starting file system test...');
-    const testPath = path.join(process.cwd(), 'write-test.txt');
-    fs.writeFileSync(testPath, 'Test content');
-    console.log(`[FILE TEST] Successfully wrote to ${testPath}`);
-    console.log('[FILE TEST] Directory contents:', fs.readdirSync(process.cwd()));
     
     if (!instruction || instruction.trim() === '') {
       console.log('No specific instruction provided. Running default test mode.');
@@ -127,7 +122,7 @@ async function main(instruction, previousLogs) {
             
             + '\n// Change Tracking\n'
             + 'verify the previous changelog, and if the code changes in the changelog are not reflected in the codebase, edit the files accordingly\n'
-            + 'always add a changelog with <summary>changelog here</summary> at the end of your output\n'
+            + 'always add a changelog with <changelog>changelog here</changelog> at the end of your output\n'
             
             + '\n// Output Formatting\n'
             + 'IMPORTANT: Only output file changes in xml format like this: <file path="path/to/edited/file.js">...</file> and cli commands in this schema <cli>command here</cli>\n'
@@ -242,6 +237,8 @@ async function main(instruction, previousLogs) {
 
     try {
       await runBuild();
+      console.log('Build successful', cmdhistory);
+
     } catch (error) {
       console.error('Failed:', error);
       if (attempts < MAX_ATTEMPTS) {

@@ -5,29 +5,11 @@ const { loadIgnorePatterns, loadNoContentsPatterns, scanDirectory } = require('.
 const fastGlob = require('fast-glob');
 
 
-async function readDirRecursive(dir, ig) {
-  const result = await scanDirectory(dir, ig, (fullPath, relativePath) => ({ path: path.resolve(fullPath) }));
-
-  const emptyFolders = await fsp.readdir(dir);
-  await Promise.all(emptyFolders.map(async (folder) => {
-    const fullPath = path.join(dir, folder);
-    const stats = await fsp.stat(fullPath);
-    if (stats.isDirectory()) {
-      const filesInFolder = await fsp.readdir(fullPath);
-      if (filesInFolder.length === 0) {
-        console.log(`Found empty folder: ${fullPath}`);
-        result.push({ path: `${path.resolve(fullPath)}/` });
-      }
-    }
-  }));
-  return result;
-}
 async function getFiles() {
   const codebaseDir = path.join(__dirname, '..'); // Parent directory of src
   const currentDir = process.cwd();
   
   console.log(`Loading ignore patterns from:\n- Codebase: ${codebaseDir}\n- Current: ${currentDir}`);
-
   // Check for ignore files in codebase directory first
   const codebaseIgnores = await loadIgnoreFiles(codebaseDir);
   // Then check current directory
