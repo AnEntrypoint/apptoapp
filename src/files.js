@@ -35,10 +35,10 @@ async function getFiles() {
     const filePath = path.join(currentDir, file);
     try {
       const content = await fs.promises.readFile(filePath, 'utf-8');
-      return `<file path="${file}">${content}</file>`;
+      return `\n<file path="${file}">\n${content}\n</file>\n`;
     } catch (error) {
       console.error(`Error reading file ${filePath}: ${error.message}`);
-      return `<file path="${file}"></file>`;
+      return `\n<file path="${file}"></file>\n`;
     }
   })).then(files => files.join('\n'));
   return xmlFiles;

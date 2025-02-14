@@ -111,7 +111,10 @@ async function main(instruction) {
       const artifacts = [
          `\n\n${cmdhistory.length > 0 ? `Logs: (fix the errors in the logs if needed)\n<logs>${cmdhistory.join('\n')}</logs>\n\n` : ''}\n\n`,
          files?`\n\nFiles:\n\n${files}\n\n`:``,
-         summaryBuffer.length > 0?`\n\n<changelog>${summaryBuffer.join('\n')}</changelog>\n\n`:``
+         summaryBuffer.length > 0?`\n\n<changelog>${summaryBuffer.join('\n')}</changelog>\n\n`:``,
+         `\n\n<date>${new Date().toISOString()}</date>\n\n`,
+         `\n\n<currentWorkingDirectory>${process.cwd()}</currentWorkingDirectory>\n\n`,
+         `\n\n<terminalType>${process.env.TERM || process.platform === 'win32' ? 'cmd/powershell' : 'bash'}</terminalType>\n\n`,
       ]
       const messages = [
         {
