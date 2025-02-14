@@ -257,7 +257,7 @@ async function main(instruction, previousLogs) {
       }
       await runBuild();
       console.log('Build successful', cmdhistory);
-
+ 
     } catch (error) {
       console.error('Failed:', error, cmdhistory);
       if (summaryBuffer && summaryBuffer.length > 0) {
