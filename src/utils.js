@@ -169,7 +169,14 @@ async function makeApiRequest(messages, tools, apiKey, endpoint) {
     console.error('API Error:', JSON.stringify(error, null, 2));
     throw new Error(`API error: ${error.message || response.statusText}`);
   }
-  const val = await response.json();
+  const responseData = await response.json();
+  try {
+    await fsp.writeFile('../lastresponse.txt', JSON.stringify(responseData, null, 2), 'utf8');
+    console.log('API response written to lastresponse.txt');
+  } catch (error) {
+    console.error('Error writing to lastresponse.txt:', error);
+  }
+  const val = responseData;
   return val;
 }
 

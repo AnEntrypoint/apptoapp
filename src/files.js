@@ -28,9 +28,7 @@ async function getFiles() {
   });
   
   console.log(`Total files included: ${files.length}`);
-  console.log(`Mapping files to relative paths...`);
   const relativeFiles = files.map(file => path.relative(currentDir, file));
-  console.log(`Total relative files: ${relativeFiles.length}`);
   
   // Format files in XML schema
   const xmlFiles = await Promise.all(relativeFiles.map(async (file) => {

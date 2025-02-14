@@ -16,7 +16,18 @@ async function runBuild() {
 
   // Only run npm upgrade in non-test environment
   if (process.env.NODE_ENV !== 'test') {
-    result = await executeCommand('npm upgrade --save');
+    // First delete package-lock.json to ensure clean install
+    try {
+      fs.unlinkSync(path.join(getCWD(), 'package-lock.json'));
+      console.log('Deleted package-lock.json for clean install');
+    } catch (err) {
+      if (err.code !== 'ENOENT') {
+        console.error('Error deleting package-lock.json:', err);
+      }
+    }
+    
+    // Run npm install
+    result = await executeCommand('npm install');
     code = result.code;
     stdout = result.stdout;
     stderr = result.stderr;
@@ -100,18 +111,25 @@ async function main(instruction, previousLogs) {
       const artifacts = [
          `\n\n${cmdhistory.length > 0 ? `Logs: (fix the errors in the logs if needed)\n<logs>${cmdhistory.join('\n')}</logs>\n\n` : ''}\n\n`,
          `\n\n${(previousLogs && previousLogs.length) > 0 ? `Previous Logs: (fix the errors in the logs if needed)\n<logs>${previousLogs}</logs>\n\n` : ''}\n\n`,
-         `\n\nFiles:\n\n${files}\n\n`,
-         `\n\n<changelog>${summaryBuffer.join('\n')}</changelog>\n\n`
+         files?`\n\nFiles:\n\n${files}\n\n`:``,
+         summaryBuffer.length > 0?`\n\n<changelog>${summaryBuffer.join('\n')}</changelog>\n\n`:``
       ]
       const messages = [
         {
           role: 'system',
           content: 'You are a senior programmer with over 20 years of experience, you make expert and mature software development choices, your main goal is to complete the user instruction\n'
             + '\n// Code Quality & Best Practices\n'
-            + 'IMPORTANT: always discover and solve all solutions by writing unit tests\n'
             + 'fix as many linting errors as possible, the backend will run npm run test automatically which lints the codebase\n'
             + 'always refactor files that are longer than 100 lines into smaller files\n'
-            
+            + 'apply DRY principles, if you see duplicate code, refactor it into a function\n'
+            + 'generalize code to be reusable, if you see a function that is only used in one place, refactor it into a reusable function\n'
+            + 'abstract code to be more readable and maintainable, if you see a function that is complex, abstract it into smaller functions\n'
+            + 'interdepencency should be minimized, if you see a function that is dependent on another function, refactor it to be more independent\n'
+            + 'use meaningful variable and function names\n'
+            + 'use meaningful comments to explain why behind the code in more complex functions\n'
+            + 'use consistent naming conventions\n'
+            + 'use consistent formatting\n'
+            + 'use consistent file structure\n'
             + '\n// File Management\n'
             + 'add as many files as are needed to complete the instruction\n'
             + 'always ensure you\'re writing the files in the correct folder\n'
@@ -119,20 +137,22 @@ async function main(instruction, previousLogs) {
             
             + '\n// Dependency Management\n'
             + 'always use the cli when installing new packages, use --save or --save-dev to preserve the changes\n'
+            + 'dont install packages that are not needed or are already installed, only install packages that are needed to complete the instruction\n'
             
             + '\n// Change Tracking\n'
             + 'verify the previous changelog, and if the code changes in the changelog are not reflected in the codebase, edit the files accordingly\n'
-            + 'always add a changelog with <changelog>changelog here</changelog> at the end of your output\n'
+            + 'always diarize changes wrapped with <text></text>, explain the motivation for the changes and the edited files\n'
             
             + '\n// Output Formatting\n'
             + 'IMPORTANT: Only output file changes in xml format like this: <file path="path/to/edited/file.js">...</file> and cli commands in this schema <cli>command here</cli>\n'
             
             + '\n// Debugging & Logs\n'
             + 'pay careful attention to the logs, make sure you dont try the same thing twice and get stuck in a loop\n'
+            + 'always program using unit tests, use unit tests to discover bugs, their solutions and their errors, and then implement code changes to fix the bugs and implement the user instructions\n'
             
             + '\n// Critical Rules\n'
             + 'only output tags containing files, cli commands and summaries, no other text\n'
-            + 'ULTRA IMPORTANT: make sure you dont regress any parts of any file, features, depedencies and settings need to remain if they\'re used in the codebase\n'
+            + 'ULTRA IMPORTANT: respond only in xml tags, no other text\n'
             + artifacts.join('\n')
         },
         {
@@ -183,8 +203,8 @@ async function main(instruction, previousLogs) {
 
     const filesToEdit = brainstormedTasks.match(/<file\s+path="([^"]+)"[^>]*>([\s\S]*?)<\/file>/gi) || [];
     const cliCommands = brainstormedTasks.match(/<cli>([\s\S]*?)<\/cli>/g) || [];
-    const summaries = brainstormedTasks.match(/<summary>([\s\S]*?)<\/summary>/g) || [];
-    
+    const summaries = brainstormedTasks.match(/<text>([\s\S]*?)<\/text>/g) || [];
+
     if (summaries && summaries.length > 0) {
       summaryBuffer.unshift(...summaries);
     }
@@ -214,23 +234,22 @@ async function main(instruction, previousLogs) {
         }
       }
     }
-
-    if (summaries && summaries.length > 0) {
-      for (const summary of summaries) {
-        const summaryMatch = summary.match(/<summary>([\s\S]*?)<\/summary>/);
-        if (summaryMatch) {
-          console.log('Summary:', summaryMatch[1].trim());
-        }
-      }
-    }
     
     if (cliCommands && cliCommands.length > 0) {
       for (const cliCommand of cliCommands) {
         const commandMatch = cliCommand.match(/<cli>([\s\S]*?)<\/cli>/);
         if (commandMatch) {
           const command = commandMatch[1].trim();
-          console.log('Executing:', command);
           await executeCommand(command);
+        }
+      }
+    }
+
+    if (summaries && summaries.length > 0) {
+      for (const summary of summaries) {
+        const summaryMatch = summary.match(/<text>([\s\S]*?)<\/text>/);
+        if (summaryMatch) {
+          console.log('Changelog:', summaryMatch[1].trim());
         }
       }
     }
@@ -244,7 +263,7 @@ async function main(instruction, previousLogs) {
       if (attempts < MAX_ATTEMPTS) {
         attempts++;
         console.log(`Retrying main function (attempt ${attempts}/${MAX_ATTEMPTS})...`);
-        await main("fix the errors in the logs, and confirm in the summary that this instruction was completed:"+process.argv[2], error.message);
+        await main("fix the errors in the logs, and confirm in the changelog that this instruction was completed:"+process.argv[2], error.message);
       } else {
         throw new Error('Max attempts reached');
       }
