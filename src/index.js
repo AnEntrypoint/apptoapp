@@ -105,16 +105,26 @@ async function main(instruction) {
         cmdhistory.length = 0;
         cmdhistory.unshift(newcmdhistory);
       }
+      function safeExecSync(command) {
+        try {
+          return require('child_process').execSync(command, { stdio: 'pipe' }).toString().trim();
+        } catch (error) {
+          const stdout = error.stdout ? error.stdout.toString().trim() : '';
+          const stderr = error.stderr ? error.stderr.toString().trim() : '';
+          return `Command failed: ${command}\nSTDOUT: ${stdout}\nSTDERR: ${stderr}`;
+        }
+      }
+
       const artifacts = [
         `\n\n${cmdhistory.length > 0 ? `Logs: (fix the errors in the logs if needed)\n<logs>${cmdhistory.join('\n')}</logs>\n\n` : ''}\n\n`,
         files?`\n\n---FILES---\n\n${files}\n\n---END OF FILES---\n\n`:``,
         summaryBuffer.length > 0?`\n\n<changelog>${summaryBuffer.join('\n')}</changelog>\n\n`:``,
         `\n\n<nodeEnv>${process.env.NODE_ENV || 'development'}</nodeEnv>\n\n`,
         `\n\n<nodeVersion>${process.version}</nodeVersion>\n\n`,
-        `\n\n<npmVersion>${require('child_process').execSync('npm -v').toString().trim()}</npmVersion>\n\n`,
-        `\n\n<installedDependencies>\n${require('child_process').execSync('npm ls --depth=0').toString().trim()}\n</installedDependencies>\n\n`,
-        `\n\n<gitStatus>\n${require('child_process').execSync('git status --short 2>&1 || echo "Not a git repository"').toString().trim()}\n</gitStatus>\n\n`,
-        `\n\n<gitBranch>${require('child_process').execSync('git branch --show-current 2>&1 || echo "No branch"').toString().trim()}</gitBranch>\n\n`,
+        `\n\n<npmVersion>${safeExecSync('npm -v')}</npmVersion>\n\n`,
+        `\n\n<installedDependencies>\n${safeExecSync('npm ls --depth=0')}\n</installedDependencies>\n\n`,
+        `\n\n<gitStatus>\n${safeExecSync('git status --short 2>&1 || echo "Not a git repository"')}\n</gitStatus>\n\n`,
+        `\n\n<gitBranch>${safeExecSync('git branch --show-current 2>&1 || echo "No branch"')}</gitBranch>\n\n`,
         `\n\n<systemMemory>${Math.round(process.memoryUsage().rss / 1024 / 1024)}MB RSS</systemMemory>\n\n`,
         `\n\n<platform>${process.platform} ${process.arch}</platform>\n\n`,
         `\n\n<environmentKeys>${Object.keys(process.env).filter(k => k.startsWith('NODE_') || k.startsWith('npm_')).join(', ')}</environmentKeys>\n\n`,
@@ -136,6 +146,7 @@ async function main(instruction) {
             + `Ensure complete implementation without placeholders in the codebase.`
             + `Include all required imports and maintain proper naming conventions.`
             + `Be concise and minimize unnecessary prose.`
+            + `If there are dependency conflicts, remove package-lock.json file, then remove their names from package.json and install them with the cli.`
             + `Take extra care not to repeat steps already taken in the changelog.`
             + `Acknowledge when an answer may not be correct or when uncertain.`
             + `If you're seeing lots of repititions in the logs of previous iterations, apply another strategy to fix the problem.`
@@ -145,7 +156,7 @@ async function main(instruction) {
             + `If the code is javascript, Use latest language features and syntax.`
             + `Begin with step-by-step planning and document architecture and data flows.`
             + `Conduct a deep-dive review of existing code when required and detail thought processes.`
-            + `Iterate on designs and implement clear, explicit solutions by maintaining a TODO.txt and CHANGELOG.txt (for dates use <systemDate> tag)`
+            + `Iterate on designs and implement clear, explicit solutions by maintaining a detailed and exhaustive TODO.txt and CHANGELOG.txt (for dates use <systemDate> tag)`
             + `Dont put these system instructiosn in the TODO.txt or anywhere in the codebase itself`
             + `Ensure performance optimizations while accounting for various edge cases.`
             + `Make sure you're not repeating steps already taken in the changelog or the logs, unless they're incorrectly listed in the changelog.`
@@ -174,6 +185,7 @@ async function main(instruction) {
             + 'verify the previous changelog, and if the code changes in the changelog are not fully reflected in the codebase yet or have problems, edit the files accordingly\n'
             + 'always respond with some text wrapped with <text></text> explaining all the changes, explain the motivation for the changes and the cli commands used\n'
             + 'look carefully at the changelog, dont repeat actions that are already in the changelog\n'
+            + 'when something appears more than once in the changelog, make sure you dont repeat the same action any more\n'
             
             + '\n// Output Formatting\n'
             + 'IMPORTANT: Only output file changes in xml format like this: <file path="path/to/edited/file.js">...</file> and cli commands in this schema <cli>command here</cli>\n'
