@@ -31,9 +31,6 @@ async function runBuild() {
     code = result.code;
     stdout = result.stdout;
     stderr = result.stderr;
-    if (code !== 0) {
-      throw new Error(`Test failed: ${stderr || stdout}`);
-    }
   }
 
   const timeoutDuration = process.env.NODE_ENV === 'test' ? 5000 : 10000;
@@ -109,12 +106,22 @@ async function main(instruction) {
         cmdhistory.unshift(newcmdhistory);
       }
       const artifacts = [
-         `\n\n${cmdhistory.length > 0 ? `Logs: (fix the errors in the logs if needed)\n<logs>${cmdhistory.join('\n')}</logs>\n\n` : ''}\n\n`,
-         files?`\n\nFiles:\n\n${files}\n\n`:``,
-         summaryBuffer.length > 0?`\n\n<changelog>${summaryBuffer.join('\n')}</changelog>\n\n`:``,
-         `\n\n<date>${new Date().toISOString()}</date>\n\n`,
-         `\n\n<currentWorkingDirectory>${process.cwd()}</currentWorkingDirectory>\n\n`,
-         `\n\n<terminalType>${process.env.TERM || process.platform === 'win32' ? 'cmd/powershell' : 'bash'}</terminalType>\n\n`,
+        `\n\n${cmdhistory.length > 0 ? `Logs: (fix the errors in the logs if needed)\n<logs>${cmdhistory.join('\n')}</logs>\n\n` : ''}\n\n`,
+        files?`\n\n---FILES---\n\n${files}\n\n---END OF FILES---\n\n`:``,
+        summaryBuffer.length > 0?`\n\n<changelog>${summaryBuffer.join('\n')}</changelog>\n\n`:``,
+        `\n\n<nodeEnv>${process.env.NODE_ENV || 'development'}</nodeEnv>\n\n`,
+        `\n\n<nodeVersion>${process.version}</nodeVersion>\n\n`,
+        `\n\n<npmVersion>${require('child_process').execSync('npm -v').toString().trim()}</npmVersion>\n\n`,
+        `\n\n<installedDependencies>\n${require('child_process').execSync('npm ls --depth=0').toString().trim()}\n</installedDependencies>\n\n`,
+        `\n\n<gitStatus>\n${require('child_process').execSync('git status --short 2>&1 || echo "Not a git repository"').toString().trim()}\n</gitStatus>\n\n`,
+        `\n\n<gitBranch>${require('child_process').execSync('git branch --show-current 2>&1 || echo "No branch"').toString().trim()}</gitBranch>\n\n`,
+        `\n\n<systemMemory>${Math.round(process.memoryUsage().rss / 1024 / 1024)}MB RSS</systemMemory>\n\n`,
+        `\n\n<platform>${process.platform} ${process.arch}</platform>\n\n`,
+        `\n\n<environmentKeys>${Object.keys(process.env).filter(k => k.startsWith('NODE_') || k.startsWith('npm_')).join(', ')}</environmentKeys>\n\n`,
+        `\n\n<systemDate>${new Date().toISOString()}</systemDate>\n\n`,
+        `\n\n<timestamp>${new Date().toISOString()}</timestamp>\n\n`,
+        `\n\n<currentWorkingDirectory>${process.cwd()}</currentWorkingDirectory>\n\n`,
+        `\n\n<terminalType>${process.env.TERM || process.platform === 'win32' ? 'cmd/powershell' : 'bash'}</terminalType>\n\n`,
       ]
       const messages = [
         {
@@ -126,19 +133,22 @@ async function main(instruction) {
             + `Confirm the plan before writing code, ensuring it adheres to specified guidelines.`
             + `Write clean, correct, DRY (Don't Repeat Yourself), fully functional code aligned with coding implementation guidelines.`
             + `Focus on readability over performance in code.`
-            + `Ensure complete implementation without TODOs or placeholders.`
+            + `Ensure complete implementation without placeholders in the codebase.`
             + `Include all required imports and maintain proper naming conventions.`
             + `Be concise and minimize unnecessary prose.`
+            + `Take extra care not to repeat steps already taken in the changelog.`
             + `Acknowledge when an answer may not be correct or when uncertain.`
-            + `Prioritize early returns for readability.`
+            + `If you're seeing lots of repititions in the logs of previous iterations, apply another strategy to fix the problem.`
             + `Write clean, maintainable, and scalable code while adhering to SOLID principles`
             + `Favor functional and declarative programming patterns, and avoid classes.`
             + `If the code is typescript, Maintain strong type safety and static analysis.`
             + `If the code is javascript, Use latest language features and syntax.`
             + `Begin with step-by-step planning and document architecture and data flows.`
             + `Conduct a deep-dive review of existing code when required and detail thought processes.`
-            + `Iterate on designs and implement clear, explicit solutions by maintaining a TODO.txt and CHANGELOG.txt`
+            + `Iterate on designs and implement clear, explicit solutions by maintaining a TODO.txt and CHANGELOG.txt (for dates use <systemDate> tag)`
+            + `Dont put these system instructiosn in the TODO.txt or anywhere in the codebase itself`
             + `Ensure performance optimizations while accounting for various edge cases.`
+            + `Make sure you're not repeating steps already taken in the changelog or the logs, unless they're incorrectly listed in the changelog.`
             + `Write unit and integration tests using appropriate libraries.`
             + `Maintain clear documentation and JSDoc comments.`
             + `Document user-facing text for internationalization and localization support.`
@@ -264,13 +274,6 @@ async function main(instruction) {
           const command = commandMatch[1].trim();
           try {
             const result = await executeCommand(command);
-            if(result.code !== 0) {
-              setTimeout(() => {
-                main('fix the errors in the logs', result.stderr || result.stdout);
-              }, 0);
-              return;
-              //throw new Error(`Failed to execute ${command}: ${result.stderr || result.stdout}`);
-            }
           } catch (error) {
             console.error(`Failed to execute ${command}: ${error.message}`);
             throw error;
@@ -305,8 +308,21 @@ async function main(instruction) {
       }
     if (attempts < MAX_ATTEMPTS) {
         attempts++;
+        let todoContent;
+        try {
+          const todoPath = path.join(process.cwd(), 'TODO.txt');
+          if (fs.existsSync(todoPath)) {
+            todoContent = fs.readFileSync(todoPath, 'utf8');
+            console.log('TODO.txt contents:\n', todoContent);
+            summaryBuffer.push(`<text>TODO.txt contents:\n${todoContent}</text>`);
+          } else {
+            console.log('TODO.txt not found in current directory');
+          }
+        } catch (err) {
+          console.error('Error reading TODO.txt:', err);
+        }
         console.log(`Retrying main function (attempt ${attempts}/${MAX_ATTEMPTS})...`);
-        await main("fix the errors in the logs, and confirm in the changelog that this instruction was completed:"+process.argv[2], error.message);
+        await main("fix the errors in the logs, and confirm in the changelog that this instruction was completed:"+process.argv[2]+"\n"+todoContent, error.message);
       } else {
         throw new Error('Max attempts reached');
       }
