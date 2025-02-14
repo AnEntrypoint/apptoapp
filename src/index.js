@@ -143,6 +143,7 @@ async function main(instruction, previousLogs) {
             + '\n// Change Tracking\n'
             + 'verify the previous changelog, and if the code changes in the changelog are not fully reflected in the codebase yet or have problems, edit the files accordingly\n'
             + 'always respond with some text wrapped with <text></text> explaining all the changes, explain the motivation for the changes and the cli commands used\n'
+            + 'look carefully at the changelog, dont repeat actions that are already in the changelog\n'
             
             + '\n// Output Formatting\n'
             + 'IMPORTANT: Only output file changes in xml format like this: <file path="path/to/edited/file.js">...</file> and cli commands in this schema <cli>command here</cli>\n'
