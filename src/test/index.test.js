@@ -1,8 +1,11 @@
-
 const { main } = require('../index.js');
 const { loadIgnorePatterns } = require('../utils');
 const fsp = require('fs').promises;
 const { clearDiffBuffer } = require('../files');
+const path = require('path');
+const os = require('os');
+const fs = require('fs');
+const { execSync } = require('child_process');
 
 // Increase timeout for all tests in this file
 jest.setTimeout(60000);
@@ -14,15 +17,13 @@ jest.mock('../utils', () => ({
     choices: [{
       message: {
         content: 'Test response',
-        tool_calls: [],
       },
     }],
   }),
 }));
 
 // Mock process.exit
-const mockExit = jest.fn();
-process.exit = mockExit;
+const mockExit = jest.spyOn(process, 'exit').mockImplementation(() => {});
 
 // Helper function to retry cleanup with exponential backoff
 async function retryCleanup(dir, maxAttempts = 5) {
@@ -44,7 +45,9 @@ async function retryCleanup(dir, maxAttempts = 5) {
 }
 
 describe('main', () => {
+  let tempDir;
   let originalEnv;
+  let originalCwd;
   let mockFetch;
 
   beforeEach(async () => {

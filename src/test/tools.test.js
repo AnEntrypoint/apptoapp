@@ -1,13 +1,15 @@
-
 const { executeCommand } = require('../tools');
 
 describe('tools', () => {
   test('should execute a command and return the output', async () => {
-    const result = await executeCommand('echo Hello, World!');
-    expect(result).toBe('Hello, World!\n');
+    const result = await executeCommand('echo test');
+    expect(result.stdout).toContain('test');
   });
 
   test('should handle errors when executing a command', async () => {
-    await expect(executeCommand('invalid-command')).rejects.toThrow();
+    const invalidCommand = 'invalid-command-that-does-not-exist';
+    await expect(async () => {
+      await executeCommand(invalidCommand);
+    }).rejects.toThrow();
   });
 });
