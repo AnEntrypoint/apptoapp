@@ -18,14 +18,8 @@ jest.mock('chalk', () => mockChalk);
 
 // Mock Date.toISOString
 const mockDate = '2025-01-01T00:00:00.000Z';
-const mockToISOString = jest.fn(() => mockDate);
-const RealDate = Date;
-global.Date = class extends RealDate {
-  constructor() {
-    super();
-    this.toISOString = mockToISOString;
-  }
-};
+const originalToISOString = Date.prototype.toISOString;
+Date.prototype.toISOString = jest.fn(() => mockDate);
 
 // Mock console.log at the module level
 const originalConsoleLog = console.log;
@@ -38,11 +32,12 @@ describe('logger', () => {
   beforeEach(() => {
     Object.values(mockChalk).forEach(mock => mock.mockClear());
     console.log.mockClear();
-    mockToISOString.mockClear();
+    Date.prototype.toISOString.mockClear();
   });
 
   afterAll(() => {
     console.log = originalConsoleLog;
+    Date.prototype.toISOString = originalToISOString;
   });
 
   test('should log info messages', () => {
