@@ -25,13 +25,17 @@ module.exports = {
   },
   rules: {
     'no-console': 'off',
-    'no-unused-vars': 'off',  // Temporarily disable no-unused-vars
+    'no-unused-vars': ['error', { 
+      ignoreRestSiblings: true,
+      args: 'none',
+      varsIgnorePattern: '^_'
+    }],
     'no-prototype-builtins': 'off',
     'no-control-regex': 'off',
     'no-useless-escape': 'off',
     'no-func-assign': 'off',
     'no-cond-assign': 'off',
-    'no-undef': 'off'  // Temporarily disable no-undef while we sort out the module system
+    'no-undef': 'error'
   },
   ignorePatterns: [
     'dist/**/*', 

@@ -248,7 +248,7 @@ async function main(instruction, errors) {
             + '\n// Task Management\n'
             + `Track progress using <attempts>, <todo>, <logs>, TODO.txt, CHANGELOG.txt and <attemptDiff> tags\n`
             + `ULTRA IMPORTANT - Avoid repeating steps - if issues persist, try alternative approaches\n`
-            + `Follow user requirements precisely and plan step-by-step\n`
+            + `Follow user requirements precisely and plan step-by-step, the users instructions are in <userinstruction>\n`
             + `Maintain detailed documentation in TODO.txt and CHANGELOG.txt\n`
             
             + '\n// Code Quality\n'
@@ -294,11 +294,11 @@ async function main(instruction, errors) {
             + `Optimize performance while handling edge cases\n`
             + `Follow best practices for security and maintainability\n`
             + `Fix linting errors - tests will run automatically\n`
-            + artifacts.join('\n')
+            
         },
         {
           role: 'user',
-          content: `${instruction}`,
+          content: artifacts.join('\n'),
         },
       ];
       //debug
