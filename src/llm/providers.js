@@ -47,6 +47,18 @@ class CopilotClaudeProvider {
     const threadId = crypto.randomUUID();
     const messageId = crypto.randomUUID();
 
+    // Validate messages array
+    if (!Array.isArray(messages) || messages.length === 0) {
+      throw new Error('Messages array must not be empty');
+    }
+
+    const lastMessage = messages[messages.length - 1];
+    const systemMessage = messages[0];
+
+    if (!lastMessage?.content || !systemMessage?.content) {
+      throw new Error('Message content must not be empty');
+    }
+
     const response = await fetch(`${this.endpoint}/${threadId}/messages`, {
       method: 'POST',
       headers: {
@@ -57,14 +69,14 @@ class CopilotClaudeProvider {
       },
       body: JSON.stringify({
         responseMessageID: messageId,
-        content: messages[messages.length - 1].content,
+        content: lastMessage.content,
         intent: 'conversation',
         references: [],
         context: [],
         currentURL: `https://github.com/copilot/c/${threadId}`,
         streaming: true,
         confirmations: [],
-        customInstructions: messages[0].content,
+        customInstructions: systemMessage.content,
         model: 'claude-3.5-sonnet',
         mode: 'immersive',
         customCopilotID: null,

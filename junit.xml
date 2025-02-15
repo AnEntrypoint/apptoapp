@@ -1,9 +1,79 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="jest tests" tests="2" failures="0" errors="0" time="9.498">
-  <testsuite name="tools" errors="0" failures="0" skipped="0" timestamp="2025-02-15T20:05:19" time="0.211" tests="2">
+<testsuites name="jest tests" tests="18" failures="1" errors="0" time="14.84">
+  <testsuite name="LLM Providers" errors="0" failures="1" skipped="0" timestamp="2025-02-15T20:06:10" time="6.383" tests="7">
+    <testcase classname="LLM Providers MistralProvider should make request with correct parameters" name="LLM Providers MistralProvider should make request with correct parameters" time="0.021">
+    </testcase>
+    <testcase classname="LLM Providers MistralProvider should handle API errors" name="LLM Providers MistralProvider should handle API errors" time="0.017">
+    </testcase>
+    <testcase classname="LLM Providers CopilotClaudeProvider should make request with correct parameters" name="LLM Providers CopilotClaudeProvider should make request with correct parameters" time="0.006">
+    </testcase>
+    <testcase classname="LLM Providers CopilotClaudeProvider should handle API errors" name="LLM Providers CopilotClaudeProvider should handle API errors" time="0.024">
+      <failure>Error: expect(received).rejects.toThrow(expected)
+
+Expected substring: &quot;Copilot-Claude API error&quot;
+Received message:   &quot;Cannot read properties of undefined (reading &apos;content&apos;)&quot;
+
+      58 |       body: JSON.stringify({
+      59 |         responseMessageID: messageId,
+    &gt; 60 |         content: messages[messages.length - 1].content,
+         |                                                ^
+      61 |         intent: &apos;conversation&apos;,
+      62 |         references: [],
+      63 |         context: [],
+
+      at CopilotClaudeProvider.content [as makeRequest] (src/llm/providers.js:60:48)
+      at Object.makeRequest (src/test/providers.test.js:117:29)
+    at Object.toThrow (C:\dev\apptoapp\node_modules\expect\build\index.js:218:22)
+    at Object.toThrow (C:\dev\apptoapp\src\test\providers.test.js:117:58)
+    at Promise.then.completed (C:\dev\apptoapp\node_modules\jest-circus\build\utils.js:298:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (C:\dev\apptoapp\node_modules\jest-circus\build\utils.js:231:10)
+    at _callCircusTest (C:\dev\apptoapp\node_modules\jest-circus\build\run.js:316:40)
+    at _runTest (C:\dev\apptoapp\node_modules\jest-circus\build\run.js:252:3)
+    at _runTestsForDescribeBlock (C:\dev\apptoapp\node_modules\jest-circus\build\run.js:126:9)
+    at _runTestsForDescribeBlock (C:\dev\apptoapp\node_modules\jest-circus\build\run.js:121:9)
+    at _runTestsForDescribeBlock (C:\dev\apptoapp\node_modules\jest-circus\build\run.js:121:9)
+    at run (C:\dev\apptoapp\node_modules\jest-circus\build\run.js:71:3)
+    at runAndTransformResultsToJestFormat (C:\dev\apptoapp\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+    at jestAdapter (C:\dev\apptoapp\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+    at runTestInternal (C:\dev\apptoapp\node_modules\jest-runner\build\runTest.js:367:16)
+    at runTest (C:\dev\apptoapp\node_modules\jest-runner\build\runTest.js:444:34)</failure>
+    </testcase>
+    <testcase classname="LLM Providers createLLMProvider should create MistralProvider" name="LLM Providers createLLMProvider should create MistralProvider" time="0.002">
+    </testcase>
+    <testcase classname="LLM Providers createLLMProvider should create CopilotClaudeProvider" name="LLM Providers createLLMProvider should create CopilotClaudeProvider" time="0.002">
+    </testcase>
+    <testcase classname="LLM Providers createLLMProvider should throw error for unsupported provider" name="LLM Providers createLLMProvider should throw error for unsupported provider" time="0.003">
+    </testcase>
+  </testsuite>
+  <testsuite name="main" errors="0" failures="0" skipped="0" timestamp="2025-02-15T20:06:16" time="4.509" tests="2">
+    <testcase classname="main should handle test instruction" name="main should handle test instruction" time="1.596">
+    </testcase>
+    <testcase classname="main should collect diffs after each attempt" name="main should collect diffs after each attempt" time="0.915">
+    </testcase>
+  </testsuite>
+  <testsuite name="diff" errors="0" failures="0" skipped="0" timestamp="2025-02-15T20:06:21" time="2.031" tests="5">
+    <testcase classname="diff should return the difference between two numbers" name="diff should return the difference between two numbers" time="0.001">
+    </testcase>
+    <testcase classname="diff should handle negative numbers" name="diff should handle negative numbers" time="0.001">
+    </testcase>
+    <testcase classname="diff should handle zero" name="diff should handle zero" time="0.001">
+    </testcase>
+    <testcase classname="diff functionality should generate and store diffs" name="diff functionality should generate and store diffs" time="0.989">
+    </testcase>
+    <testcase classname="diff functionality should clear diff buffer" name="diff functionality should clear diff buffer" time="0.878">
+    </testcase>
+  </testsuite>
+  <testsuite name="tools" errors="0" failures="0" skipped="0" timestamp="2025-02-15T20:06:23" time="0.198" tests="2">
     <testcase classname="tools should execute a command and return the output" name="tools should execute a command and return the output" time="0.033">
     </testcase>
-    <testcase classname="tools should handle errors when executing a command" name="tools should handle errors when executing a command" time="0.034">
+    <testcase classname="tools should handle errors when executing a command" name="tools should handle errors when executing a command" time="0.031">
+    </testcase>
+  </testsuite>
+  <testsuite name="utils" errors="0" failures="0" skipped="0" timestamp="2025-02-15T20:06:23" time="0.109" tests="2">
+    <testcase classname="utils should return the sum of two numbers" name="utils should return the sum of two numbers" time="0.002">
+    </testcase>
+    <testcase classname="utils should return the product of two numbers" name="utils should return the product of two numbers" time="0.001">
     </testcase>
   </testsuite>
 </testsuites>

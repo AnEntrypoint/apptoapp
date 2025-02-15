@@ -114,7 +114,28 @@ describe('LLM Providers', () => {
         text: () => Promise.resolve('API Error')
       });
 
-      await expect(provider.makeRequest([], [])).rejects.toThrow('Copilot-Claude API error');
+      const messages = [
+        { role: 'system', content: 'system message' },
+        { role: 'user', content: 'test message' }
+      ];
+
+      await expect(provider.makeRequest(messages, [])).rejects.toThrow('Copilot-Claude API error');
+    });
+
+    test('should throw error for empty messages array', async () => {
+      await expect(provider.makeRequest([], [])).rejects.toThrow('Messages array must not be empty');
+    });
+
+    test('should throw error for invalid messages array', async () => {
+      await expect(provider.makeRequest('not an array', [])).rejects.toThrow('Messages array must not be empty');
+    });
+
+    test('should throw error for messages without content', async () => {
+      const messages = [
+        { role: 'system' },
+        { role: 'user' }
+      ];
+      await expect(provider.makeRequest(messages, [])).rejects.toThrow('Message content must not be empty');
     });
   });
 
