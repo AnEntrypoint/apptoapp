@@ -57,16 +57,19 @@ function formatValue(value) {
   return truncate(String(value));
 }
 
-// Create logger functions with improved timestamp formatting
-function createLogger(type) {
+// Format log prefix
+function formatPrefix(type) {
   const { color, prefix, padLength } = LOG_TYPES[type];
+  const timestamp = new Date().toISOString();
+  return color(`${prefix} [${timestamp}] ${type.padEnd(padLength)}`);
+}
+
+// Create logger functions
+function createLogger(type) {
   return (...args) => {
-    const timestamp = new Date().toISOString();
+    const prefix = formatPrefix(type);
     const formattedArgs = args.map(formatValue);
-    console.log(
-      color(`${prefix} [${timestamp}] ${type.padEnd(padLength)}`),
-      ...formattedArgs
-    );
+    console.log(prefix, ...formattedArgs);
   };
 }
 
@@ -81,5 +84,6 @@ module.exports = {
   git: createLogger('GIT'),
   file: createLogger('FILE'),
   truncate,
-  formatValue
+  formatValue,
+  formatPrefix
 };

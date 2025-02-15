@@ -4,9 +4,13 @@ describe('logger', () => {
   let consoleLogSpy;
   let originalConsoleLog;
   let logger;
+  let originalDateToISOString;
 
   beforeAll(() => {
     originalConsoleLog = console.log;
+    originalDateToISOString = Date.prototype.toISOString;
+    // Mock Date.toISOString to return a fixed timestamp
+    Date.prototype.toISOString = () => '2025-01-01T00:00:00.000Z';
   });
 
   beforeEach(() => {
@@ -23,12 +27,18 @@ describe('logger', () => {
 
   afterAll(() => {
     console.log = originalConsoleLog;
+    Date.prototype.toISOString = originalDateToISOString;
+  });
+
+  test('should format log prefix correctly', () => {
+    const prefix = logger.formatPrefix('INFO');
+    expect(prefix).toBe('ℹ️ [2025-01-01T00:00:00.000Z] INFO    ');
   });
 
   test('should log info messages', () => {
     logger.info('Test info message');
     expect(consoleLogSpy).toHaveBeenCalledWith(
-      expect.stringMatching(/ℹ️.*INFO/),
+      'ℹ️ [2025-01-01T00:00:00.000Z] INFO    ',
       'Test info message'
     );
   });
@@ -36,7 +46,7 @@ describe('logger', () => {
   test('should log success messages', () => {
     logger.success('Test success message');
     expect(consoleLogSpy).toHaveBeenCalledWith(
-      expect.stringMatching(/✅.*SUCCESS/),
+      '✅ [2025-01-01T00:00:00.000Z] SUCCESS ',
       'Test success message'
     );
   });
@@ -44,7 +54,7 @@ describe('logger', () => {
   test('should log warning messages', () => {
     logger.warn('Test warning message');
     expect(consoleLogSpy).toHaveBeenCalledWith(
-      expect.stringMatching(/⚠️.*WARNING/),
+      '⚠️ [2025-01-01T00:00:00.000Z] WARNING ',
       'Test warning message'
     );
   });
@@ -52,7 +62,7 @@ describe('logger', () => {
   test('should log error messages', () => {
     logger.error('Test error message');
     expect(consoleLogSpy).toHaveBeenCalledWith(
-      expect.stringMatching(/❌.*ERROR/),
+      '❌ [2025-01-01T00:00:00.000Z] ERROR  ',
       'Test error message'
     );
   });
@@ -60,7 +70,7 @@ describe('logger', () => {
   test('should log debug messages', () => {
     logger.debug('Test debug message');
     expect(consoleLogSpy).toHaveBeenCalledWith(
-      expect.stringMatching(/🔍.*DEBUG/),
+      '🔍 [2025-01-01T00:00:00.000Z] DEBUG  ',
       'Test debug message'
     );
   });
@@ -68,7 +78,7 @@ describe('logger', () => {
   test('should log system messages', () => {
     logger.system('Test system message');
     expect(consoleLogSpy).toHaveBeenCalledWith(
-      expect.stringMatching(/⚙️.*SYSTEM/),
+      '⚙️ [2025-01-01T00:00:00.000Z] SYSTEM ',
       'Test system message'
     );
   });
@@ -76,7 +86,7 @@ describe('logger', () => {
   test('should log git messages', () => {
     logger.git('Test git message');
     expect(consoleLogSpy).toHaveBeenCalledWith(
-      expect.stringMatching(/📦.*GIT/),
+      '📦 [2025-01-01T00:00:00.000Z] GIT   ',
       'Test git message'
     );
   });
@@ -84,7 +94,7 @@ describe('logger', () => {
   test('should log file messages', () => {
     logger.file('Test file message');
     expect(consoleLogSpy).toHaveBeenCalledWith(
-      expect.stringMatching(/📄.*FILE/),
+      '📄 [2025-01-01T00:00:00.000Z] FILE  ',
       'Test file message'
     );
   });
