@@ -2,6 +2,11 @@
  * @jest-environment node
  */
 
+// Mock console.log before any imports
+const mockConsoleLog = jest.fn();
+const originalConsoleLog = console.log;
+console.log = mockConsoleLog;
+
 // Mock chalk before any imports
 const mockChalk = {
   blue: jest.fn(str => str),
@@ -31,9 +36,6 @@ const mockDate = '2025-01-01T00:00:00.000Z';
 const originalToISOString = Date.prototype.toISOString;
 Date.prototype.toISOString = jest.fn(() => mockDate);
 
-// Mock console.log using jest.spyOn
-const mockConsoleLog = jest.spyOn(console, 'log').mockImplementation(jest.fn());
-
 // Import logger module
 const logger = require('../utils/logger');
 
@@ -45,7 +47,7 @@ describe('logger', () => {
   });
 
   afterAll(() => {
-    mockConsoleLog.mockRestore();
+    console.log = originalConsoleLog;
     Date.prototype.toISOString = originalToISOString;
   });
 
