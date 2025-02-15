@@ -223,7 +223,7 @@ async function main(instruction, errors) {
         files?`\n\n---FILES---\n\n${files}\n\n---END OF FILES---\n\n`:``,
         processedHistory.length > 0 ? `\n\n<history>${processedHistory.join('\n')}</history>\n\n` : ``,
         `\n\n<nodeEnv>${process.env.NODE_ENV || 'development'}</nodeEnv>\n\n`,
-        `\n\n<${instruction}\n\n`,
+        `\n\n<userinstruction>${instruction}</userinstruction>\n\n`,
         `\n\n<attempts>This is attempt number ${attempts} of ${MAX_ATTEMPTS} to complete the user instruction: ${instruction} and fix the errors in the logs and tests</attempts>\n\n`,
         `\n\n<nodeVersion>${process.version}</nodeVersion>\n\n`,
         `\n\n<npmVersion>${safeExecSync('npm -v')}</npmVersion>\n\n`,
@@ -249,7 +249,7 @@ async function main(instruction, errors) {
             + '\n// Task Management\n'
             + `Track progress using <attempts>, <todo>, <logs>, TODO.txt, CHANGELOG.txt and <attemptDiff> tags\n`
             + `ULTRA IMPORTANT - Avoid repeating steps - if issues persist, try alternative approaches\n`
-            + `Follow user requirements precisely and plan step-by-step, the users instructions are in <userinstruction>\n`
+            + `Follow user requirements precisely and plan step-by-step, the users instructions are in <userinstruction>, thery are your primary goal, everything else is secondary\n`
             + `Maintain detailed documentation in TODO.txt and CHANGELOG.txt\n`
             
             + '\n// Code Quality\n'

@@ -32,7 +32,16 @@ module.exports = {
     'no-undef': 'off',
     'no-cond-assign': 'off',
   },
-  ignorePatterns: ['dist/**/*', 'node_modules/**/*', 'coverage/**/*', '*.config.js', 'main.js'],
+  ignorePatterns: [
+    'dist/**/*', 
+    'node_modules/**/*',
+    'coverage/**/*',
+    '*.config.js',
+    'main.js',
+    'jest-transformer.js',
+    'jest.setup.js',
+    'src/**/*.test.js'
+  ],
   parserOptions: {
     ecmaVersion: 2020,
   },
