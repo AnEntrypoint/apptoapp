@@ -34,7 +34,11 @@ Date.prototype.toISOString = jest.fn(() => mockDate);
 // Mock console.log at the module level
 const mockConsoleLog = jest.fn();
 const originalConsoleLog = console.log;
-global.console.log = mockConsoleLog;
+Object.defineProperty(global.console, 'log', {
+  value: mockConsoleLog,
+  writable: true,
+  configurable: true
+});
 
 // Clear module cache
 jest.resetModules();
@@ -50,7 +54,11 @@ describe('logger', () => {
   });
 
   afterAll(() => {
-    global.console.log = originalConsoleLog;
+    Object.defineProperty(global.console, 'log', {
+      value: originalConsoleLog,
+      writable: true,
+      configurable: true
+    });
     Date.prototype.toISOString = originalToISOString;
   });
 
