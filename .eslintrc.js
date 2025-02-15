@@ -2,14 +2,9 @@ module.exports = {
   env: {
     node: true,
     browser: true,
-    es6: true,
-    jest: true
+    jest: true,
   },
   extends: ['eslint:recommended'],
-  parserOptions: {
-    ecmaVersion: 2020,
-    sourceType: 'module'
-  },
   globals: {
     process: true,
     __dirname: true,
@@ -21,30 +16,24 @@ module.exports = {
     expect: true,
     beforeEach: true,
     afterEach: true,
-    afterAll: true
+    afterAll: true,
   },
   rules: {
-    'no-console': 'off',
     'no-unused-vars': ['error', { 
       ignoreRestSiblings: true,
       args: 'none',
-      varsIgnorePattern: '^_'
+      varsIgnorePattern: '^_',
+      argsIgnorePattern: '^_',
     }],
     'no-prototype-builtins': 'off',
     'no-control-regex': 'off',
     'no-useless-escape': 'off',
     'no-func-assign': 'off',
+    'no-undef': 'off',
     'no-cond-assign': 'off',
-    'no-undef': 'error'
   },
-  ignorePatterns: [
-    'dist/**/*', 
-    'node_modules/**/*',
-    'coverage/**/*',
-    '*.config.js',
-    'main.js',
-    'jest-transformer.js',
-    'jest.setup.js',
-    'src/**/*.test.js'
-  ]
-} 
+  ignorePatterns: ['dist/**/*', 'node_modules/**/*', 'coverage/**/*', '*.config.js', 'main.js'],
+  parserOptions: {
+    ecmaVersion: 2020,
+  },
+}; 

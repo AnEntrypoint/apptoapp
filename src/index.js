@@ -223,6 +223,7 @@ async function main(instruction, errors) {
         files?`\n\n---FILES---\n\n${files}\n\n---END OF FILES---\n\n`:``,
         processedHistory.length > 0 ? `\n\n<history>${processedHistory.join('\n')}</history>\n\n` : ``,
         `\n\n<nodeEnv>${process.env.NODE_ENV || 'development'}</nodeEnv>\n\n`,
+        `\n\n<${instruction}\n\n`,
         `\n\n<attempts>This is attempt number ${attempts} of ${MAX_ATTEMPTS} to complete the user instruction: ${instruction} and fix the errors in the logs and tests</attempts>\n\n`,
         `\n\n<nodeVersion>${process.version}</nodeVersion>\n\n`,
         `\n\n<npmVersion>${safeExecSync('npm -v')}</npmVersion>\n\n`,
