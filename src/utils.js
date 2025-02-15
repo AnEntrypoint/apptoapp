@@ -18,11 +18,12 @@ async function executeCommand(command, logHandler = null, options = {}) {
   console.log('Command history size:', cmdhistory.join().length, 'B');
   return new Promise((resolve, reject) => {
     try {
-      const child = exec(command, {
-        timeout: 120000,
-        cwd: process.cwd(),
-        ...options,
+      const child = spawn(command, {
+        shell: true,
+        detached: true, // Create new process group
+        stdio: ['inherit', 'pipe', 'pipe']
       });
+    
       cmdhistory.push(command);
       if (cmdhistory.length > 100) cmdhistory.splice(0, cmdhistory.length - 100);
 
@@ -32,10 +33,10 @@ async function executeCommand(command, logHandler = null, options = {}) {
       child.stdout.on('data', (data) => {
         const trimmed = data.toString().trim();
         cmdhistory.push(trimmed);
-        if (cmdhistory.length > 100) cmdhistory.splice(0, cmdhistory.length - 100);
+        if (cmdhistory.length > 1000) cmdhistory.splice(0, cmdhistory.length - 1000);
         output.stdout.push(trimmed);
         if (logHandler) {
-          logHandler(trimmed);
+          (logHandler||console.log)(trimmed);
         } else {
           console.log(`[CMD] ${trimmed}`);
         }
@@ -43,8 +44,9 @@ async function executeCommand(command, logHandler = null, options = {}) {
 
       child.stderr.on('data', (data) => {
         const trimmed = data.toString().trim();
+        (logHandler||console.error)(trimmed);
         cmdhistory.push(trimmed);
-        if (cmdhistory.length > 100) cmdhistory.splice(0, cmdhistory.length - 100);
+        if (cmdhistory.length > 1000) cmdhistory.splice(0, cmdhistory.length - 1000);
         output.stderr.push(trimmed);
         // console.error(`[CMD-ERR] ${trimmed}`);
       });

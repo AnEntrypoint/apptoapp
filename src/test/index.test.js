@@ -1,3 +1,4 @@
+
 const { main } = require('../index.js');
 const { loadIgnorePatterns } = require('../utils');
 const fs = require('fs');

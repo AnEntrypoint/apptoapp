@@ -9,7 +9,6 @@ const path = require('path');
 
 dotenv.config();
 
-
 async function runBuild() {
   let result; let code; let stdout; let
     stderr;
@@ -34,59 +33,123 @@ async function runBuild() {
   }
 
   const timeoutDuration = process.env.NODE_ENV === 'test' ? 5000 : 10000;
-  let lastLogTime = Date.now();
   const logBuffer = [];
   const logHandler = (data) => {
-    if (process.env.NODE_ENV === 'test') {
-      logBuffer.push(data);
-    } else {
-      console.log(data);
-    }
-    lastLogTime = Date.now();
+    logBuffer.push(data);
+    console.log(data);
   };
  
   return new Promise((resolve, reject) => {
     let timeoutId;
-    const testProcess = executeCommand('npm run test', logHandler);
+    let testProcess;
+    let isTimedOut = false;
+    let processKilled = false;
+
+    const handleTimeout = () => {
+      console.log('Test command timed out - initiating force kill');
+      isTimedOut = true;
+      if (testProcess?.childProcess) {
+        if (!processKilled) {
+          processKilled = true;
+          const pid = testProcess.childProcess.pid;
+          console.log(`Terminating process group for PID: ${pid}`);
+
+          const killWithRetry = async (attempt = 1) => {
+            try {
+              console.log(`Kill attempt ${attempt}`);
+              
+              if (process.platform === 'win32') {
+                require('child_process').execSync(`taskkill /F /T /PID ${pid}`);
+              } else {
+                // Kill entire process group
+                process.kill(-pid, 'SIGKILL');
+              }
+            } catch (error) {
+              console.log(`Kill attempt ${attempt} failed: ${error.message}`);
+            }
+
+            // Verify process status
+            try {
+              const psOutput = require('child_process').execSync(
+                process.platform === 'win32'
+                  ? `tasklist /FI "PID eq ${pid}"`
+                  : `ps -p ${pid}`
+              ).toString();
+              
+              if (psOutput.includes(`${pid}`)) {
+                console.log(`Process still alive after attempt ${attempt}`);
+                if (attempt < 5) {
+                  await new Promise(resolve => setTimeout(resolve, 1000));
+                  return killWithRetry(attempt + 1);
+                }
+                console.log('Nuclear option: killing all node processes');
+                require('child_process').execSync(
+                  process.platform === 'win32'
+                    ? `taskkill /F /IM node.exe`
+                    : `pkill -9 node`
+                );
+              }
+            } catch (psError) {
+              console.log('Process verified as terminated');
+            }
+          };
+
+          killWithRetry().finally(() => {
+            console.log('Final cleanup');
+            testProcess.childProcess.kill('SIGKILL');
+            resolve(`Test timed out after ${timeoutDuration}ms\nProcess group terminated`);
+          });
+        }
+      } else {
+        console.log('No process to kill - timeout occurred before process started');
+        resolve('Test timed out before process started');
+      }
+    };
+
+    testProcess = executeCommand('npm run test', logHandler);
+    
+    // Add process exit handler
+    const child = testProcess.childProcess;
+    if (child) {
+      console.log('Test process started with PGID:', child.pid);
+      child.on('exit', (code, signal) => {
+        console.log(`Test process exited with code ${code} (${signal})`);
+        if (timeoutId) clearTimeout(timeoutId);
+      });
+    }
 
     if (process.env.NODE_ENV !== 'test') {
-      timeoutId = setTimeout(() => {
-        console.log('Test command timed out');
-        testProcess.then((result) => {
-          result.kill();
-          
-          throw new Error('Test command timed out');
-        }).catch(reject);
-      }, timeoutDuration);
+      timeoutId = setTimeout(handleTimeout, timeoutDuration);
     }
 
     testProcess.then((result) => {
+      if (isTimedOut) return; // Ignore if already timed out
       if (timeoutId) clearTimeout(timeoutId);
+      
       if (result.code !== 0) {
         if (process.env.NODE_ENV === 'test') {
           resolve(`Test failed with code ${result.code}`);
         } else {
           console.error('Failed with exit code:', result.code);
-          console.error('STDOUT:', result.stdout);
-          console.error('STDERR:', result.stderr);
           reject(new Error(`Test failed: ${result.stderr || result.stdout}`));
         }
       } else {
         resolve(`Test exit code: ${result.code}\nSTDOUT:\n${result.stdout}\nSTDERR:\n${result.stderr}`);
       }
     }).catch((error) => {
+      if (isTimedOut) return; // Ignore if already timed out
       if (timeoutId) clearTimeout(timeoutId);
       reject(error);
     });
   });
 }
 let attempts = 0;
-
-async function main(instruction) {
+const summaryBuffer = [];
+const cliBuffer = [];
+async function main(instruction, errors) {
   let retryCount = 0;
   const MAX_RETRIES = 3;
   const MAX_ATTEMPTS = 20;
-  const summaryBuffer = [];
 
   try {
     // Immediate test of file writing
@@ -116,10 +179,11 @@ async function main(instruction) {
       }
 
       const artifacts = [
-        `\n\n${cmdhistory.length > 0 ? `Logs: (fix the errors in the logs if needed)\n<logs>${cmdhistory.join('\n')}</logs>\n\n` : ''}\n\n`,
+        //`\n\n${cmdhistory.length > 0 ? `Logs: (fix the errors in the logs if needed)\n<logs>${cmdhistory.join('\n')}</logs>\n\n` : ''}\n\n`,
         files?`\n\n---FILES---\n\n${files}\n\n---END OF FILES---\n\n`:``,
-        summaryBuffer.length > 0?`\n\n<changelog>${summaryBuffer.join('\n')}</changelog>\n\n`:``,
+        summaryBuffer.length > 0?`\n\n<history>${summaryBuffer.join('\n')}</history>\n\n`:``,
         `\n\n<nodeEnv>${process.env.NODE_ENV || 'development'}</nodeEnv>\n\n`,
+        `\n\n<attempts>This is attempt number ${attempts} of ${MAX_ATTEMPTS} to complete the user instruction: ${instruction} and fix the errors in the logs and tests</attempts>\n\n`,
         `\n\n<nodeVersion>${process.version}</nodeVersion>\n\n`,
         `\n\n<npmVersion>${safeExecSync('npm -v')}</npmVersion>\n\n`,
         `\n\n<installedDependencies>\n${safeExecSync('npm ls --depth=0')}\n</installedDependencies>\n\n`,
@@ -130,14 +194,18 @@ async function main(instruction) {
         `\n\n<environmentKeys>${Object.keys(process.env).filter(k => k.startsWith('NODE_') || k.startsWith('npm_')).join(', ')}</environmentKeys>\n\n`,
         `\n\n<systemDate>${new Date().toISOString()}</systemDate>\n\n`,
         `\n\n<timestamp>${new Date().toISOString()}</timestamp>\n\n`,
+        errors?`\n\n<errors>${errors}</errors>\n\n`:``,
         `\n\n<currentWorkingDirectory>${process.cwd()}</currentWorkingDirectory>\n\n`,
         `\n\n<terminalType>${process.env.TERM || process.platform === 'win32' ? 'cmd/powershell' : 'bash'}</terminalType>\n\n`,
+        cliBuffer.length > 0?`\n\n<bashhistory>${cliBuffer.join('\n')}</bashhistory>\n\n`:``,
+        `\n\n<rules>Rules:\n${cursorRules}</rules>\n\n`,
       ]
       const messages = [
         {
           role: 'system',
           content: 'You are a senior programmer with over 20 years of experience, you make expert and mature software development choices, your main goal is to complete the user instruction\n'
             + '\n// Code Quality & Best Practices\n'
+            + `It is possible that you are in the middle of a task, look at <attempts></attempts> and <todo></todo> and <logs></logs>to see what you have already done and what you need to do, the primary instruction is the user message`
             + `Follow the user's requirements closely and precisely`
             + `Plan step-by-step; describe what to build in pseudocode with great detail.`
             + `Confirm the plan before writing code, ensuring it adheres to specified guidelines.`
@@ -145,8 +213,8 @@ async function main(instruction) {
             + `Focus on readability over performance in code.`
             + `Ensure complete implementation without placeholders in the codebase.`
             + `Include all required imports and maintain proper naming conventions.`
-            + `Be concise and minimize unnecessary prose.`
-            + `If there are dependency conflicts, remove package-lock.json file, then remove their names from package.json and install them with the cli.`
+            + `Always resolve all the issues reported in the logs and unit tests or add them to the TODO.txt file.`
+            + `If there are dependency conflicts, remove package-lock.json file, uninstall all related packages from package.json and install them with the cli in the correct order to resolve the conflicts`
             + `Take extra care not to repeat steps already taken in the changelog.`
             + `Acknowledge when an answer may not be correct or when uncertain.`
             + `If you're seeing lots of repititions in the logs of previous iterations, apply another strategy to fix the problem.`
@@ -183,7 +251,7 @@ async function main(instruction) {
              
             + '\n// Change Tracking\n'
             + 'verify the previous changelog, and if the code changes in the changelog are not fully reflected in the codebase yet or have problems, edit the files accordingly\n'
-            + 'always respond with some text wrapped with <text></text> explaining all the changes, explain the motivation for the changes and the cli commands used\n'
+            + 'always respond with some text wrapped with <text></text> explaining all the changes for each file, explain the motivation for the changes and the cli commands used\n'
             + 'look carefully at the changelog, dont repeat actions that are already in the changelog\n'
             + 'when something appears more than once in the changelog, make sure you dont repeat the same action any more\n'
             
@@ -197,11 +265,12 @@ async function main(instruction) {
             + '\n// Critical Rules\n'
             + 'only output tags containing files, cli commands and summaries, no other text\n'
             + 'ULTRA IMPORTANT: respond only in xml tags, no other text\n'
+            + 'ULTRA IMPORTANT: only respond in complete files, dont leave anything out\n'
             + artifacts.join('\n')
         },
         {
           role: 'user',
-          content: `discover and implement a solution for the folowing instruction using unit tests: \n\nULTRA IMPORTANT: ${instruction}\n\nRules:\n${cursorRules}`,
+          content: `${instruction}`,
         },
       ];
       //debug
@@ -253,6 +322,10 @@ async function main(instruction) {
       summaryBuffer.unshift(...summaries);
     }
 
+    if (cliCommands && cliCommands.length > 0) {
+      cliBuffer.unshift(...cliCommands);
+    }
+
     if (process.env.NODE_ENV !== 'test' && filesToEdit.length === 0 && cliCommands.length === 0 && summaries.length === 0) {
       console.log(brainstormedTasks);
       throw new Error('No files to edit, cli commands or summaries found');
@@ -286,9 +359,9 @@ async function main(instruction) {
           const command = commandMatch[1].trim();
           try {
             const result = await executeCommand(command);
+            console.log({result})
           } catch (error) {
             console.error(`Failed to execute ${command}: ${error.message}`);
-            throw error;
           }
         }
       }
@@ -326,7 +399,7 @@ async function main(instruction) {
           if (fs.existsSync(todoPath)) {
             todoContent = fs.readFileSync(todoPath, 'utf8');
             console.log('TODO.txt contents:\n', todoContent);
-            summaryBuffer.push(`<text>TODO.txt contents:\n${todoContent}</text>`);
+            summaryBuffer.push(`${todoContent}`);
           } else {
             console.log('TODO.txt not found in current directory');
           }
@@ -334,7 +407,7 @@ async function main(instruction) {
           console.error('Error reading TODO.txt:', err);
         }
         console.log(`Retrying main function (attempt ${attempts}/${MAX_ATTEMPTS})...`);
-        await main("fix the errors in the logs, and confirm in the changelog that this instruction was completed:"+process.argv[2]+"\n"+todoContent, error.message);
+        await main(process.argv[2], error.message);
       } else {
         throw new Error('Max attempts reached');
       }
