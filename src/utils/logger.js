@@ -73,17 +73,31 @@ function createLogger(type) {
   };
 }
 
-// Export logger functions
+// Create logger instances
+const info = createLogger('INFO');
+const success = createLogger('SUCCESS');
+const warn = createLogger('WARNING');
+const error = createLogger('ERROR');
+const debug = createLogger('DEBUG');
+const system = createLogger('SYSTEM');
+const git = createLogger('GIT');
+const file = createLogger('FILE');
+
+// Export logger functions and utilities
 module.exports = {
-  info: createLogger('INFO'),
-  success: createLogger('SUCCESS'),
-  warn: createLogger('WARNING'),
-  error: createLogger('ERROR'),
-  debug: createLogger('DEBUG'),
-  system: createLogger('SYSTEM'),
-  git: createLogger('GIT'),
-  file: createLogger('FILE'),
+  info,
+  success,
+  warn,
+  error,
+  debug,
+  system,
+  git,
+  file,
   truncate,
   formatValue,
-  formatPrefix
+  formatPrefix,
+  createLogger,
+  LOG_TYPES,
+  MAX_STRING_LENGTH,
+  MAX_ARRAY_LENGTH
 };
