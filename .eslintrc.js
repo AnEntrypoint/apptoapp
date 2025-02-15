@@ -40,6 +40,7 @@ module.exports = {
     '*.config.js',
     'main.js',
     'jest-transformer.js',
-    'jest.setup.js'
+    'jest.setup.js',
+    'src/**/*.test.js'
   ]
 } 
