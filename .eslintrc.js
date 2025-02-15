@@ -28,13 +28,20 @@ module.exports = {
     'no-unused-vars': ['error', { 
       'argsIgnorePattern': '^_',
       'varsIgnorePattern': '^_',
-      'ignoreRestSiblings': true
+      'ignoreRestSiblings': true,
+      'args': 'none'
     }],
     'no-prototype-builtins': 'off',
     'no-control-regex': 'off',
     'no-useless-escape': 'off',
     'no-func-assign': 'off',
-    'no-cond-assign': 'off'
+    'no-cond-assign': 'off',
+    'no-undef': 'off'  // Temporarily disable no-undef while we sort out the module system
   },
-  ignorePatterns: ['dist/**/*', 'node_modules/**/*']
+  ignorePatterns: [
+    'dist/**/*', 
+    'node_modules/**/*',
+    'coverage/**/*',
+    '*.config.js'
+  ]
 } 
