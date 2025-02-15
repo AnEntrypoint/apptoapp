@@ -7,7 +7,7 @@ const mockConsoleLog = jest.fn();
 jest.mock('console', () => ({
   ...jest.requireActual('console'),
   log: mockConsoleLog
-}));
+}), { virtual: true });
 
 // Mock chalk before any imports
 const mockChalk = {
