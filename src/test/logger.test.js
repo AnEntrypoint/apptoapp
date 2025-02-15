@@ -1,9 +1,21 @@
-jest.mock('chalk');
+// Mock chalk before requiring logger
+jest.doMock('chalk', () => ({
+  blue: jest.fn(str => str),
+  green: jest.fn(str => str),
+  yellow: jest.fn(str => str),
+  red: jest.fn(str => str),
+  gray: jest.fn(str => str),
+  magenta: jest.fn(str => str),
+  cyan: jest.fn(str => str),
+  white: jest.fn(str => str)
+}));
+
+// Import logger after mocking chalk
+const logger = require('../utils/logger');
 
 describe('logger', () => {
   let consoleLogSpy;
   let originalConsoleLog;
-  let logger;
   let originalDateToISOString;
 
   beforeAll(() => {
@@ -14,15 +26,13 @@ describe('logger', () => {
   });
 
   beforeEach(() => {
-    // Clear the module cache and reload the logger
-    jest.resetModules();
     console.log = jest.fn();
     consoleLogSpy = console.log;
-    logger = require('../utils/logger');
   });
 
   afterEach(() => {
     console.log.mockClear();
+    jest.clearAllMocks();
   });
 
   afterAll(() => {
