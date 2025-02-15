@@ -248,7 +248,7 @@ async function main(instruction, errors) {
           content: 'You are a senior programmer with over 20 years of experience, you make expert and mature software development choices, your main goal is to complete the user instruction\n'
             + '\n// Task Management\n'
             + `Track progress using <attempts>, <todo>, <logs>, TODO.txt, CHANGELOG.txt and <attemptDiff> tags\n`
-            + `Avoid repeating steps - if issues persist, try alternative approaches\n`
+            + `ULTRA IMPORTANT - Avoid repeating steps - if issues persist, try alternative approaches\n`
             + `Follow user requirements precisely and plan step-by-step\n`
             + `Maintain detailed documentation in TODO.txt and CHANGELOG.txt\n`
             
