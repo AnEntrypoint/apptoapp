@@ -136,7 +136,9 @@ async function runBuild() {
 let attempts = 0;
 const summaryBuffer = [];
 const cliBuffer = [];
-async function main(instruction, errors) {
+let currentModel = 'mistral'; // Default model
+
+async function main(instruction, errors, model = currentModel) {
   let retryCount = 0;
   const MAX_RETRIES = 3;
   const MAX_ATTEMPTS = 20;
@@ -266,7 +268,7 @@ async function main(instruction, errors) {
             + `Handle edge cases and ensure full test coverage\n`
             + `Always try to fix all known errors at once\n`
             + `Analyze logs carefully to avoid repetitive loops\n`
-            + `If you are having trouble fixing the errors repeatedly, respond with <upgradeModel>claude-3.5-sonnet</upgradeModel>\n`
+            + `If you are having trouble fixing the errors repeatedly, respond with <upgradeModel>copilot-claude</upgradeModel>\n`
             
             + '\n// File Management\n'
             + `Use consistent file structure\n`
@@ -317,6 +319,7 @@ async function main(instruction, errors) {
             [],
             process.env.MISTRAL_API_KEY,
             'https://codestral.mistral.ai/v1/chat/completions',
+            model
           );
 
           return response.choices[0].message.content;
@@ -340,6 +343,10 @@ async function main(instruction, errors) {
       }
       throw new Error('Invalid response from LLM');
     }
+
+    // Check for upgradeModel tag
+    const upgradeModelMatch = brainstormedTasks.match(/<upgradeModel>(.*?)<\/upgradeModel>/);
+    const nextModel = upgradeModelMatch ? upgradeModelMatch[1] : 'mistral';
 
     logger.debug(`${JSON.stringify(brainstormedTasks).length} B of reasoning output`);
     //logger.debug(brainstormedTasks);
@@ -438,7 +445,7 @@ async function main(instruction, errors) {
           logger.error('Error reading TODO.txt:', err);
         }
         logger.info(`Retrying main function (attempt ${attempts}/${MAX_ATTEMPTS})...`);
-        await main(process.argv[2], error.message);
+        await main(process.argv[2], error.message, nextModel);
       } else {
         throw new Error('Max attempts reached');
       }
@@ -456,11 +463,19 @@ async function main(instruction, errors) {
   }
 }
 
-const instruction = process.argv[2];
-main(instruction).catch((error) => {
-  logger.error('Application error:', error);
-  process.exit(0);
-});
+// Parse command line arguments
+program
+  .argument('[instruction]', 'Instruction to execute')
+  .option('-m, --model <model>', 'LLM model to use (mistral or copilot-claude)', 'mistral')
+  .action((instruction, options) => {
+    currentModel = options.model;
+    main(instruction).catch((error) => {
+      logger.error('Application error:', error);
+      process.exit(0);
+    });
+  });
+
+program.parse();
 
 module.exports = {
   main

@@ -1,86 +1,71 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="jest tests" tests="29" failures="1" errors="0" time="6.466">
-  <testsuite name="LLM Providers" errors="0" failures="0" skipped="0" timestamp="2025-02-15T20:07:55" time="0.923" tests="10">
-    <testcase classname="LLM Providers MistralProvider should make request with correct parameters" name="LLM Providers MistralProvider should make request with correct parameters" time="0.013">
+<testsuites name="jest tests" tests="29" failures="0" errors="0" time="6.885">
+  <testsuite name="LLM Providers" errors="0" failures="0" skipped="0" timestamp="2025-02-15T20:08:26" time="1.07" tests="10">
+    <testcase classname="LLM Providers MistralProvider should make request with correct parameters" name="LLM Providers MistralProvider should make request with correct parameters" time="0.022">
     </testcase>
-    <testcase classname="LLM Providers MistralProvider should handle API errors" name="LLM Providers MistralProvider should handle API errors" time="0.015">
+    <testcase classname="LLM Providers MistralProvider should handle API errors" name="LLM Providers MistralProvider should handle API errors" time="0.019">
     </testcase>
-    <testcase classname="LLM Providers CopilotClaudeProvider should make request with correct parameters" name="LLM Providers CopilotClaudeProvider should make request with correct parameters" time="0.005">
+    <testcase classname="LLM Providers CopilotClaudeProvider should make request with correct parameters" name="LLM Providers CopilotClaudeProvider should make request with correct parameters" time="0.007">
     </testcase>
-    <testcase classname="LLM Providers CopilotClaudeProvider should handle API errors" name="LLM Providers CopilotClaudeProvider should handle API errors" time="0.003">
+    <testcase classname="LLM Providers CopilotClaudeProvider should handle API errors" name="LLM Providers CopilotClaudeProvider should handle API errors" time="0.004">
     </testcase>
-    <testcase classname="LLM Providers CopilotClaudeProvider should throw error for empty messages array" name="LLM Providers CopilotClaudeProvider should throw error for empty messages array" time="0.005">
+    <testcase classname="LLM Providers CopilotClaudeProvider should throw error for empty messages array" name="LLM Providers CopilotClaudeProvider should throw error for empty messages array" time="0.006">
     </testcase>
-    <testcase classname="LLM Providers CopilotClaudeProvider should throw error for invalid messages array" name="LLM Providers CopilotClaudeProvider should throw error for invalid messages array" time="0.009">
+    <testcase classname="LLM Providers CopilotClaudeProvider should throw error for invalid messages array" name="LLM Providers CopilotClaudeProvider should throw error for invalid messages array" time="0.011">
     </testcase>
-    <testcase classname="LLM Providers CopilotClaudeProvider should throw error for messages without content" name="LLM Providers CopilotClaudeProvider should throw error for messages without content" time="0.004">
+    <testcase classname="LLM Providers CopilotClaudeProvider should throw error for messages without content" name="LLM Providers CopilotClaudeProvider should throw error for messages without content" time="0.003">
     </testcase>
     <testcase classname="LLM Providers createLLMProvider should create MistralProvider" name="LLM Providers createLLMProvider should create MistralProvider" time="0.002">
     </testcase>
     <testcase classname="LLM Providers createLLMProvider should create CopilotClaudeProvider" name="LLM Providers createLLMProvider should create CopilotClaudeProvider" time="0.002">
     </testcase>
-    <testcase classname="LLM Providers createLLMProvider should throw error for unsupported provider" name="LLM Providers createLLMProvider should throw error for unsupported provider" time="0.004">
+    <testcase classname="LLM Providers createLLMProvider should throw error for unsupported provider" name="LLM Providers createLLMProvider should throw error for unsupported provider" time="0.003">
     </testcase>
   </testsuite>
-  <testsuite name="main" errors="0" failures="0" skipped="0" timestamp="2025-02-15T20:07:56" time="2.813" tests="2">
-    <testcase classname="main should handle test instruction" name="main should handle test instruction" time="1.511">
+  <testsuite name="main" errors="0" failures="0" skipped="0" timestamp="2025-02-15T20:08:27" time="2.904" tests="2">
+    <testcase classname="main should handle test instruction" name="main should handle test instruction" time="1.558">
     </testcase>
-    <testcase classname="main should collect diffs after each attempt" name="main should collect diffs after each attempt" time="0.886">
+    <testcase classname="main should collect diffs after each attempt" name="main should collect diffs after each attempt" time="0.947">
     </testcase>
   </testsuite>
-  <testsuite name="diff" errors="0" failures="0" skipped="0" timestamp="2025-02-15T20:07:59" time="2.08" tests="5">
-    <testcase classname="diff should return the difference between two numbers" name="diff should return the difference between two numbers" time="0.001">
+  <testsuite name="diff" errors="0" failures="0" skipped="0" timestamp="2025-02-15T20:08:30" time="2.314" tests="5">
+    <testcase classname="diff should return the difference between two numbers" name="diff should return the difference between two numbers" time="0.002">
     </testcase>
-    <testcase classname="diff should handle negative numbers" name="diff should handle negative numbers" time="0.001">
+    <testcase classname="diff should handle negative numbers" name="diff should handle negative numbers" time="0.003">
     </testcase>
     <testcase classname="diff should handle zero" name="diff should handle zero" time="0.001">
     </testcase>
-    <testcase classname="diff functionality should generate and store diffs" name="diff functionality should generate and store diffs" time="0.996">
+    <testcase classname="diff functionality should generate and store diffs" name="diff functionality should generate and store diffs" time="1.034">
     </testcase>
-    <testcase classname="diff functionality should clear diff buffer" name="diff functionality should clear diff buffer" time="0.935">
+    <testcase classname="diff functionality should clear diff buffer" name="diff functionality should clear diff buffer" time="1.126">
     </testcase>
   </testsuite>
-  <testsuite name="Logger" errors="0" failures="1" skipped="0" timestamp="2025-02-15T20:08:01" time="0.181" tests="8">
+  <testsuite name="Logger" errors="0" failures="0" skipped="0" timestamp="2025-02-15T20:08:32" time="0.143" tests="8">
     <testcase classname="Logger should truncate long strings" name="Logger should truncate long strings" time="0.002">
     </testcase>
-    <testcase classname="Logger should not truncate short strings" name="Logger should not truncate short strings" time="0.001">
+    <testcase classname="Logger should not truncate short strings" name="Logger should not truncate short strings" time="0.002">
     </testcase>
     <testcase classname="Logger should handle non-string inputs" name="Logger should handle non-string inputs" time="0.001">
     </testcase>
     <testcase classname="Logger should handle undefined input" name="Logger should handle undefined input" time="0.001">
-      <failure>TypeError: Cannot read properties of undefined (reading &apos;length&apos;)
-    at Object.length [as truncate] (C:\dev\apptoapp\src\utils\logger.js:28:11)
-    at Object.truncate (C:\dev\apptoapp\src\test\logger.test.js:30:27)
-    at Promise.then.completed (C:\dev\apptoapp\node_modules\jest-circus\build\utils.js:298:28)
-    at new Promise (&lt;anonymous&gt;)
-    at callAsyncCircusFn (C:\dev\apptoapp\node_modules\jest-circus\build\utils.js:231:10)
-    at _callCircusTest (C:\dev\apptoapp\node_modules\jest-circus\build\run.js:316:40)
-    at _runTest (C:\dev\apptoapp\node_modules\jest-circus\build\run.js:252:3)
-    at _runTestsForDescribeBlock (C:\dev\apptoapp\node_modules\jest-circus\build\run.js:126:9)
-    at _runTestsForDescribeBlock (C:\dev\apptoapp\node_modules\jest-circus\build\run.js:121:9)
-    at run (C:\dev\apptoapp\node_modules\jest-circus\build\run.js:71:3)
-    at runAndTransformResultsToJestFormat (C:\dev\apptoapp\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
-    at jestAdapter (C:\dev\apptoapp\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
-    at runTestInternal (C:\dev\apptoapp\node_modules\jest-runner\build\runTest.js:367:16)
-    at runTest (C:\dev\apptoapp\node_modules\jest-runner\build\runTest.js:444:34)</failure>
     </testcase>
     <testcase classname="Logger should handle null input" name="Logger should handle null input" time="0.001">
     </testcase>
     <testcase classname="Logger should handle circular references" name="Logger should handle circular references" time="0.001">
     </testcase>
-    <testcase classname="Logger should format values correctly" name="Logger should format values correctly" time="0.007">
+    <testcase classname="Logger should format values correctly" name="Logger should format values correctly" time="0.002">
     </testcase>
-    <testcase classname="Logger logging functions should not throw" name="Logger logging functions should not throw" time="0.003">
-    </testcase>
-  </testsuite>
-  <testsuite name="tools" errors="0" failures="0" skipped="0" timestamp="2025-02-15T20:08:01" time="0.166" tests="2">
-    <testcase classname="tools should execute a command and return the output" name="tools should execute a command and return the output" time="0.025">
-    </testcase>
-    <testcase classname="tools should handle errors when executing a command" name="tools should handle errors when executing a command" time="0.028">
+    <testcase classname="Logger logging functions should not throw" name="Logger logging functions should not throw" time="0.007">
     </testcase>
   </testsuite>
-  <testsuite name="utils" errors="0" failures="0" skipped="0" timestamp="2025-02-15T20:08:02" time="0.098" tests="2">
-    <testcase classname="utils should return the sum of two numbers" name="utils should return the sum of two numbers" time="0.002">
+  <testsuite name="tools" errors="0" failures="0" skipped="0" timestamp="2025-02-15T20:08:32" time="0.176" tests="2">
+    <testcase classname="tools should execute a command and return the output" name="tools should execute a command and return the output" time="0.024">
+    </testcase>
+    <testcase classname="tools should handle errors when executing a command" name="tools should handle errors when executing a command" time="0.025">
+    </testcase>
+  </testsuite>
+  <testsuite name="utils" errors="0" failures="0" skipped="0" timestamp="2025-02-15T20:08:32" time="0.094" tests="2">
+    <testcase classname="utils should return the sum of two numbers" name="utils should return the sum of two numbers" time="0.001">
     </testcase>
     <testcase classname="utils should return the product of two numbers" name="utils should return the product of two numbers" time="0.002">
     </testcase>

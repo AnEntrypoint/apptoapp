@@ -88,10 +88,10 @@ async function loadNoContentsPatterns(ignoreFile = '.nocontents') {
   return ig;
 }
 
-async function makeApiRequest(messages, tools, apiKey, endpoint) {
-  // Determine which provider to use based on environment variables
-  const providerType = process.env.COPILOT_CLAUDE_KEY ? 'copilot-claude' : 'mistral';
-  const providerKey = process.env.COPILOT_CLAUDE_KEY || apiKey;
+async function makeApiRequest(messages, tools, apiKey, endpoint, model = 'mistral') {
+  // Determine which provider to use based on model parameter or environment variables
+  const providerType = model === 'copilot-claude' || process.env.COPILOT_CLAUDE_KEY ? 'copilot-claude' : 'mistral';
+  const providerKey = providerType === 'copilot-claude' ? process.env.COPILOT_CLAUDE_KEY : apiKey;
 
   try {
     const provider = createLLMProvider(providerType, providerKey);
