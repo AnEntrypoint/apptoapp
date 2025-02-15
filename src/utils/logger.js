@@ -18,6 +18,9 @@ const LOG_TYPES = {
 
 // Truncate long strings with better formatting
 function truncate(str, maxLength = MAX_STRING_LENGTH) {
+  if (str === undefined) return 'undefined';
+  if (str === null) return 'null';
+  
   if (typeof str !== 'string') {
     try {
       str = JSON.stringify(str, null, 2);
