@@ -266,6 +266,7 @@ async function main(instruction, errors) {
             + `Handle edge cases and ensure full test coverage\n`
             + `Always try to fix all known errors at once\n`
             + `Analyze logs carefully to avoid repetitive loops\n`
+            + `If you are having trouble fixing the errors repeatedly, respond with <upgradeModel>claude-3.5-sonnet</upgradeModel>\n`
             
             + '\n// File Management\n'
             + `Use consistent file structure\n`
@@ -305,7 +306,7 @@ async function main(instruction, errors) {
       const fs = require('fs');
       const path = require('path');
       const outputFilePath = path.join(__dirname, '../../lastprompt.txt');
-      fs.writeFileSync(outputFilePath, messages[0].content);
+      fs.writeFileSync(outputFilePath, messages[1].content);
 
       logger.success(`Messages have been written to ${outputFilePath}`);
       logger.debug(`${JSON.stringify(messages).length} B of reasoning input`);

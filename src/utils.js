@@ -3,6 +3,7 @@ const ignore = require('ignore');
 const path = require('path');
 const { exec, spawn } = require('child_process');
 const logger = require('./utils/logger');
+const { createLLMProvider } = require('./llm/providers');
 
 const cmdhistory = [];
 
@@ -88,47 +89,28 @@ async function loadNoContentsPatterns(ignoreFile = '.nocontents') {
 }
 
 async function makeApiRequest(messages, tools, apiKey, endpoint) {
-  // console.trace();
-  const data = [endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: 'codestral-latest',
-      messages,
-      tool_choice: 'any',
-      tools,
-      stream: false,
-    }),
-  }];
-  logger.info('Waiting for API request...');
-  const response = await fetch(...data);
-  logger.success('API request completed');
+  // Determine which provider to use based on environment variables
+  const providerType = process.env.COPILOT_CLAUDE_KEY ? 'copilot-claude' : 'mistral';
+  const providerKey = process.env.COPILOT_CLAUDE_KEY || apiKey;
 
-  async function writeToLastCall(data) {
-    try {
-      await fsp.writeFile('../lastcall.txt', data, 'utf8');
-    } catch (error) {
-      logger.error('Error writing to lastcall.txt:', error);
-    }
-  }
-  if (!response.ok) {
-    writeToLastCall(response);
-    const error = await response.json();
-    logger.error('API Error:', error);
-    throw new Error(`API error: ${error.message || response.statusText}`);
-  }
-  const responseData = await response.json();
   try {
-    await fsp.writeFile('../lastresponse.txt', JSON.stringify(responseData, null, 2), 'utf8');
-    logger.success('API response written to lastresponse.txt');
+    const provider = createLLMProvider(providerType, providerKey);
+    logger.info(`Using ${providerType} provider for API request...`);
+    
+    const response = await provider.makeRequest(messages, tools);
+    
+    try {
+      await fsp.writeFile('../lastresponse.txt', JSON.stringify(response, null, 2), 'utf8');
+      logger.success('API response written to lastresponse.txt');
+    } catch (error) {
+      logger.error('Error writing to lastresponse.txt:', error);
+    }
+    
+    return response;
   } catch (error) {
-    logger.error('Error writing to lastresponse.txt:', error);
+    logger.error(`API Error with ${providerType}:`, error);
+    throw error;
   }
-  const val = responseData;
-  return val;
 }
 
 async function directoryExists(dir) {
