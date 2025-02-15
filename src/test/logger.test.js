@@ -16,6 +16,9 @@ const mockChalk = {
 
 jest.mock('chalk', () => mockChalk);
 
+// Clear module cache
+jest.resetModules();
+
 // Import logger after mocking chalk
 const logger = require('../utils/logger');
 
