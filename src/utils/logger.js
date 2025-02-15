@@ -1,3 +1,4 @@
+
 const chalk = require('chalk');
 
 // Maximum length for truncated strings
@@ -82,4 +83,4 @@ module.exports = {
   file: createLogger('FILE'),
   truncate,
   formatValue
-}; 
+};
