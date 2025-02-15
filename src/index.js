@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const dotenv = require('dotenv');
-const { getFiles, writeFile } = require('./files.js');
+const { getFiles, writeFile, generateDiff, getDiffsAsXML, clearDiffBuffer } = require('./files.js');
 const { makeApiRequest, loadCursorRules, getCWD } = require('./utils');
 const { executeCommand, cmdhistory } = require('./utils');
 const fs = require('fs');
@@ -47,7 +47,7 @@ async function runBuild() {
     let isTimedOut = false;
     let processKilled = false;
 
-    const killWithRetry = async (pid, attempts = 3) => {
+    const killWithRetry = async (pid, attempts = 5) => {
       for (let i = 1; i <= attempts; i++) {
         try {
           console.log(`Attempt ${i} to kill process group ${pid}`);
@@ -141,7 +141,8 @@ async function main(instruction, errors) {
   const MAX_ATTEMPTS = 20;
 
   try {
-    // Immediate test of file writing
+    // Only clear diff buffer if explicitly requested
+    // clearDiffBuffer(); - removing this line to allow diffs to accumulate
     
     if (!instruction || instruction.trim() === '') {
       console.log('No specific instruction provided. Running default test mode.');
@@ -206,6 +207,7 @@ async function main(instruction, errors) {
           return `Command failed: ${command}\nSTDOUT: ${stdout}\nSTDERR: ${stderr}`;
         }
       }
+      const diffsXML = getDiffsAsXML();
       
       const artifacts = [
         //`\n\n${cmdhistory.length > 0 ? `Logs: (fix the errors in the logs if needed)\n<logs>${cmdhistory.join('\n')}</logs>\n\n` : ''}\n\n`,
@@ -228,13 +230,15 @@ async function main(instruction, errors) {
         `\n\n<terminalType>${process.env.TERM || process.platform === 'win32' ? 'cmd/powershell' : 'bash'}</terminalType>\n\n`,
         cliBuffer.length > 0?`\n\n<bashhistory>${cliBuffer.map(c=>c.replace(/<cli>/g, '').replace(/<\/cli>/g, '')).join('\n')}</bashhistory>\n\n`:``,
         `\n\n<rules>Rules:\n${cursorRules}</rules>\n\n`,
+        `\n\n${diffsXML}\n\n`,
       ]
       const messages = [
         {
           role: 'system',
           content: 'You are a senior programmer with over 20 years of experience, you make expert and mature software development choices, your main goal is to complete the user instruction\n'
             + '\n// Code Quality & Best Practices\n'
-            + `It is possible that you are in the middle of a task, look at <attempts></attempts> and <todo></todo> and <logs></logs>, as well as TODO.txt and CHANGELOG.txt to see what you have already done and what you need to do, dont repeat steps that were already perofrmed`
+            + `It is possible that you are in the middle of a task, look at <attempts></attempts> and <todo></todo> and <logs></logs>, as well as TODO.txt and CHANGELOG.txt and <attemptDiff></attemptDiff> tags to track what you've already tried`
+            + `Dont repeat steps that were already performed, if you still encounter the same issues... try a different approach`
             + `the primary instruction is the user message`
             + `Follow the user's requirements closely and precisely`
             + `Plan step-by-step; describe what to build in pseudocode with great detail.`
@@ -257,7 +261,6 @@ async function main(instruction, errors) {
             + `Iterate on designs and implement clear, explicit solutions by maintaining a detailed and exhaustive TODO.txt and CHANGELOG.txt (for dates use <systemDate> tag)`
             + `Dont put these system instructiosn in the TODO.txt or anywhere in the codebase itself`
             + `Ensure performance optimizations while accounting for various edge cases.`
-            + `Make sure you're not repeating steps already taken in the changelog or the logs, unless they're incorrectly listed in the changelog.`
             + `Write unit and integration tests using appropriate libraries.`
             + `Maintain clear documentation and JSDoc comments.`
             + `Document user-facing text for internationalization and localization support.`
@@ -280,10 +283,7 @@ async function main(instruction, errors) {
             + 'dont install packages that are not needed or are already installed, only install packages that are needed to complete the instruction\n'
              
             + '\n// Change Tracking\n'
-            + 'verify the previous changelog, and if the code changes in the changelog are not fully reflected in the codebase yet or have problems, edit the files accordingly\n'
-            + 'always respond with some text wrapped with <text></text> explaining all the changes for each file, explain the motivation for the changes and the cli commands used\n'
-            + 'look carefully at the changelog, dont repeat actions that are already in the changelog\n'
-            + 'when something appears more than once in the changelog, make sure you dont repeat the same action any more\n'
+            + 'always respond with some text wrapped with <text></text> explaining all the changes for each file, explain the motivation for the changes, what was changed and the cli commands used\n'
             
             + '\n// Output Formatting\n'
             + 'IMPORTANT: Only output file changes in xml format like this: <file path="path/to/edited/file.js">...</file> and cli commands in this schema <cli>command here</cli>\n'
@@ -396,6 +396,7 @@ async function main(instruction, errors) {
         }
       }
     }
+    await generateDiff();
  
     try {
       if (summaries && summaries.length > 0) {
@@ -444,6 +445,7 @@ async function main(instruction, errors) {
     }
 
     console.log('Final directory contents:', fs.readdirSync(process.cwd()));
+
   } catch (error) {
     console.error('Application error:', error);
     if (process.env.NODE_ENV === 'test') {

@@ -9,7 +9,7 @@ async function executeCommand(command, options = {}) {
       ...options,
     }, (error, stdout, stderr) => {
       if (error) {
-        reject(error);
+        reject(stdout||stderr);
         return;
       }
       resolve(`${stdout.trim()}\n`); // Trim and add single newline

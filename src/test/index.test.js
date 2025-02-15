@@ -4,6 +4,8 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const fsp = require('fs').promises;
+const { execSync } = require('child_process');
+const { clearDiffBuffer } = require('../files');
 
 // Increase timeout for all tests in this file
 jest.setTimeout(60000);
@@ -83,6 +85,19 @@ describe('main', () => {
 
     // Reset mocks
     mockExit.mockReset();
+
+    // Setup git
+    execSync('git init');
+    execSync('git config user.name "Test User"');
+    execSync('git config user.email "test@example.com"');
+    
+    // Create initial file
+    fs.writeFileSync('test.txt', 'initial content');
+    execSync('git add test.txt');
+    execSync('git commit -m "initial commit"');
+    
+    // Clear any existing diffs
+    clearDiffBuffer();
   });
 
   afterEach(async () => {
@@ -118,4 +133,27 @@ describe('main', () => {
     // Verify process.exit was not called with error code
     expect(mockExit).not.toHaveBeenCalledWith(1);
   }, 35000); // Increase timeout for this specific test
+
+  test('should collect diffs after each attempt', async () => {
+    // Make a change that will be detected
+    fs.writeFileSync('test.txt', 'modified content');
+    
+    // Run main with a test instruction
+    await main('test instruction');
+    
+    // Check if artifacts directory was created
+    expect(fs.existsSync(path.join(tempDir, 'artifacts'))).toBe(true);
+    
+    // Check if diffs file was created
+    const diffsPath = path.join(tempDir, 'artifacts', 'attempt_diffs.xml');
+    expect(fs.existsSync(diffsPath)).toBe(true);
+    
+    // Check content of diffs file
+    const diffsContent = fs.readFileSync(diffsPath, 'utf-8');
+    expect(diffsContent).toContain('<?xml version="1.0" encoding="UTF-8"?>');
+    expect(diffsContent).toContain('<attempts>');
+    expect(diffsContent).toContain('<attemptDiff count="1">');
+    expect(diffsContent).toContain('modified content');
+    expect(diffsContent).toContain('</attempts>');
+  });
 });
