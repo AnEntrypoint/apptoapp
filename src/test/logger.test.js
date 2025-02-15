@@ -34,14 +34,7 @@ Date.prototype.toISOString = jest.fn(() => mockDate);
 // Mock console.log at the module level
 const mockConsoleLog = jest.fn();
 const originalConsoleLog = console.log;
-Object.defineProperty(global.console, 'log', {
-  value: mockConsoleLog,
-  writable: true,
-  configurable: true
-});
-
-// Clear module cache
-jest.resetModules();
+console.log = mockConsoleLog;
 
 // Import logger module
 const logger = require('../utils/logger');
@@ -54,11 +47,7 @@ describe('logger', () => {
   });
 
   afterAll(() => {
-    Object.defineProperty(global.console, 'log', {
-      value: originalConsoleLog,
-      writable: true,
-      configurable: true
-    });
+    console.log = originalConsoleLog;
     Date.prototype.toISOString = originalToISOString;
   });
 
