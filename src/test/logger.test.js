@@ -2,13 +2,23 @@ const logger = require('../utils/logger');
 
 describe('logger', () => {
   let consoleLogSpy;
+  let originalConsoleLog;
+
+  beforeAll(() => {
+    originalConsoleLog = console.log;
+  });
 
   beforeEach(() => {
-    consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    console.log = jest.fn();
+    consoleLogSpy = console.log;
   });
 
   afterEach(() => {
-    consoleLogSpy.mockRestore();
+    console.log.mockClear();
+  });
+
+  afterAll(() => {
+    console.log = originalConsoleLog;
   });
 
   test('should log info messages', () => {
