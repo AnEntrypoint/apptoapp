@@ -42,6 +42,7 @@ module.exports = {
     'dist/**/*', 
     'node_modules/**/*',
     'coverage/**/*',
-    '*.config.js'
+    '*.config.js',
+    'main.js'
   ]
 } 
