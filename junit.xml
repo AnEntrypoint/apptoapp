@@ -1,41 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="jest tests" tests="11" failures="2" errors="0" time="63.128">
-  <testsuite name="main" errors="0" failures="2" skipped="0" timestamp="2025-02-15T18:09:43" time="61.272" tests="2">
-    <testcase classname="main should handle test instruction" name="main should handle test instruction" time="30.325">
-      <failure>Error: Test timeout
-    at Timeout._onTimeout (C:\dev\apptoapp\src\test\index.test.js:85:33)
-    at listOnTimeout (node:internal/timers:581:17)
-    at processTimers (node:internal/timers:519:7)</failure>
+<testsuites name="jest tests" tests="11" failures="0" errors="0" time="4.058">
+  <testsuite name="main" errors="0" failures="0" skipped="0" timestamp="2025-02-15T18:11:07" time="2.352" tests="2">
+    <testcase classname="main should handle test instruction" name="main should handle test instruction" time="1.061">
     </testcase>
-    <testcase classname="main should collect diffs after each attempt" name="main should collect diffs after each attempt" time="30.296">
-      <failure>Error: Test timeout
-    at Timeout._onTimeout (C:\dev\apptoapp\src\test\index.test.js:101:33)
-    at listOnTimeout (node:internal/timers:581:17)
-    at processTimers (node:internal/timers:519:7)</failure>
+    <testcase classname="main should collect diffs after each attempt" name="main should collect diffs after each attempt" time="0.617">
     </testcase>
   </testsuite>
-  <testsuite name="diff" errors="0" failures="0" skipped="0" timestamp="2025-02-15T18:10:45" time="1.48" tests="5">
-    <testcase classname="diff should return the difference between two numbers" name="diff should return the difference between two numbers" time="0.004">
+  <testsuite name="diff" errors="0" failures="0" skipped="0" timestamp="2025-02-15T18:11:10" time="1.386" tests="5">
+    <testcase classname="diff should return the difference between two numbers" name="diff should return the difference between two numbers" time="0.001">
     </testcase>
     <testcase classname="diff should handle negative numbers" name="diff should handle negative numbers" time="0.001">
     </testcase>
     <testcase classname="diff should handle zero" name="diff should handle zero" time="0.001">
     </testcase>
-    <testcase classname="diff functionality should generate and store diffs" name="diff functionality should generate and store diffs" time="0.63">
+    <testcase classname="diff functionality should generate and store diffs" name="diff functionality should generate and store diffs" time="0.617">
     </testcase>
-    <testcase classname="diff functionality should clear diff buffer" name="diff functionality should clear diff buffer" time="0.694">
-    </testcase>
-  </testsuite>
-  <testsuite name="tools" errors="0" failures="0" skipped="0" timestamp="2025-02-15T18:10:46" time="0.157" tests="2">
-    <testcase classname="tools should execute a command and return the output" name="tools should execute a command and return the output" time="0.029">
-    </testcase>
-    <testcase classname="tools should handle errors when executing a command" name="tools should handle errors when executing a command" time="0.026">
+    <testcase classname="diff functionality should clear diff buffer" name="diff functionality should clear diff buffer" time="0.673">
     </testcase>
   </testsuite>
-  <testsuite name="utils" errors="0" failures="0" skipped="0" timestamp="2025-02-15T18:10:46" time="0.089" tests="2">
-    <testcase classname="utils should return the sum of two numbers" name="utils should return the sum of two numbers" time="0.002">
+  <testsuite name="tools" errors="0" failures="0" skipped="0" timestamp="2025-02-15T18:11:11" time="0.121" tests="2">
+    <testcase classname="tools should execute a command and return the output" name="tools should execute a command and return the output" time="0.024">
     </testcase>
-    <testcase classname="utils should return the product of two numbers" name="utils should return the product of two numbers" time="0.003">
+    <testcase classname="tools should handle errors when executing a command" name="tools should handle errors when executing a command" time="0.022">
+    </testcase>
+  </testsuite>
+  <testsuite name="utils" errors="0" failures="0" skipped="0" timestamp="2025-02-15T18:11:11" time="0.075" tests="2">
+    <testcase classname="utils should return the sum of two numbers" name="utils should return the sum of two numbers" time="0.003">
+    </testcase>
+    <testcase classname="utils should return the product of two numbers" name="utils should return the product of two numbers" time="0.001">
     </testcase>
   </testsuite>
 </testsuites>
