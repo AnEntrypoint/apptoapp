@@ -1,5 +1,4 @@
-
-const { diff, generateDiff, getDiffsAsXML, clearDiffBuffer } = require('../files');
+const { diff, generateDiff, getDiffBufferStatus, clearDiffBuffer } = require('../files');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -75,9 +74,9 @@ describe('diff functionality', () => {
     fs.writeFileSync('test.txt', 'modified content');
 
     await generateDiff();
-    const xml = getDiffsAsXML();
+    const xml = getDiffBufferStatus();
 
-    expect(xml).toContain('<attemptDiff count="1">');
+    expect(xml).toContain('<diff count="1">');
     expect(xml).toContain('diff --git');
     expect(xml).toContain('modified content');
   });
@@ -91,7 +90,7 @@ describe('diff functionality', () => {
     clearDiffBuffer();
 
     // Check if buffer is cleared
-    const xml = getDiffsAsXML();
+    const xml = getDiffBufferStatus();
     expect(xml).toBe('');
   });
 });
