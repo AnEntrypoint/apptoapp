@@ -265,6 +265,7 @@ async function main(instruction, errors) {
             + `Write comprehensive unit and integration tests\n`
             + `Use tests to discover and fix bugs\n`
             + `Handle edge cases and ensure full test coverage\n`
+            + `Always try to fix all known errors at once\n`
             + `Analyze logs carefully to avoid repetitive loops\n`
             
             + '\n// File Management\n'
