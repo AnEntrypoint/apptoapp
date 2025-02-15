@@ -136,22 +136,25 @@ function getDiffBufferStatus() {
   
   if (diffBuffer.length === 0) {
     logger.info('No diffs stored in buffer');
-    // Log git status for debugging
-    try {
-      const status = execSync('git status --short', { encoding: 'utf-8' });
-      logger.git('Current git status:', status || 'Clean working directory');
-    } catch (error) {
-      logger.error('Could not get git status:', error.message);
-    }
     return '';
   }
-  
-  const xml = diffBuffer.map(({ count, diff }) => {
+
+  // Get current git status
+  try {
+    const status = execSync('git status --porcelain').toString();
+    logger.git('Current git status:', status || 'Clean working directory');
+  } catch (error) {
+    logger.error('Could not get git status:', error.message);
+  }
+
+  // Process each diff
+  let xml = '';
+  for (const { diff, count } of diffBuffer) {
     const lines = diff.split('\n').length;
     logger.debug(`Processing diff ${count} with ${lines} lines`);
-    return `<attemptDiff count="${count}">${diff}</attemptDiff>`;
-  }).join('\n');
-  
+    xml += `<diff count="${count}">${diff}</diff>\n`;
+  }
+
   logger.debug(`Generated XML with ${diffBuffer.length} diff tags`);
   logger.debug(`------ END DIFF BUFFER STATUS ------\n\n`);
   return xml;
