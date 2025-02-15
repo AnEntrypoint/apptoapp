@@ -2,12 +2,33 @@
   "env": {
     "node": true,
     "es6": true,
-    "jest": true
+    "jest": true,
+    "browser": true
+  },
+  "globals": {
+    "process": true,
+    "__dirname": true,
+    "Buffer": true,
+    "setImmediate": true,
+    "jest": true,
+    "describe": true,
+    "test": true,
+    "expect": true,
+    "beforeEach": true,
+    "afterEach": true,
+    "afterAll": true
   },
   "parserOptions": {
     "ecmaVersion": 2020
   },
   "rules": {
-    "no-console": "off"
+    "no-console": "off",
+    "no-unused-vars": ["error", { 
+      "argsIgnorePattern": "^_",
+      "varsIgnorePattern": "^_"
+    }],
+    "no-prototype-builtins": "off",
+    "no-control-regex": "off",
+    "no-useless-escape": "off"
   }
 } 
