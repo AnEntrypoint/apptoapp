@@ -41,7 +41,8 @@ module.exports = {
     'jest-transformer.js',
     'jest.setup.js',
     'src/**/*.test.js',
-    'src/test/**/*'
+    'src/test/**/*',
+    'webpack.config.js'
   ],
   overrides: [
     {
@@ -52,6 +53,16 @@ module.exports = {
           varsIgnorePattern: '^_',
           argsIgnorePattern: '^_',
         }],
+      }
+    },
+    {
+      files: ['jest.setup.js', 'jest-transformer.js'],
+      env: {
+        jest: true,
+        node: true
+      },
+      rules: {
+        'no-undef': 'off'
       }
     }
   ],
