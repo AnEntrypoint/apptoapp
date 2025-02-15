@@ -2,14 +2,6 @@
  * @jest-environment node
  */
 
-// Mock console.log before any imports
-const mockConsoleLog = jest.fn();
-const originalConsole = global.console;
-global.console = {
-  ...originalConsole,
-  log: mockConsoleLog
-};
-
 // Mock chalk before any imports
 const mockChalk = {
   blue: jest.fn(str => str),
@@ -43,6 +35,18 @@ Date.prototype.toISOString = jest.fn(() => mockDate);
 const logger = require('../utils/logger');
 
 describe('logger', () => {
+  let mockConsoleLog;
+  let originalConsole;
+
+  beforeAll(() => {
+    mockConsoleLog = jest.fn();
+    originalConsole = global.console;
+    global.console = {
+      ...originalConsole,
+      log: mockConsoleLog
+    };
+  });
+
   beforeEach(() => {
     Object.values(mockChalk).forEach(mock => mock.mockClear());
     mockConsoleLog.mockClear();
