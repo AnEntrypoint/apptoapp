@@ -1,4 +1,8 @@
-// Mock chalk before requiring logger
+/**
+ * @jest-environment node
+ */
+
+// Mock chalk before any imports
 const mockChalk = {
   blue: jest.fn(str => str),
   green: jest.fn(str => str),
@@ -12,11 +16,13 @@ const mockChalk = {
 
 jest.mock('chalk', () => mockChalk);
 
+// Import logger after mocking chalk
+const logger = require('../utils/logger');
+
 describe('logger', () => {
   let consoleLogSpy;
   let originalConsoleLog;
   let originalDateToISOString;
-  let logger;
 
   beforeAll(() => {
     originalConsoleLog = console.log;
@@ -26,16 +32,13 @@ describe('logger', () => {
   });
 
   beforeEach(() => {
-    jest.isolateModules(() => {
-      logger = require('../utils/logger');
-    });
     console.log = jest.fn();
     consoleLogSpy = console.log;
+    Object.values(mockChalk).forEach(mock => mock.mockClear());
   });
 
   afterEach(() => {
     console.log.mockClear();
-    Object.values(mockChalk).forEach(mock => mock.mockClear());
   });
 
   afterAll(() => {
