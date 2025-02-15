@@ -4,8 +4,6 @@
 
 // Mock console.log before any imports
 const mockConsoleLog = jest.fn();
-const originalConsoleLog = console.log;
-console.log = mockConsoleLog;
 
 // Mock chalk before any imports
 const mockChalk = {
@@ -19,8 +17,18 @@ const mockChalk = {
   white: jest.fn(str => str)
 };
 
-// Mock chalk module
-jest.mock('chalk', () => ({
+// Mock Date.toISOString
+const mockDate = '2025-01-01T00:00:00.000Z';
+const originalToISOString = Date.prototype.toISOString;
+Date.prototype.toISOString = jest.fn(() => mockDate);
+
+// Setup mocks
+jest.doMock('console', () => ({
+  ...console,
+  log: mockConsoleLog
+}));
+
+jest.doMock('chalk', () => ({
   blue: str => mockChalk.blue(str),
   green: str => mockChalk.green(str),
   yellow: str => mockChalk.yellow(str),
@@ -31,13 +39,11 @@ jest.mock('chalk', () => ({
   white: str => mockChalk.white(str)
 }));
 
-// Mock Date.toISOString
-const mockDate = '2025-01-01T00:00:00.000Z';
-const originalToISOString = Date.prototype.toISOString;
-Date.prototype.toISOString = jest.fn(() => mockDate);
-
-// Import logger module
-const logger = require('../utils/logger');
+// Import logger module in isolated environment
+let logger;
+jest.isolateModules(() => {
+  logger = require('../utils/logger');
+});
 
 describe('logger', () => {
   beforeEach(() => {
@@ -47,7 +53,6 @@ describe('logger', () => {
   });
 
   afterAll(() => {
-    console.log = originalConsoleLog;
     Date.prototype.toISOString = originalToISOString;
   });
 

@@ -219,11 +219,10 @@ async function main(instruction, errors) {
       const diffsXML = getDiffBufferStatus();
       
       const artifacts = [
-        //`\n\n${cmdhistory.length > 0 ? `Logs: (fix the errors in the logs if needed)\n<logs>${cmdhistory.join('\n')}</logs>\n` : ''}\n\n`,
+        `\n\n<userinstruction>${instruction}</userinstruction>\n`,
         files?`\n\n---FILES---\n\n${files}\n\n---END OF FILES---\n\n`:``,
         processedHistory.length > 0 ? `\n\n<history>${processedHistory.join('\n')}</history>\n` : ``,
         `\n\n<nodeEnv>${process.env.NODE_ENV || 'development'}</nodeEnv>\n`,
-        `\n\n<userinstruction>${instruction}</userinstruction>\n`,
         `\n\n<attempts>This is attempt number ${attempts} of ${MAX_ATTEMPTS} to complete the user instruction: ${instruction} and fix the errors in the logs and tests</attempts>\n`,
         `\n\n<nodeVersion>${process.version}</nodeVersion>\n`,
         `\n\n<npmVersion>${safeExecSync('npm -v')}</npmVersion>\n`,
