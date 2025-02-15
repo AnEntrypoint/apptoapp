@@ -32,8 +32,9 @@ const originalToISOString = Date.prototype.toISOString;
 Date.prototype.toISOString = jest.fn(() => mockDate);
 
 // Mock console.log at the module level
+const mockConsoleLog = jest.fn();
 const originalConsoleLog = console.log;
-console.log = jest.fn();
+global.console.log = mockConsoleLog;
 
 // Clear module cache
 jest.resetModules();
@@ -44,18 +45,18 @@ const logger = require('../utils/logger');
 describe('logger', () => {
   beforeEach(() => {
     Object.values(mockChalk).forEach(mock => mock.mockClear());
-    console.log.mockClear();
+    mockConsoleLog.mockClear();
     Date.prototype.toISOString.mockClear();
   });
 
   afterAll(() => {
-    console.log = originalConsoleLog;
+    global.console.log = originalConsoleLog;
     Date.prototype.toISOString = originalToISOString;
   });
 
   test('should log info messages', () => {
     logger.info('Test info message');
-    expect(console.log).toHaveBeenCalledWith(
+    expect(mockConsoleLog).toHaveBeenCalledWith(
       'ℹ️ [2025-01-01T00:00:00.000Z] INFO    ',
       'Test info message'
     );
@@ -64,7 +65,7 @@ describe('logger', () => {
 
   test('should log success messages', () => {
     logger.success('Test success message');
-    expect(console.log).toHaveBeenCalledWith(
+    expect(mockConsoleLog).toHaveBeenCalledWith(
       '✅ [2025-01-01T00:00:00.000Z] SUCCESS ',
       'Test success message'
     );
@@ -73,7 +74,7 @@ describe('logger', () => {
 
   test('should log warning messages', () => {
     logger.warn('Test warning message');
-    expect(console.log).toHaveBeenCalledWith(
+    expect(mockConsoleLog).toHaveBeenCalledWith(
       '⚠️ [2025-01-01T00:00:00.000Z] WARNING ',
       'Test warning message'
     );
@@ -82,7 +83,7 @@ describe('logger', () => {
 
   test('should log error messages', () => {
     logger.error('Test error message');
-    expect(console.log).toHaveBeenCalledWith(
+    expect(mockConsoleLog).toHaveBeenCalledWith(
       '❌ [2025-01-01T00:00:00.000Z] ERROR  ',
       'Test error message'
     );
@@ -91,7 +92,7 @@ describe('logger', () => {
 
   test('should log debug messages', () => {
     logger.debug('Test debug message');
-    expect(console.log).toHaveBeenCalledWith(
+    expect(mockConsoleLog).toHaveBeenCalledWith(
       '🔍 [2025-01-01T00:00:00.000Z] DEBUG  ',
       'Test debug message'
     );
@@ -100,7 +101,7 @@ describe('logger', () => {
 
   test('should log system messages', () => {
     logger.system('Test system message');
-    expect(console.log).toHaveBeenCalledWith(
+    expect(mockConsoleLog).toHaveBeenCalledWith(
       '⚙️ [2025-01-01T00:00:00.000Z] SYSTEM ',
       'Test system message'
     );
@@ -109,7 +110,7 @@ describe('logger', () => {
 
   test('should log git messages', () => {
     logger.git('Test git message');
-    expect(console.log).toHaveBeenCalledWith(
+    expect(mockConsoleLog).toHaveBeenCalledWith(
       '📦 [2025-01-01T00:00:00.000Z] GIT   ',
       'Test git message'
     );
@@ -118,7 +119,7 @@ describe('logger', () => {
 
   test('should log file messages', () => {
     logger.file('Test file message');
-    expect(console.log).toHaveBeenCalledWith(
+    expect(mockConsoleLog).toHaveBeenCalledWith(
       '📄 [2025-01-01T00:00:00.000Z] FILE  ',
       'Test file message'
     );
@@ -128,7 +129,7 @@ describe('logger', () => {
   test('should truncate long strings', () => {
     const longString = 'a'.repeat(600);
     logger.info(longString);
-    expect(console.log).toHaveBeenCalledWith(
+    expect(mockConsoleLog).toHaveBeenCalledWith(
       'ℹ️ [2025-01-01T00:00:00.000Z] INFO    ',
       `${'a'.repeat(500)}⟪ 100 characters skipped ⟫`
     );
