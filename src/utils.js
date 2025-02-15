@@ -89,11 +89,30 @@ async function loadNoContentsPatterns(ignoreFile = '.nocontents') {
 }
 
 async function makeApiRequest(messages, tools, apiKey, endpoint, model = 'mistral') {
-  // Determine which provider to use based on model parameter or environment variables
-  const providerType = model === 'copilot-claude' || process.env.COPILOT_CLAUDE_KEY ? 'copilot-claude' : 'mistral';
-  const providerKey = providerType === 'copilot-claude' ? process.env.COPILOT_CLAUDE_KEY : apiKey;
+  // Check if any non-system message contains <upgradeModel>
+  const shouldUpgrade = messages.some(msg => 
+    msg.content && 
+    msg.role !== 'system' && 
+    msg.content.includes('<upgradeModel>')
+  );
+  
+  // Start with Mistral as the default, using the passed in apiKey
+  let providerType = model;  // Use the model parameter as the default provider type
+  let providerKey = apiKey;  // Always use the passed in apiKey for Mistral
+
+  // Only switch to Copilot-Claude if explicitly requested via <upgradeModel> in non-system messages
+  if (shouldUpgrade && process.env.COPILOT_API_KEY) {
+    providerType = 'copilot-claude';
+    providerKey = process.env.COPILOT_API_KEY;
+    console.log('Upgrade requested and Copilot API key available, switching to Copilot-Claude');
+  } else if (shouldUpgrade) {
+    console.log('Upgrade requested but no Copilot API key available, staying with current model');
+  } else {
+    console.log(`Using ${model} model as specified`);
+  }
 
   try {
+    console.log(`Provider selection: Using ${providerType}${shouldUpgrade ? ' (upgrade requested)' : ''} with key ${providerKey?.slice(0, 5)}...`);
     const provider = createLLMProvider(providerType, providerKey);
     logger.info(`Using ${providerType} provider for API request...`);
     

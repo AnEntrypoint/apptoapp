@@ -31,29 +31,27 @@ describe('makeApiRequest', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     createLLMProvider.mockReturnValue(mockProvider);
+    delete process.env.COPILOT_API_KEY;
   });
 
   test('should use Mistral by default', async () => {
-    await makeApiRequest([], [], 'test-key', 'test-endpoint');
+    await makeApiRequest([{ content: 'test' }], [], 'test-key', 'test-endpoint');
     expect(createLLMProvider).toHaveBeenCalledWith('mistral', 'test-key');
   });
 
-  test('should use Copilot-Claude when specified', async () => {
-    process.env.COPILOT_CLAUDE_KEY = 'test-copilot-key';
-    await makeApiRequest([], [], 'test-key', 'test-endpoint', 'copilot-claude');
+  test('should use Copilot-Claude when <upgradeModel> is present and API key available', async () => {
+    process.env.COPILOT_API_KEY = 'test-copilot-key';
+    await makeApiRequest([{ content: 'test with <upgradeModel>' }], [], 'test-key', 'test-endpoint');
     expect(createLLMProvider).toHaveBeenCalledWith('copilot-claude', 'test-copilot-key');
-    delete process.env.COPILOT_CLAUDE_KEY;
   });
 
-  test('should use Copilot-Claude when env var is set regardless of model param', async () => {
-    process.env.COPILOT_CLAUDE_KEY = 'test-copilot-key';
-    await makeApiRequest([], [], 'test-key', 'test-endpoint', 'mistral');
-    expect(createLLMProvider).toHaveBeenCalledWith('copilot-claude', 'test-copilot-key');
-    delete process.env.COPILOT_CLAUDE_KEY;
+  test('should fallback to Mistral when <upgradeModel> is present but no Copilot API key', async () => {
+    await makeApiRequest([{ content: 'test with <upgradeModel>' }], [], 'test-key', 'test-endpoint');
+    expect(createLLMProvider).toHaveBeenCalledWith('mistral', 'test-key');
   });
 
   test('should handle API errors', async () => {
     mockProvider.makeRequest.mockRejectedValueOnce(new Error('API Error'));
-    await expect(makeApiRequest([], [], 'test-key', 'test-endpoint')).rejects.toThrow('API Error');
+    await expect(makeApiRequest([{ content: 'test' }], [], 'test-key', 'test-endpoint')).rejects.toThrow('API Error');
   });
 });

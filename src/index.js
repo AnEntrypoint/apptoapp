@@ -10,8 +10,7 @@ const { program } = require('commander');
 const logger = require('./utils/logger');
 
 dotenv.config();
-
-const TEST_TIMEOUT = process.env.CI ? 300000 : 180000; // 5 minutes for CI, 3 minutes locally
+const TEST_TIMEOUT = process.env.CI ? 300000 : 10000; // 10 seconds for all environments
 
 async function runBuild() {
   let result; let code; let stdout; let
@@ -85,7 +84,7 @@ async function runBuild() {
       }
     };
 
-    testProcess = executeCommand('npx jest --detectOpenHandles --forceExit --testTimeout=120000 --maxWorkers=1', logHandler);
+    testProcess = executeCommand('npx jest --detectOpenHandles --forceExit --testTimeout=10000 --maxWorkers=1', logHandler);
     
     // Add universal timeout handling regardless of NODE_ENV
     timeoutId = setTimeout(handleTimeout, TEST_TIMEOUT);
@@ -104,7 +103,7 @@ async function runBuild() {
     const finalExitTimer = setTimeout(() => {
       logger.error('FINAL FORCED EXIT - PROCESS HUNG');
       forceKill();
-    }, TEST_TIMEOUT + 180000); // Add 1 minute buffer to initial timeout
+    }, TEST_TIMEOUT + 5000); // Add 5 second buffer to initial timeout
 
     // Cleanup timers when process completes
     testProcess.finally(() => {
@@ -138,7 +137,8 @@ const summaryBuffer = [];
 const cliBuffer = [];
 let currentModel = 'mistral'; // Default model
 
-async function main(instruction, errors, model = currentModel) {
+async function main(instruction, errors, model = 'mistral') {
+  console.log('Using model:', model); // Add logging to track model selection
   let retryCount = 0;
   const MAX_RETRIES = 3;
   const MAX_ATTEMPTS = 20;
@@ -179,29 +179,32 @@ async function main(instruction, errors, model = currentModel) {
               role: "system",
               content: "Remove duplicate lines from this content while maintaining order. Only respond with the deduplicated text."
             }, {
-              role: "user",
-              content: content.join('\n')
+              role: "user", 
+              content: Array.isArray(content) ? content.join('\n') : content
             }],
             [],
-            process.env.MISTRAL_API_KEY,
-            'https://codestral.mistral.ai/v1/chat/completions'
+            process.env.MISTRAL_API_KEY,  // Always pass Mistral API key
+            'https://codestral.mistral.ai/v1/chat/completions',
+            'mistral'  // Always use Mistral for deduplication
           );
-          return response.choices[0].message.content.split('\n');
+          const cleaned = response.choices[0].message.content;
+          return cleaned.split('\n').filter(l => l.trim());
         } catch (error) {
-          logger.error('Deduplication failed, using original content:', error.message);
-          return content; // Fallback to original content
+          logger.error('Deduplication failed:', error.message);
+          logger.debug('Falling back to original content');
+          return Array.isArray(content) ? content : [content];
         }
       }
 
       // Process summary buffer before using
       let processedHistory = [];
       if (summaryBuffer.length > 0) {
-        logger.debug('Pre-processing summary buffer (original length:', summaryBuffer.length, ')');
+        logger.debug('Pre-processing summary buffer (original length:', summaryBuffer.join('\n').length, ')');
         try {
           if (!process.env.MISTRAL_API_KEY) throw new Error('No API key for deduplication');
           processedHistory = await deduplicateContentWithLLM([...new Set(summaryBuffer)]);
-          summaryBuffer.length = 0; // Clear original buffer
-          summaryBuffer.push(...processedHistory); // Replace with deduplicated
+          summaryBuffer.length = 0;
+          summaryBuffer.push(...processedHistory);
           logger.debug('Deduplicated summary buffer (new length:', processedHistory.length, ')');
         } catch (error) {
           logger.error('Summary processing error:', error.message);
@@ -222,7 +225,7 @@ async function main(instruction, errors, model = currentModel) {
       
       const artifacts = [
         `\n\n<userinstruction>${instruction}</userinstruction>\n`,
-        files?`\n\n---FILES---\n\n${files}\n\n---END OF FILES---\n\n`:``,
+        files?`\n\n${files}\n\n`:``,
         processedHistory.length > 0 ? `\n\n<history>${processedHistory.join('\n')}</history>\n` : ``,
         `\n\n<nodeEnv>${process.env.NODE_ENV || 'development'}</nodeEnv>\n`,
         `\n\n<attempts>This is attempt number ${attempts} of ${MAX_ATTEMPTS} to complete the user instruction: ${instruction} and fix the errors in the logs and tests</attempts>\n`,
@@ -268,8 +271,9 @@ async function main(instruction, errors, model = currentModel) {
             + `Handle edge cases and ensure full test coverage\n`
             + `Always try to fix all known errors at once\n`
             + `Analyze logs carefully to avoid repetitive loops\n`
-            + `If you are having trouble fixing the errors repeatedly, respond with <upgradeModel>copilot-claude</upgradeModel>\n`
-            
+            + `Look at the logs and history, if the history indicates you are having trouble fixing the errors repeatedly, respond with <upgradeModel>copilot-claude</upgradeModel>\n`
+            + `Never run tests using the cli commands, they run automatically at the end of the process\n`
+
             + '\n// File Management\n'
             + `Use consistent file structure\n`
             + `Separate tests into their own folder\n`
@@ -278,7 +282,6 @@ async function main(instruction, errors, model = currentModel) {
             
             + '\n// Dependency Management\n'
             + `Use CLI for package management with --save/--save-dev\n`
-            + `Only install essential packages\n`
             + `Resolve conflicts by removing package-lock.json and reinstalling\n`
             
             + '\n// Documentation\n'
@@ -296,8 +299,7 @@ async function main(instruction, errors, model = currentModel) {
             + '\n// Performance & Security\n'
             + `Optimize performance while handling edge cases\n`
             + `Follow best practices for security and maintainability\n`
-            + `Fix linting errors - tests will run automatically\n`
-            
+            + `Always Fix all test and linting errors\n`
         },
         {
           role: 'user',
@@ -317,8 +319,10 @@ async function main(instruction, errors, model = currentModel) {
           const response = await makeApiRequest(
             messages,
             [],
-            process.env.MISTRAL_API_KEY,
-            'https://codestral.mistral.ai/v1/chat/completions',
+            process.env.MISTRAL_API_KEY,  // Always pass Mistral API key first
+            model === 'copilot-claude' 
+              ? 'https://api.individual.githubcopilot.com/github/chat/threads'
+              : 'https://codestral.mistral.ai/v1/chat/completions',
             model
           );
 
@@ -345,8 +349,8 @@ async function main(instruction, errors, model = currentModel) {
     }
 
     // Check for upgradeModel tag
-    const upgradeModelMatch = brainstormedTasks.match(/<upgradeModel>(.*?)<\/upgradeModel>/);
-    const nextModel = upgradeModelMatch ? upgradeModelMatch[1] : 'mistral';
+    const upgradeModelMatch = brainstormedTasks.match(/<upgradeModel>(.*?)<\/upgradeModel>/i);
+    const nextModel = upgradeModelMatch ? upgradeModelMatch[1].toLowerCase() : currentModel;
 
     logger.debug(`${JSON.stringify(brainstormedTasks).length} B of reasoning output`);
     //logger.debug(brainstormedTasks);
@@ -468,7 +472,13 @@ program
   .argument('[instruction]', 'Instruction to execute')
   .option('-m, --model <model>', 'LLM model to use (mistral or copilot-claude)', 'mistral')
   .action((instruction, options) => {
-    currentModel = options.model;
+    if (options && options.model) {
+      console.log('Model specified in options:', options.model);
+      currentModel = options.model;
+    } else {
+      console.log('Using default Mistral model');
+      currentModel = 'mistral';
+    }
     main(instruction).catch((error) => {
       logger.error('Application error:', error);
       process.exit(0);
