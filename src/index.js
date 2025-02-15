@@ -368,7 +368,7 @@ async function main(instruction, errors, model = 'mistral') {
     }
 
     if (process.env.NODE_ENV !== 'test' && filesToEdit.length === 0 && cliCommands.length === 0 && summaries.length === 0) {
-      logger.debug(brainstormedTasks);
+      //logger.debug(brainstormedTasks);
       throw new Error('No files to edit, cli commands or summaries found');
     }
 

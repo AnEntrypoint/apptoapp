@@ -8,16 +8,54 @@ describe('LLM Providers', () => {
     // Clear all mocks before each test
     jest.clearAllMocks();
     // Mock successful response
-    global.fetch.mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({
-        choices: [{
-          message: {
-            content: 'Test response'
-          }
-        }]
-      }),
-      text: () => Promise.resolve('data: {"type":"text","text":"Test response"}\n')
+    global.fetch.mockImplementation((url, options) => {
+      const headers = new Map([
+        ['content-type', url.includes('codestral.mistral.ai') ? 'application/json' : 'text/event-stream']
+      ]);
+      
+      // Verify auth header is present
+      const authHeader = options.headers['Authorization'] || options.headers['authorization'];
+      if (!authHeader) {
+        return Promise.resolve({
+          ok: false,
+          status: 401,
+          statusText: 'Unauthorized',
+          text: () => Promise.resolve('{"error": {"message": "Missing authorization header"}}'),
+          headers
+        });
+      }
+
+      if (url.includes('codestral.mistral.ai')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          statusText: 'OK',
+          headers,
+          json: () => Promise.resolve({
+            choices: [{
+              message: {
+                content: 'Test response'
+              }
+            }]
+          }),
+          text: () => Promise.resolve(JSON.stringify({
+            choices: [{
+              message: {
+                content: 'Test response'
+              }
+            }]
+          }))
+        });
+      } else if (url.includes('api.individual.githubcopilot.com')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          statusText: 'OK',
+          headers,
+          text: () => Promise.resolve('data: {"choices":[{"text":"Test response"}]}\n')
+        });
+      }
+      return Promise.reject(new Error('Unknown API endpoint'));
     });
   });
 

@@ -46,8 +46,7 @@ class MistralProvider {
         stream: false,
       };
 
-      logger.debug('Mistral API Request Body:', JSON.stringify(requestBody, null, 2));
-
+ 
       const response = await fetch(this.endpoint, {
         method: 'POST',
         headers: {
@@ -77,148 +76,21 @@ class MistralProvider {
 }
 
 class CopilotClaudeProvider {
-  constructor() {
-    this.token = null;
+  constructor(apiKey) {
+    this.token = apiKey;
     this.tokenPath = path.join(process.cwd(), '.copilot_token');
     this.clientId = 'Iv1.b507a08c87ecfe98';
-    this.setupTokenRefresh();
-  }
-
-  async setupTokenRefresh() {
-    await this.ensureToken();
-    // Refresh token every 25 minutes
-    setInterval(() => this.ensureToken(), 25 * 60 * 1000);
-  }
-
-  async ensureToken() {
-    try {
-      await this.loadToken();
-    } catch (error) {
-      await this.authenticate();
-    }
-
-    if (!this.token || this.isTokenExpired()) {
-      await this.refreshToken();
-    }
-  }
-
-  async loadToken() {
-    try {
-      const token = await fs.readFile(this.tokenPath, 'utf8');
-      this.token = token.trim();
-      logger.debug('Loaded existing Copilot token');
-    } catch (error) {
-      logger.debug('No existing Copilot token found');
-      throw error;
-    }
-  }
-
-  isTokenExpired() {
-    if (!this.token) return true;
-    const pairs = this.token.split(';');
-    for (const pair of pairs) {
-      const [key, value] = pair.split('=');
-      if (key.trim() === 'exp') {
-        return parseInt(value.trim()) <= Math.floor(Date.now() / 1000);
-      }
-    }
-    return true;
-  }
-
-  async authenticate() {
-    logger.info('Starting Copilot authentication...');
-    
-    const deviceCodeResp = await fetch('https://github.com/login/device/code', {
-      method: 'POST',
-      headers: {
-        'accept': 'application/json',
-        'editor-version': 'Neovim/0.6.1',
-        'editor-plugin-version': 'copilot.vim/1.16.0',
-        'content-type': 'application/json',
-        'user-agent': 'GithubCopilot/1.155.0',
-        'accept-encoding': 'gzip,deflate,br'
-      },
-      body: JSON.stringify({
-        client_id: this.clientId,
-        scope: 'read:user'
-      })
-    });
-
-    const deviceData = await deviceCodeResp.json();
-    
-    logger.info(`Please visit ${deviceData.verification_uri} and enter code ${deviceData.user_code} to authenticate.`);
-
-    let tokenData;
-    let attempts = 0;
-    const maxAttempts = 60; // 5 minutes max (5 seconds * 60)
-
-    while (attempts < maxAttempts) {
-      await new Promise(resolve => setTimeout(resolve, 5000));
-      attempts += 1;
-      
-      const tokenResp = await fetch('https://github.com/login/oauth/access_token', {
-        method: 'POST',
-        headers: {
-          'accept': 'application/json',
-          'editor-version': 'Neovim/0.6.1',
-          'editor-plugin-version': 'copilot.vim/1.16.0',
-          'content-type': 'application/json',
-          'user-agent': 'GithubCopilot/1.155.0',
-          'accept-encoding': 'gzip,deflate,br'
-        },
-        body: JSON.stringify({
-          client_id: this.clientId,
-          device_code: deviceData.device_code,
-          grant_type: 'urn:ietf:params:oauth:grant-type:device_code'
-        })
-      });
-
-      tokenData = await tokenResp.json();
-      
-      if (tokenData.access_token) {
-        await fs.writeFile(this.tokenPath, tokenData.access_token);
-        this.token = tokenData.access_token;
-        logger.info('Copilot authentication successful!');
-        break;
-      }
-    }
-
-    if (!tokenData?.access_token) {
-      throw new Error('Authentication timeout - please try again');
-    }
-  }
-
-  async refreshToken() {
-    logger.debug('Refreshing Copilot token...');
-    
-    const resp = await fetch('https://api.github.com/copilot_internal/v2/token', {
-      headers: {
-        'authorization': `token ${this.token}`,
-        'editor-version': 'Neovim/0.6.1',
-        'editor-plugin-version': 'copilot.vim/1.16.0',
-        'user-agent': 'GithubCopilot/1.155.0'
-      }
-    });
-
-    const data = await resp.json();
-    if (data.token) {
-      this.token = data.token;
-      await fs.writeFile(this.tokenPath, this.token);
-      logger.debug('Copilot token refreshed successfully');
-    } else {
-      throw new Error('Failed to refresh Copilot token');
-    }
   }
 
   async makeRequest(messages, tools = [], language = 'javascript') {
     return retryWithBackoff(async () => {
-      await this.ensureToken();
-      
       if (!Array.isArray(messages) || messages.length === 0) {
         throw new Error('Messages array must not be empty');
       }
 
       const lastMessage = messages[messages.length - 1];
+      const systemMessage = messages.find(m => m.role === 'system');
+      
       if (!lastMessage.content || typeof lastMessage.content !== 'string') {
         throw new Error('Message content must not be empty');
       }
@@ -227,32 +99,24 @@ class CopilotClaudeProvider {
         logger.info('Making Copilot completion request...');
         logger.debug('Request messages:', messages.map(m => ({ role: m.role, length: m.content?.length || 0 })));
         
+        const threadId = crypto.randomUUID();
         const requestBody = {
-          prompt: lastMessage.content,
-          suffix: '',
-          max_tokens: 1000,
-          temperature: 0,
-          top_p: 1,
-          n: 1,
-          stop: ['\n'],
-          nwo: 'github/copilot.vim',
-          stream: true,
-          extra: {
-            language
-          }
+          content: lastMessage.content,
+          customInstructions: systemMessage?.content || '',
+          model: 'claude-3.5-sonnet',
+          mode: 'immersive',
+          tools: tools
         };
 
-        logger.debug('API Request Body:', JSON.stringify(requestBody, null, 2));
+        //logger.debug('API Request Body:', JSON.stringify(requestBody, null, 2));
 
-        const response = await fetch('https://copilot-proxy.githubusercontent.com/v1/engines/copilot-codex/completions', {
+        const response = await fetch(`https://api.individual.githubcopilot.com/github/chat/threads/${threadId}/messages`, {
           method: 'POST',
           headers: {
-            'accept': 'application/json',
-            'authorization': `Bearer ${this.token}`,
-            'content-type': 'application/json',
-            'editor-version': 'Neovim/0.6.1',
-            'editor-plugin-version': 'copilot.vim/1.16.0',
-            'user-agent': 'GithubCopilot/1.155.0'
+            'accept': '*/*',
+            'authorization': `GitHub-Bearer ${this.token}`,
+            'content-type': 'text/event-stream',
+            'copilot-integration-id': 'copilot-chat'
           },
           body: JSON.stringify(requestBody)
         });
@@ -271,7 +135,7 @@ class CopilotClaudeProvider {
             headers: Object.fromEntries(response.headers.entries()),
             error: errorData
           });
-          throw new Error(`API Error ${response.status}: ${errorData.error?.message || response.statusText}`);
+          throw new Error(`Copilot-Claude API error: ${errorData.error?.message || response.statusText}`);
         }
 
         const responseText = await response.text();
@@ -318,7 +182,7 @@ function createLLMProvider(type, apiKey) {
     case 'mistral':
       return new MistralProvider(apiKey);
     case 'copilot-claude':
-      return new CopilotClaudeProvider();
+      return new CopilotClaudeProvider(apiKey);
     default:
       throw new Error(`Unsupported LLM provider: ${type}`);
   }

@@ -1,81 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="jest tests" tests="33" failures="0" errors="0" time="6.489">
-  <testsuite name="LLM Providers" errors="0" failures="0" skipped="0" timestamp="2025-02-15T20:13:03" time="0.946" tests="10">
-    <testcase classname="LLM Providers MistralProvider should make request with correct parameters" name="LLM Providers MistralProvider should make request with correct parameters" time="0.013">
+<testsuites name="jest tests" tests="10" failures="2" errors="0" time="3.674">
+  <testsuite name="LLM Providers" errors="0" failures="2" skipped="0" timestamp="2025-02-15T21:53:45" time="3.572" tests="10">
+    <testcase classname="LLM Providers MistralProvider should make request with correct parameters" name="LLM Providers MistralProvider should make request with correct parameters" time="0.763">
+      <failure>Error: Mistral API error: Unauthorized
+    at C:\dev\apptoapp\src\llm\providers.js:71:15
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at retryWithBackoff (C:\dev\apptoapp\src\llm\providers.js:13:14)
+    at Object.&lt;anonymous&gt; (C:\dev\apptoapp\src\test\providers.test.js:53:7)</failure>
     </testcase>
-    <testcase classname="LLM Providers MistralProvider should handle API errors" name="LLM Providers MistralProvider should handle API errors" time="0.014">
+    <testcase classname="LLM Providers MistralProvider should handle API errors" name="LLM Providers MistralProvider should handle API errors" time="0.766">
     </testcase>
-    <testcase classname="LLM Providers CopilotClaudeProvider should make request with correct parameters" name="LLM Providers CopilotClaudeProvider should make request with correct parameters" time="0.006">
+    <testcase classname="LLM Providers CopilotClaudeProvider should make request with correct parameters" name="LLM Providers CopilotClaudeProvider should make request with correct parameters" time="0.985">
+      <failure>Error: Copilot-Claude API error: Bad Request
+    at C:\dev\apptoapp\src\llm\providers.js:139:17
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at retryWithBackoff (C:\dev\apptoapp\src\llm\providers.js:13:14)
+    at Object.&lt;anonymous&gt; (C:\dev\apptoapp\src\test\providers.test.js:102:7)</failure>
     </testcase>
-    <testcase classname="LLM Providers CopilotClaudeProvider should handle API errors" name="LLM Providers CopilotClaudeProvider should handle API errors" time="0.003">
+    <testcase classname="LLM Providers CopilotClaudeProvider should handle API errors" name="LLM Providers CopilotClaudeProvider should handle API errors" time="0.304">
     </testcase>
-    <testcase classname="LLM Providers CopilotClaudeProvider should throw error for empty messages array" name="LLM Providers CopilotClaudeProvider should throw error for empty messages array" time="0.006">
+    <testcase classname="LLM Providers CopilotClaudeProvider should throw error for empty messages array" name="LLM Providers CopilotClaudeProvider should throw error for empty messages array" time="0.002">
     </testcase>
-    <testcase classname="LLM Providers CopilotClaudeProvider should throw error for invalid messages array" name="LLM Providers CopilotClaudeProvider should throw error for invalid messages array" time="0.008">
+    <testcase classname="LLM Providers CopilotClaudeProvider should throw error for invalid messages array" name="LLM Providers CopilotClaudeProvider should throw error for invalid messages array" time="0.001">
     </testcase>
-    <testcase classname="LLM Providers CopilotClaudeProvider should throw error for messages without content" name="LLM Providers CopilotClaudeProvider should throw error for messages without content" time="0.003">
+    <testcase classname="LLM Providers CopilotClaudeProvider should throw error for messages without content" name="LLM Providers CopilotClaudeProvider should throw error for messages without content" time="0.001">
     </testcase>
-    <testcase classname="LLM Providers createLLMProvider should create MistralProvider" name="LLM Providers createLLMProvider should create MistralProvider" time="0.002">
+    <testcase classname="LLM Providers createLLMProvider should create MistralProvider" name="LLM Providers createLLMProvider should create MistralProvider" time="0">
     </testcase>
-    <testcase classname="LLM Providers createLLMProvider should create CopilotClaudeProvider" name="LLM Providers createLLMProvider should create CopilotClaudeProvider" time="0.002">
+    <testcase classname="LLM Providers createLLMProvider should create CopilotClaudeProvider" name="LLM Providers createLLMProvider should create CopilotClaudeProvider" time="0">
     </testcase>
-    <testcase classname="LLM Providers createLLMProvider should throw error for unsupported provider" name="LLM Providers createLLMProvider should throw error for unsupported provider" time="0.003">
-    </testcase>
-  </testsuite>
-  <testsuite name="main" errors="0" failures="0" skipped="0" timestamp="2025-02-15T20:13:04" time="2.806" tests="2">
-    <testcase classname="main should handle test instruction" name="main should handle test instruction" time="1.492">
-    </testcase>
-    <testcase classname="main should collect diffs after each attempt" name="main should collect diffs after each attempt" time="0.878">
-    </testcase>
-  </testsuite>
-  <testsuite name="diff" errors="0" failures="0" skipped="0" timestamp="2025-02-15T20:13:07" time="2.088" tests="5">
-    <testcase classname="diff should return the difference between two numbers" name="diff should return the difference between two numbers" time="0.001">
-    </testcase>
-    <testcase classname="diff should handle negative numbers" name="diff should handle negative numbers" time="0.002">
-    </testcase>
-    <testcase classname="diff should handle zero" name="diff should handle zero" time="0.002">
-    </testcase>
-    <testcase classname="diff functionality should generate and store diffs" name="diff functionality should generate and store diffs" time="1.029">
-    </testcase>
-    <testcase classname="diff functionality should clear diff buffer" name="diff functionality should clear diff buffer" time="0.916">
-    </testcase>
-  </testsuite>
-  <testsuite name="Logger" errors="0" failures="0" skipped="0" timestamp="2025-02-15T20:13:09" time="0.143" tests="8">
-    <testcase classname="Logger should truncate long strings" name="Logger should truncate long strings" time="0.002">
-    </testcase>
-    <testcase classname="Logger should not truncate short strings" name="Logger should not truncate short strings" time="0.002">
-    </testcase>
-    <testcase classname="Logger should handle non-string inputs" name="Logger should handle non-string inputs" time="0.002">
-    </testcase>
-    <testcase classname="Logger should handle undefined input" name="Logger should handle undefined input" time="0.001">
-    </testcase>
-    <testcase classname="Logger should handle null input" name="Logger should handle null input" time="0.001">
-    </testcase>
-    <testcase classname="Logger should handle circular references" name="Logger should handle circular references" time="0.001">
-    </testcase>
-    <testcase classname="Logger should format values correctly" name="Logger should format values correctly" time="0.003">
-    </testcase>
-    <testcase classname="Logger logging functions should not throw" name="Logger logging functions should not throw" time="0.004">
-    </testcase>
-  </testsuite>
-  <testsuite name="utils" errors="0" failures="0" skipped="0" timestamp="2025-02-15T20:13:10" time="0.152" tests="6">
-    <testcase classname="utils should return the sum of two numbers" name="utils should return the sum of two numbers" time="0.002">
-    </testcase>
-    <testcase classname="utils should return the product of two numbers" name="utils should return the product of two numbers" time="0.002">
-    </testcase>
-    <testcase classname="makeApiRequest should use Mistral by default" name="makeApiRequest should use Mistral by default" time="0.01">
-    </testcase>
-    <testcase classname="makeApiRequest should use Copilot-Claude when specified" name="makeApiRequest should use Copilot-Claude when specified" time="0.011">
-    </testcase>
-    <testcase classname="makeApiRequest should use Copilot-Claude when env var is set regardless of model param" name="makeApiRequest should use Copilot-Claude when env var is set regardless of model param" time="0.004">
-    </testcase>
-    <testcase classname="makeApiRequest should handle API errors" name="makeApiRequest should handle API errors" time="0.007">
-    </testcase>
-  </testsuite>
-  <testsuite name="tools" errors="0" failures="0" skipped="0" timestamp="2025-02-15T20:13:10" time="0.162" tests="2">
-    <testcase classname="tools should execute a command and return the output" name="tools should execute a command and return the output" time="0.026">
-    </testcase>
-    <testcase classname="tools should handle errors when executing a command" name="tools should handle errors when executing a command" time="0.027">
+    <testcase classname="LLM Providers createLLMProvider should throw error for unsupported provider" name="LLM Providers createLLMProvider should throw error for unsupported provider" time="0.001">
     </testcase>
   </testsuite>
 </testsuites>
