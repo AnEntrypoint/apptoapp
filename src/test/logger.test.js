@@ -16,15 +16,13 @@ const mockChalk = {
 
 jest.mock('chalk', () => mockChalk);
 
-// Clear module cache
-jest.resetModules();
-
-// Import logger after mocking chalk
-const logger = require('../utils/logger');
+// Import logger module
+const loggerModule = require('../utils/logger');
 
 describe('logger', () => {
   let consoleLogSpy;
   let originalDateToISOString;
+  let logger;
 
   beforeAll(() => {
     originalDateToISOString = Date.prototype.toISOString;
@@ -36,6 +34,8 @@ describe('logger', () => {
   });
 
   beforeEach(() => {
+    jest.resetModules();
+    logger = require('../utils/logger');
     consoleLogSpy = jest.spyOn(console, 'log');
     Object.values(mockChalk).forEach(mock => mock.mockClear());
     consoleLogSpy.mockClear();
@@ -46,13 +46,13 @@ describe('logger', () => {
   });
 
   test('should format log prefix correctly', () => {
-    const prefix = logger.formatPrefix('INFO');
+    const prefix = loggerModule.formatPrefix('INFO');
     expect(prefix).toBe('ℹ️ [2025-01-01T00:00:00.000Z] INFO    ');
     expect(mockChalk.blue).toHaveBeenCalled();
   });
 
   test('should log info messages', () => {
-    logger.info('Test info message');
+    loggerModule.info('Test info message');
     expect(consoleLogSpy).toHaveBeenCalledWith(
       'ℹ️ [2025-01-01T00:00:00.000Z] INFO    ',
       'Test info message'
@@ -60,7 +60,7 @@ describe('logger', () => {
   });
 
   test('should log success messages', () => {
-    logger.success('Test success message');
+    loggerModule.success('Test success message');
     expect(consoleLogSpy).toHaveBeenCalledWith(
       '✅ [2025-01-01T00:00:00.000Z] SUCCESS ',
       'Test success message'
@@ -68,7 +68,7 @@ describe('logger', () => {
   });
 
   test('should log warning messages', () => {
-    logger.warn('Test warning message');
+    loggerModule.warn('Test warning message');
     expect(consoleLogSpy).toHaveBeenCalledWith(
       '⚠️ [2025-01-01T00:00:00.000Z] WARNING ',
       'Test warning message'
@@ -76,7 +76,7 @@ describe('logger', () => {
   });
 
   test('should log error messages', () => {
-    logger.error('Test error message');
+    loggerModule.error('Test error message');
     expect(consoleLogSpy).toHaveBeenCalledWith(
       '❌ [2025-01-01T00:00:00.000Z] ERROR  ',
       'Test error message'
@@ -84,7 +84,7 @@ describe('logger', () => {
   });
 
   test('should log debug messages', () => {
-    logger.debug('Test debug message');
+    loggerModule.debug('Test debug message');
     expect(consoleLogSpy).toHaveBeenCalledWith(
       '🔍 [2025-01-01T00:00:00.000Z] DEBUG  ',
       'Test debug message'
@@ -92,7 +92,7 @@ describe('logger', () => {
   });
 
   test('should log system messages', () => {
-    logger.system('Test system message');
+    loggerModule.system('Test system message');
     expect(consoleLogSpy).toHaveBeenCalledWith(
       '⚙️ [2025-01-01T00:00:00.000Z] SYSTEM ',
       'Test system message'
@@ -100,7 +100,7 @@ describe('logger', () => {
   });
 
   test('should log git messages', () => {
-    logger.git('Test git message');
+    loggerModule.git('Test git message');
     expect(consoleLogSpy).toHaveBeenCalledWith(
       '📦 [2025-01-01T00:00:00.000Z] GIT   ',
       'Test git message'
@@ -108,7 +108,7 @@ describe('logger', () => {
   });
 
   test('should log file messages', () => {
-    logger.file('Test file message');
+    loggerModule.file('Test file message');
     expect(consoleLogSpy).toHaveBeenCalledWith(
       '📄 [2025-01-01T00:00:00.000Z] FILE  ',
       'Test file message'
@@ -117,7 +117,7 @@ describe('logger', () => {
 
   test('should truncate long strings', () => {
     const longString = 'a'.repeat(600);
-    logger.info(longString);
+    loggerModule.info(longString);
     expect(consoleLogSpy).toHaveBeenCalledWith(
       'ℹ️ [2025-01-01T00:00:00.000Z] INFO    ',
       `${'a'.repeat(500)}⟪ 100 characters skipped ⟫`
@@ -126,19 +126,19 @@ describe('logger', () => {
 
   test('should format objects and arrays', () => {
     const obj = { key: 'value' };
-    const formatted = logger.formatValue(obj);
+    const formatted = loggerModule.formatValue(obj);
     expect(formatted).toContain('{\n  "key": "value"\n}');
   });
 
   test('should format multiline strings', () => {
     const multiline = 'line1\nline2\nline3';
-    const formatted = logger.formatValue(multiline);
+    const formatted = loggerModule.formatValue(multiline);
     expect(formatted).toBe('\n  line1\n  line2\n  line3');
   });
 
   test('should format arrays with more than MAX_ARRAY_LENGTH items', () => {
     const longArray = Array.from({ length: 15 }, (_, i) => i);
-    const formatted = logger.formatValue(longArray);
+    const formatted = loggerModule.formatValue(longArray);
     expect(formatted).toContain('... (5 more items)]');
   });
 });
