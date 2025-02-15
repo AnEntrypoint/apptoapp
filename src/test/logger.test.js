@@ -27,20 +27,20 @@ global.Date = class extends RealDate {
   }
 };
 
+// Mock console.log
+const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+
 // Import logger module
 const logger = require('../utils/logger');
 
 describe('logger', () => {
-  let consoleLogSpy;
-
   beforeEach(() => {
-    consoleLogSpy = jest.spyOn(console, 'log');
     Object.values(mockChalk).forEach(mock => mock.mockClear());
     consoleLogSpy.mockClear();
     mockToISOString.mockClear();
   });
 
-  afterEach(() => {
+  afterAll(() => {
     consoleLogSpy.mockRestore();
   });
 
