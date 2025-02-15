@@ -341,7 +341,7 @@ async function main(instruction, errors) {
     }
 
     logger.debug(`${JSON.stringify(brainstormedTasks).length} B of reasoning output`);
-    logger.debug(brainstormedTasks);
+    //logger.debug(brainstormedTasks);
 
     const filesToEdit = brainstormedTasks.match(/<file\s+path="([^"]+)"[^>]*>([\s\S]*?)<\/file>/gi) || [];
     const cliCommands = brainstormedTasks.match(/<cli>([\s\S]*?)<\/cli>/g) || [];
