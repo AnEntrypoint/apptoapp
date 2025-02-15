@@ -3,6 +3,7 @@ module.exports = {
     node: true,
     browser: true,
     jest: true,
+    es2020: true
   },
   extends: ['eslint:recommended'],
   globals: {
@@ -17,6 +18,7 @@ module.exports = {
     beforeEach: true,
     afterEach: true,
     afterAll: true,
+    global: true
   },
   rules: {
     'no-unused-vars': ['warn', { 
@@ -24,6 +26,7 @@ module.exports = {
       args: 'none',
       varsIgnorePattern: '^_',
       argsIgnorePattern: '^_',
+      caughtErrors: 'none'
     }],
     'no-prototype-builtins': 'off',
     'no-control-regex': 'off',
@@ -31,6 +34,7 @@ module.exports = {
     'no-func-assign': 'off',
     'no-undef': 'off',
     'no-cond-assign': 'off',
+    'no-constant-condition': 'warn'
   },
   ignorePatterns: [
     'dist/**/*', 
@@ -47,16 +51,21 @@ module.exports = {
   overrides: [
     {
       files: ['src/**/*.js'],
+      env: {
+        node: true,
+        es2020: true
+      },
       rules: {
         'no-unused-vars': ['warn', {
           args: 'none',
           varsIgnorePattern: '^_',
           argsIgnorePattern: '^_',
-        }],
+          caughtErrors: 'none'
+        }]
       }
     },
     {
-      files: ['jest.setup.js', 'jest-transformer.js'],
+      files: ['jest.setup.js', 'jest-transformer.js', 'src/test/**/*.js'],
       env: {
         jest: true,
         node: true
@@ -69,5 +78,5 @@ module.exports = {
   parserOptions: {
     ecmaVersion: 2020,
     sourceType: 'module'
-  },
+  }
 }; 
