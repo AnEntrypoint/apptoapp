@@ -31,16 +31,11 @@ const mockDate = '2025-01-01T00:00:00.000Z';
 const originalToISOString = Date.prototype.toISOString;
 Date.prototype.toISOString = jest.fn(() => mockDate);
 
-// Mock console.log at the module level
-const mockConsoleLog = jest.fn();
-const originalConsoleLog = console.log;
+// Mock console.log using jest.spyOn
+const mockConsoleLog = jest.spyOn(console, 'log').mockImplementation(jest.fn());
 
-// Import logger module in isolated environment
-let logger;
-jest.isolateModules(() => {
-  console.log = mockConsoleLog;
-  logger = require('../utils/logger');
-});
+// Import logger module
+const logger = require('../utils/logger');
 
 describe('logger', () => {
   beforeEach(() => {
@@ -50,7 +45,7 @@ describe('logger', () => {
   });
 
   afterAll(() => {
-    console.log = originalConsoleLog;
+    mockConsoleLog.mockRestore();
     Date.prototype.toISOString = originalToISOString;
   });
 

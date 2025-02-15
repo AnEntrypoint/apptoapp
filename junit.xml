@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="jest tests" tests="23" failures="9" errors="0" time="4.533">
-  <testsuite name="logger" errors="0" failures="9" skipped="0" timestamp="2025-02-15T19:02:40" time="0.55" tests="12">
-    <testcase classname="logger should log info messages" name="logger should log info messages" time="0.006">
+<testsuites name="jest tests" tests="23" failures="9" errors="0" time="4.172">
+  <testsuite name="logger" errors="0" failures="9" skipped="0" timestamp="2025-02-15T19:03:32" time="0.573" tests="12">
+    <testcase classname="logger should log info messages" name="logger should log info messages" time="0.005">
       <failure>Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)
 
 Expected: &quot;ℹ️ [2025-01-01T00:00:00.000Z] INFO    &quot;, &quot;Test info message&quot;
@@ -21,7 +21,7 @@ Number of calls: 0
     at runTestInternal (C:\dev\apptoapp\node_modules\jest-runner\build\runTest.js:367:16)
     at runTest (C:\dev\apptoapp\node_modules\jest-runner\build\runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="logger should log success messages" name="logger should log success messages" time="0.002">
+    <testcase classname="logger should log success messages" name="logger should log success messages" time="0.001">
       <failure>Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)
 
 Expected: &quot;✅ [2025-01-01T00:00:00.000Z] SUCCESS &quot;, &quot;Test success message&quot;
@@ -41,7 +41,7 @@ Number of calls: 0
     at runTestInternal (C:\dev\apptoapp\node_modules\jest-runner\build\runTest.js:367:16)
     at runTest (C:\dev\apptoapp\node_modules\jest-runner\build\runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="logger should log warning messages" name="logger should log warning messages" time="0.001">
+    <testcase classname="logger should log warning messages" name="logger should log warning messages" time="0.002">
       <failure>Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)
 
 Expected: &quot;⚠️ [2025-01-01T00:00:00.000Z] WARNING &quot;, &quot;Test warning message&quot;
@@ -101,7 +101,7 @@ Number of calls: 0
     at runTestInternal (C:\dev\apptoapp\node_modules\jest-runner\build\runTest.js:367:16)
     at runTest (C:\dev\apptoapp\node_modules\jest-runner\build\runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="logger should log system messages" name="logger should log system messages" time="0.001">
+    <testcase classname="logger should log system messages" name="logger should log system messages" time="0.002">
       <failure>Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)
 
 Expected: &quot;⚙️ [2025-01-01T00:00:00.000Z] SYSTEM &quot;, &quot;Test system message&quot;
@@ -121,7 +121,7 @@ Number of calls: 0
     at runTestInternal (C:\dev\apptoapp\node_modules\jest-runner\build\runTest.js:367:16)
     at runTest (C:\dev\apptoapp\node_modules\jest-runner\build\runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="logger should log git messages" name="logger should log git messages" time="0.002">
+    <testcase classname="logger should log git messages" name="logger should log git messages" time="0.001">
       <failure>Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)
 
 Expected: &quot;📦 [2025-01-01T00:00:00.000Z] GIT   &quot;, &quot;Test git message&quot;
@@ -141,7 +141,7 @@ Number of calls: 0
     at runTestInternal (C:\dev\apptoapp\node_modules\jest-runner\build\runTest.js:367:16)
     at runTest (C:\dev\apptoapp\node_modules\jest-runner\build\runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="logger should log file messages" name="logger should log file messages" time="0.001">
+    <testcase classname="logger should log file messages" name="logger should log file messages" time="0.002">
       <failure>Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)
 
 Expected: &quot;📄 [2025-01-01T00:00:00.000Z] FILE  &quot;, &quot;Test file message&quot;
@@ -161,7 +161,7 @@ Number of calls: 0
     at runTestInternal (C:\dev\apptoapp\node_modules\jest-runner\build\runTest.js:367:16)
     at runTest (C:\dev\apptoapp\node_modules\jest-runner\build\runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="logger should truncate long strings" name="logger should truncate long strings" time="0.002">
+    <testcase classname="logger should truncate long strings" name="logger should truncate long strings" time="0.001">
       <failure>Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)
 
 Expected: &quot;ℹ️ [2025-01-01T00:00:00.000Z] INFO    &quot;, &quot;aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa⟪ 100 characters skipped ⟫&quot;
@@ -181,41 +181,41 @@ Number of calls: 0
     at runTestInternal (C:\dev\apptoapp\node_modules\jest-runner\build\runTest.js:367:16)
     at runTest (C:\dev\apptoapp\node_modules\jest-runner\build\runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="logger should format objects and arrays" name="logger should format objects and arrays" time="0.001">
+    <testcase classname="logger should format objects and arrays" name="logger should format objects and arrays" time="0.002">
     </testcase>
     <testcase classname="logger should format multiline strings" name="logger should format multiline strings" time="0.001">
     </testcase>
     <testcase classname="logger should format arrays with more than MAX_ARRAY_LENGTH items" name="logger should format arrays with more than MAX_ARRAY_LENGTH items" time="0.001">
     </testcase>
   </testsuite>
-  <testsuite name="main" errors="0" failures="0" skipped="0" timestamp="2025-02-15T19:02:40" time="2.344" tests="2">
-    <testcase classname="main should handle test instruction" name="main should handle test instruction" time="1.029">
+  <testsuite name="main" errors="0" failures="0" skipped="0" timestamp="2025-02-15T19:03:32" time="1.964" tests="2">
+    <testcase classname="main should handle test instruction" name="main should handle test instruction" time="1.038">
     </testcase>
-    <testcase classname="main should collect diffs after each attempt" name="main should collect diffs after each attempt" time="1.038">
+    <testcase classname="main should collect diffs after each attempt" name="main should collect diffs after each attempt" time="0.652">
     </testcase>
   </testsuite>
-  <testsuite name="diff" errors="0" failures="0" skipped="0" timestamp="2025-02-15T19:02:42" time="1.354" tests="5">
-    <testcase classname="diff should return the difference between two numbers" name="diff should return the difference between two numbers" time="0.001">
+  <testsuite name="diff" errors="0" failures="0" skipped="0" timestamp="2025-02-15T19:03:34" time="1.359" tests="5">
+    <testcase classname="diff should return the difference between two numbers" name="diff should return the difference between two numbers" time="0.002">
     </testcase>
     <testcase classname="diff should handle negative numbers" name="diff should handle negative numbers" time="0.001">
     </testcase>
     <testcase classname="diff should handle zero" name="diff should handle zero" time="0.001">
     </testcase>
-    <testcase classname="diff functionality should generate and store diffs" name="diff functionality should generate and store diffs" time="0.668">
+    <testcase classname="diff functionality should generate and store diffs" name="diff functionality should generate and store diffs" time="0.662">
     </testcase>
-    <testcase classname="diff functionality should clear diff buffer" name="diff functionality should clear diff buffer" time="0.601">
-    </testcase>
-  </testsuite>
-  <testsuite name="tools" errors="0" failures="0" skipped="0" timestamp="2025-02-15T19:02:44" time="0.116" tests="2">
-    <testcase classname="tools should execute a command and return the output" name="tools should execute a command and return the output" time="0.022">
-    </testcase>
-    <testcase classname="tools should handle errors when executing a command" name="tools should handle errors when executing a command" time="0.018">
+    <testcase classname="diff functionality should clear diff buffer" name="diff functionality should clear diff buffer" time="0.598">
     </testcase>
   </testsuite>
-  <testsuite name="utils" errors="0" failures="0" skipped="0" timestamp="2025-02-15T19:02:44" time="0.065" tests="2">
+  <testsuite name="tools" errors="0" failures="0" skipped="0" timestamp="2025-02-15T19:03:36" time="0.112" tests="2">
+    <testcase classname="tools should execute a command and return the output" name="tools should execute a command and return the output" time="0.019">
+    </testcase>
+    <testcase classname="tools should handle errors when executing a command" name="tools should handle errors when executing a command" time="0.019">
+    </testcase>
+  </testsuite>
+  <testsuite name="utils" errors="0" failures="0" skipped="0" timestamp="2025-02-15T19:03:36" time="0.061" tests="2">
     <testcase classname="utils should return the sum of two numbers" name="utils should return the sum of two numbers" time="0.001">
     </testcase>
-    <testcase classname="utils should return the product of two numbers" name="utils should return the product of two numbers" time="0.004">
+    <testcase classname="utils should return the product of two numbers" name="utils should return the product of two numbers" time="0.001">
     </testcase>
   </testsuite>
 </testsuites>
