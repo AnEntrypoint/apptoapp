@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="jest tests" tests="23" failures="9" errors="0" time="3.997">
-  <testsuite name="logger" errors="0" failures="9" skipped="0" timestamp="2025-02-15T19:07:03" time="0.551" tests="12">
-    <testcase classname="logger should log info messages" name="logger should log info messages" time="0.006">
+<testsuites name="jest tests" tests="23" failures="9" errors="0" time="4">
+  <testsuite name="logger" errors="0" failures="9" skipped="0" timestamp="2025-02-15T19:07:42" time="0.544" tests="12">
+    <testcase classname="logger should log info messages" name="logger should log info messages" time="0.005">
       <failure>Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)
 
 Expected: &quot;ℹ️ [2025-01-01T00:00:00.000Z] INFO    &quot;, &quot;Test info message&quot;
 
 Number of calls: 0
-    at Object.toHaveBeenCalledWith (C:\dev\apptoapp\src\test\logger.test.js:61:28)
+    at Object.toHaveBeenCalledWith (C:\dev\apptoapp\src\test\logger.test.js:57:28)
     at Promise.then.completed (C:\dev\apptoapp\node_modules\jest-circus\build\utils.js:298:28)
     at new Promise (&lt;anonymous&gt;)
     at callAsyncCircusFn (C:\dev\apptoapp\node_modules\jest-circus\build\utils.js:231:10)
@@ -21,13 +21,13 @@ Number of calls: 0
     at runTestInternal (C:\dev\apptoapp\node_modules\jest-runner\build\runTest.js:367:16)
     at runTest (C:\dev\apptoapp\node_modules\jest-runner\build\runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="logger should log success messages" name="logger should log success messages" time="0.001">
+    <testcase classname="logger should log success messages" name="logger should log success messages" time="0.002">
       <failure>Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)
 
 Expected: &quot;✅ [2025-01-01T00:00:00.000Z] SUCCESS &quot;, &quot;Test success message&quot;
 
 Number of calls: 0
-    at Object.toHaveBeenCalledWith (C:\dev\apptoapp\src\test\logger.test.js:70:28)
+    at Object.toHaveBeenCalledWith (C:\dev\apptoapp\src\test\logger.test.js:66:28)
     at Promise.then.completed (C:\dev\apptoapp\node_modules\jest-circus\build\utils.js:298:28)
     at new Promise (&lt;anonymous&gt;)
     at callAsyncCircusFn (C:\dev\apptoapp\node_modules\jest-circus\build\utils.js:231:10)
@@ -47,7 +47,7 @@ Number of calls: 0
 Expected: &quot;⚠️ [2025-01-01T00:00:00.000Z] WARNING &quot;, &quot;Test warning message&quot;
 
 Number of calls: 0
-    at Object.toHaveBeenCalledWith (C:\dev\apptoapp\src\test\logger.test.js:79:28)
+    at Object.toHaveBeenCalledWith (C:\dev\apptoapp\src\test\logger.test.js:75:28)
     at Promise.then.completed (C:\dev\apptoapp\node_modules\jest-circus\build\utils.js:298:28)
     at new Promise (&lt;anonymous&gt;)
     at callAsyncCircusFn (C:\dev\apptoapp\node_modules\jest-circus\build\utils.js:231:10)
@@ -67,7 +67,7 @@ Number of calls: 0
 Expected: &quot;❌ [2025-01-01T00:00:00.000Z] ERROR  &quot;, &quot;Test error message&quot;
 
 Number of calls: 0
-    at Object.toHaveBeenCalledWith (C:\dev\apptoapp\src\test\logger.test.js:88:28)
+    at Object.toHaveBeenCalledWith (C:\dev\apptoapp\src\test\logger.test.js:84:28)
     at Promise.then.completed (C:\dev\apptoapp\node_modules\jest-circus\build\utils.js:298:28)
     at new Promise (&lt;anonymous&gt;)
     at callAsyncCircusFn (C:\dev\apptoapp\node_modules\jest-circus\build\utils.js:231:10)
@@ -81,13 +81,13 @@ Number of calls: 0
     at runTestInternal (C:\dev\apptoapp\node_modules\jest-runner\build\runTest.js:367:16)
     at runTest (C:\dev\apptoapp\node_modules\jest-runner\build\runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="logger should log debug messages" name="logger should log debug messages" time="0.001">
+    <testcase classname="logger should log debug messages" name="logger should log debug messages" time="0.002">
       <failure>Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)
 
 Expected: &quot;🔍 [2025-01-01T00:00:00.000Z] DEBUG  &quot;, &quot;Test debug message&quot;
 
 Number of calls: 0
-    at Object.toHaveBeenCalledWith (C:\dev\apptoapp\src\test\logger.test.js:97:28)
+    at Object.toHaveBeenCalledWith (C:\dev\apptoapp\src\test\logger.test.js:93:28)
     at Promise.then.completed (C:\dev\apptoapp\node_modules\jest-circus\build\utils.js:298:28)
     at new Promise (&lt;anonymous&gt;)
     at callAsyncCircusFn (C:\dev\apptoapp\node_modules\jest-circus\build\utils.js:231:10)
@@ -101,13 +101,13 @@ Number of calls: 0
     at runTestInternal (C:\dev\apptoapp\node_modules\jest-runner\build\runTest.js:367:16)
     at runTest (C:\dev\apptoapp\node_modules\jest-runner\build\runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="logger should log system messages" name="logger should log system messages" time="0.002">
+    <testcase classname="logger should log system messages" name="logger should log system messages" time="0.001">
       <failure>Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)
 
 Expected: &quot;⚙️ [2025-01-01T00:00:00.000Z] SYSTEM &quot;, &quot;Test system message&quot;
 
 Number of calls: 0
-    at Object.toHaveBeenCalledWith (C:\dev\apptoapp\src\test\logger.test.js:106:28)
+    at Object.toHaveBeenCalledWith (C:\dev\apptoapp\src\test\logger.test.js:102:28)
     at Promise.then.completed (C:\dev\apptoapp\node_modules\jest-circus\build\utils.js:298:28)
     at new Promise (&lt;anonymous&gt;)
     at callAsyncCircusFn (C:\dev\apptoapp\node_modules\jest-circus\build\utils.js:231:10)
@@ -121,13 +121,13 @@ Number of calls: 0
     at runTestInternal (C:\dev\apptoapp\node_modules\jest-runner\build\runTest.js:367:16)
     at runTest (C:\dev\apptoapp\node_modules\jest-runner\build\runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="logger should log git messages" name="logger should log git messages" time="0.001">
+    <testcase classname="logger should log git messages" name="logger should log git messages" time="0.002">
       <failure>Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)
 
 Expected: &quot;📦 [2025-01-01T00:00:00.000Z] GIT   &quot;, &quot;Test git message&quot;
 
 Number of calls: 0
-    at Object.toHaveBeenCalledWith (C:\dev\apptoapp\src\test\logger.test.js:115:28)
+    at Object.toHaveBeenCalledWith (C:\dev\apptoapp\src\test\logger.test.js:111:28)
     at Promise.then.completed (C:\dev\apptoapp\node_modules\jest-circus\build\utils.js:298:28)
     at new Promise (&lt;anonymous&gt;)
     at callAsyncCircusFn (C:\dev\apptoapp\node_modules\jest-circus\build\utils.js:231:10)
@@ -141,13 +141,13 @@ Number of calls: 0
     at runTestInternal (C:\dev\apptoapp\node_modules\jest-runner\build\runTest.js:367:16)
     at runTest (C:\dev\apptoapp\node_modules\jest-runner\build\runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="logger should log file messages" name="logger should log file messages" time="0.002">
+    <testcase classname="logger should log file messages" name="logger should log file messages" time="0.001">
       <failure>Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)
 
 Expected: &quot;📄 [2025-01-01T00:00:00.000Z] FILE  &quot;, &quot;Test file message&quot;
 
 Number of calls: 0
-    at Object.toHaveBeenCalledWith (C:\dev\apptoapp\src\test\logger.test.js:124:28)
+    at Object.toHaveBeenCalledWith (C:\dev\apptoapp\src\test\logger.test.js:120:28)
     at Promise.then.completed (C:\dev\apptoapp\node_modules\jest-circus\build\utils.js:298:28)
     at new Promise (&lt;anonymous&gt;)
     at callAsyncCircusFn (C:\dev\apptoapp\node_modules\jest-circus\build\utils.js:231:10)
@@ -167,7 +167,7 @@ Number of calls: 0
 Expected: &quot;ℹ️ [2025-01-01T00:00:00.000Z] INFO    &quot;, &quot;aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa⟪ 100 characters skipped ⟫&quot;
 
 Number of calls: 0
-    at Object.toHaveBeenCalledWith (C:\dev\apptoapp\src\test\logger.test.js:134:28)
+    at Object.toHaveBeenCalledWith (C:\dev\apptoapp\src\test\logger.test.js:130:28)
     at Promise.then.completed (C:\dev\apptoapp\node_modules\jest-circus\build\utils.js:298:28)
     at new Promise (&lt;anonymous&gt;)
     at callAsyncCircusFn (C:\dev\apptoapp\node_modules\jest-circus\build\utils.js:231:10)
@@ -185,34 +185,34 @@ Number of calls: 0
     </testcase>
     <testcase classname="logger should format multiline strings" name="logger should format multiline strings" time="0.002">
     </testcase>
-    <testcase classname="logger should format arrays with more than MAX_ARRAY_LENGTH items" name="logger should format arrays with more than MAX_ARRAY_LENGTH items" time="0.001">
+    <testcase classname="logger should format arrays with more than MAX_ARRAY_LENGTH items" name="logger should format arrays with more than MAX_ARRAY_LENGTH items" time="0.002">
     </testcase>
   </testsuite>
-  <testsuite name="main" errors="0" failures="0" skipped="0" timestamp="2025-02-15T19:07:03" time="1.842" tests="2">
-    <testcase classname="main should handle test instruction" name="main should handle test instruction" time="1.001">
+  <testsuite name="main" errors="0" failures="0" skipped="0" timestamp="2025-02-15T19:07:42" time="1.866" tests="2">
+    <testcase classname="main should handle test instruction" name="main should handle test instruction" time="1.007">
     </testcase>
-    <testcase classname="main should collect diffs after each attempt" name="main should collect diffs after each attempt" time="0.58">
+    <testcase classname="main should collect diffs after each attempt" name="main should collect diffs after each attempt" time="0.591">
     </testcase>
   </testsuite>
-  <testsuite name="diff" errors="0" failures="0" skipped="0" timestamp="2025-02-15T19:07:05" time="1.327" tests="5">
+  <testsuite name="diff" errors="0" failures="0" skipped="0" timestamp="2025-02-15T19:07:44" time="1.317" tests="5">
     <testcase classname="diff should return the difference between two numbers" name="diff should return the difference between two numbers" time="0.001">
     </testcase>
     <testcase classname="diff should handle negative numbers" name="diff should handle negative numbers" time="0.001">
     </testcase>
     <testcase classname="diff should handle zero" name="diff should handle zero" time="0.001">
     </testcase>
-    <testcase classname="diff functionality should generate and store diffs" name="diff functionality should generate and store diffs" time="0.637">
+    <testcase classname="diff functionality should generate and store diffs" name="diff functionality should generate and store diffs" time="0.633">
     </testcase>
-    <testcase classname="diff functionality should clear diff buffer" name="diff functionality should clear diff buffer" time="0.602">
-    </testcase>
-  </testsuite>
-  <testsuite name="tools" errors="0" failures="0" skipped="0" timestamp="2025-02-15T19:07:07" time="0.118" tests="2">
-    <testcase classname="tools should execute a command and return the output" name="tools should execute a command and return the output" time="0.022">
-    </testcase>
-    <testcase classname="tools should handle errors when executing a command" name="tools should handle errors when executing a command" time="0.02">
+    <testcase classname="diff functionality should clear diff buffer" name="diff functionality should clear diff buffer" time="0.6">
     </testcase>
   </testsuite>
-  <testsuite name="utils" errors="0" failures="0" skipped="0" timestamp="2025-02-15T19:07:07" time="0.058" tests="2">
+  <testsuite name="tools" errors="0" failures="0" skipped="0" timestamp="2025-02-15T19:07:46" time="0.114" tests="2">
+    <testcase classname="tools should execute a command and return the output" name="tools should execute a command and return the output" time="0.021">
+    </testcase>
+    <testcase classname="tools should handle errors when executing a command" name="tools should handle errors when executing a command" time="0.018">
+    </testcase>
+  </testsuite>
+  <testsuite name="utils" errors="0" failures="0" skipped="0" timestamp="2025-02-15T19:07:46" time="0.058" tests="2">
     <testcase classname="utils should return the sum of two numbers" name="utils should return the sum of two numbers" time="0.001">
     </testcase>
     <testcase classname="utils should return the product of two numbers" name="utils should return the product of two numbers" time="0.001">
