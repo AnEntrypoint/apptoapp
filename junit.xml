@@ -1,35 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="jest tests" tests="10" failures="2" errors="0" time="3.674">
-  <testsuite name="LLM Providers" errors="0" failures="2" skipped="0" timestamp="2025-02-15T21:53:45" time="3.572" tests="10">
-    <testcase classname="LLM Providers MistralProvider should make request with correct parameters" name="LLM Providers MistralProvider should make request with correct parameters" time="0.763">
-      <failure>Error: Mistral API error: Unauthorized
-    at C:\dev\apptoapp\src\llm\providers.js:71:15
-    at processTicksAndRejections (node:internal/process/task_queues:95:5)
-    at retryWithBackoff (C:\dev\apptoapp\src\llm\providers.js:13:14)
-    at Object.&lt;anonymous&gt; (C:\dev\apptoapp\src\test\providers.test.js:53:7)</failure>
+<testsuites name="jest tests" tests="10" failures="0" errors="0" time="2.431">
+  <testsuite name="LLM Providers" errors="0" failures="0" skipped="0" timestamp="2025-02-15T22:31:49" time="2.372" tests="10">
+    <testcase classname="LLM Providers MistralProvider should make request with correct parameters" name="LLM Providers MistralProvider should make request with correct parameters" time="0.006">
     </testcase>
-    <testcase classname="LLM Providers MistralProvider should handle API errors" name="LLM Providers MistralProvider should handle API errors" time="0.766">
+    <testcase classname="LLM Providers MistralProvider should handle API errors" name="LLM Providers MistralProvider should handle API errors" time="0.73">
     </testcase>
-    <testcase classname="LLM Providers CopilotClaudeProvider should make request with correct parameters" name="LLM Providers CopilotClaudeProvider should make request with correct parameters" time="0.985">
-      <failure>Error: Copilot-Claude API error: Bad Request
-    at C:\dev\apptoapp\src\llm\providers.js:139:17
-    at processTicksAndRejections (node:internal/process/task_queues:95:5)
-    at retryWithBackoff (C:\dev\apptoapp\src\llm\providers.js:13:14)
-    at Object.&lt;anonymous&gt; (C:\dev\apptoapp\src\test\providers.test.js:102:7)</failure>
+    <testcase classname="LLM Providers CopilotClaudeProvider should make request with correct parameters" name="LLM Providers CopilotClaudeProvider should make request with correct parameters" time="0.002">
     </testcase>
-    <testcase classname="LLM Providers CopilotClaudeProvider should handle API errors" name="LLM Providers CopilotClaudeProvider should handle API errors" time="0.304">
+    <testcase classname="LLM Providers CopilotClaudeProvider should handle API errors" name="LLM Providers CopilotClaudeProvider should handle API errors" time="1.101">
     </testcase>
-    <testcase classname="LLM Providers CopilotClaudeProvider should throw error for empty messages array" name="LLM Providers CopilotClaudeProvider should throw error for empty messages array" time="0.002">
+    <testcase classname="LLM Providers CopilotClaudeProvider should throw error for empty messages array" name="LLM Providers CopilotClaudeProvider should throw error for empty messages array" time="0.004">
     </testcase>
-    <testcase classname="LLM Providers CopilotClaudeProvider should throw error for invalid messages array" name="LLM Providers CopilotClaudeProvider should throw error for invalid messages array" time="0.001">
+    <testcase classname="LLM Providers CopilotClaudeProvider should throw error for invalid messages array" name="LLM Providers CopilotClaudeProvider should throw error for invalid messages array" time="0.003">
     </testcase>
-    <testcase classname="LLM Providers CopilotClaudeProvider should throw error for messages without content" name="LLM Providers CopilotClaudeProvider should throw error for messages without content" time="0.001">
+    <testcase classname="LLM Providers CopilotClaudeProvider should throw error for messages without content" name="LLM Providers CopilotClaudeProvider should throw error for messages without content" time="0.002">
     </testcase>
-    <testcase classname="LLM Providers createLLMProvider should create MistralProvider" name="LLM Providers createLLMProvider should create MistralProvider" time="0">
+    <testcase classname="LLM Providers createLLMProvider should create MistralProvider" name="LLM Providers createLLMProvider should create MistralProvider" time="0.001">
     </testcase>
-    <testcase classname="LLM Providers createLLMProvider should create CopilotClaudeProvider" name="LLM Providers createLLMProvider should create CopilotClaudeProvider" time="0">
+    <testcase classname="LLM Providers createLLMProvider should create CopilotClaudeProvider" name="LLM Providers createLLMProvider should create CopilotClaudeProvider" time="0.001">
     </testcase>
-    <testcase classname="LLM Providers createLLMProvider should throw error for unsupported provider" name="LLM Providers createLLMProvider should throw error for unsupported provider" time="0.001">
+    <testcase classname="LLM Providers createLLMProvider should throw error for unsupported provider" name="LLM Providers createLLMProvider should throw error for unsupported provider" time="0.002">
     </testcase>
   </testsuite>
 </testsuites>

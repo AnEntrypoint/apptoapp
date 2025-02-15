@@ -290,10 +290,9 @@ async function main(instruction, errors, model = 'mistral') {
             + `Explain changes in <text> tags with motivations and CLI commands\n`
             
             + '\n// Output Formatting\n'
-            + `Only output in XML format:\n`
+            + `ULTRA IMPORTANT - Only output in XML format:\n`
             + `Files: <file path="path/to/file.js">...</file>\n`
             + `Commands: <cli>command</cli>\n`
-            + `No other text outside XML tags\n`
             + `Always provide complete file contents\n`
             
             + '\n// Performance & Security\n'
@@ -368,8 +367,9 @@ async function main(instruction, errors, model = 'mistral') {
     }
 
     if (process.env.NODE_ENV !== 'test' && filesToEdit.length === 0 && cliCommands.length === 0 && summaries.length === 0) {
-      //logger.debug(brainstormedTasks);
-      throw new Error('No files to edit, cli commands or summaries found');
+      logger.debug(brainstormedTasks);
+      // Only throw if no upgradeModel tag was found
+      if(!upgradeModelMatch) throw new Error('No files to edit, cli commands or summaries found');
     }
 
     if (filesToEdit && filesToEdit.length > 0) {
@@ -458,7 +458,8 @@ async function main(instruction, errors, model = 'mistral') {
     logger.debug('Final directory contents:', fs.readdirSync(process.cwd()));
 
   } catch (error) {
-    logger.error('Application error:', error);
+    console.error(error)
+    logger.error('Application error:', error, error.message);
     if (process.env.NODE_ENV === 'test') {
       throw error; // In test environment, propagate the error
     } else {
@@ -480,7 +481,8 @@ program
       currentModel = 'mistral';
     }
     main(instruction).catch((error) => {
-      logger.error('Application error:', error);
+      console.error(error)
+      logger.error('Application error:', error, error.message);
       process.exit(0);
     });
   });
