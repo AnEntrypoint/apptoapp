@@ -104,7 +104,7 @@ async function runBuild() {
     const finalExitTimer = setTimeout(() => {
       logger.error('FINAL FORCED EXIT - PROCESS HUNG');
       forceKill();
-    }, TEST_TIMEOUT + 60000); // Add 1 minute buffer to initial timeout
+    }, TEST_TIMEOUT + 180000); // Add 1 minute buffer to initial timeout
 
     // Cleanup timers when process completes
     testProcess.finally(() => {
