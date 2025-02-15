@@ -4,6 +4,7 @@ const path = require('path');
 const { loadIgnorePatterns, loadNoContentsPatterns, scanDirectory } = require('./utils');
 const fastGlob = require('fast-glob');
 const { execSync } = require('child_process');
+const logger = require('./utils/logger');
 
 // Buffer to store attempt diffs
 let diffBuffer = [];
@@ -14,35 +15,28 @@ function diff(a, b) {
 }
 
 // Function to generate and store a diff
-async function generateDiff() {
-  console.log('Generating diff for current attempt...');
-  console.log(`Current diff buffer size: ${diffBuffer.length}`);
+async function generateDiff(attemptCount = 0) {
+  logger.git('Generating diff for current attempt...');
+  logger.debug(`Current diff buffer size: ${diffBuffer.length}`);
   
-  // Function to remove git lock file if it exists
-  const cleanGitLock = () => {
-    const lockFile = path.join(process.cwd(), '.git', 'index.lock');
-    if (fs.existsSync(lockFile)) {
-      console.log('Found stale git lock file, removing...');
-      try {
-        fs.unlinkSync(lockFile);
-        console.log('Git lock file removed successfully');
-      } catch (error) {
-        console.error('Error removing git lock file:', error.message);
-      }
+  // Remove stale git lock file if it exists
+  const lockFile = path.join(process.cwd(), '.git', 'index.lock');
+  if (fs.existsSync(lockFile)) {
+    logger.warn('Found stale git lock file, removing...');
+    try {
+      fs.unlinkSync(lockFile);
+      logger.success('Git lock file removed successfully');
+    } catch (error) {
+      logger.error('Error removing git lock file:', error.message);
     }
-  };
-
-  // Clean any existing lock file before starting
-  cleanGitLock();
+  }
 
   const retry = async (fn, retries = 3, delay = 1000) => {
     try {
       return await fn();
     } catch (error) {
       if (retries === 0) throw error;
-      console.log(`Retrying operation, ${retries} attempts remaining...`);
-      cleanGitLock(); // Clean lock file before retry
-      await new Promise(resolve => setTimeout(resolve, delay));
+      logger.warn(`Retrying operation, ${retries} attempts remaining...`);
       return retry(fn, retries - 1, delay);
     }
   };
@@ -52,67 +46,70 @@ async function generateDiff() {
     await retry(async () => {
       try {
         execSync('git rev-parse --is-inside-work-tree', { stdio: 'pipe' });
-        console.log('Git repository detected');
+        logger.git('Git repository detected');
       } catch (error) {
-        console.log('Initializing git repository...');
+        logger.git('Initializing git repository...');
         execSync('git init', { stdio: 'pipe' });
         execSync('git config user.email "auto@example.com"', { stdio: 'pipe' });
         execSync('git config user.name "Auto Commit"', { stdio: 'pipe' });
-        console.log('Git repository initialized and configured');
+        logger.success('Git repository initialized and configured');
       }
     });
 
     // Get status before staging
-    const beforeStatus = await retry(() => 
+    const beforeStatus = await retry(async () => 
       execSync('git status --short', { encoding: 'utf-8' })
     );
-    console.log('Files to be staged:', beforeStatus || 'none');
+    logger.git('Files to be staged:', beforeStatus || 'none');
 
     // Stage all changes
     await retry(() => {
       execSync('git add -A', { stdio: 'pipe' });
-      console.log('Changes staged successfully');
+      logger.success('Changes staged successfully');
     });
     
     // Get status after staging
     const afterStatus = await retry(() => 
       execSync('git status --short', { encoding: 'utf-8' })
     );
-    console.log('Staged files:', afterStatus || 'none');
+    logger.git('Staged files:', afterStatus || 'none');
     
     // Get the diff of staged changes
     const diff = await retry(() => 
       execSync('git diff --cached --no-ext-diff --no-color', { encoding: 'utf-8' })
     );
-    console.log('Diff generated, length:', diff.length, 'characters');
+    logger.debug('Diff generated, length:', diff.length, 'characters');
     
     if (diff.trim()) {
       // Store diff before committing to ensure we capture it
-      const attemptCount = diffBuffer.length + 1;
+      const count = (diffBuffer.find(d => d.diff === diff)?.count || 0) + 1;
       diffBuffer.push({
-        count: attemptCount,
-        diff: diff
+        count: count,
+        diff: diff,
+        attemptCount: attemptCount
       });
-      console.log(`Stored diff for attempt ${attemptCount} (${diff.split('\n').length} lines)`);
-      console.log(`New diff buffer size: ${diffBuffer.length}`);
+      logger.git(`Stored diff for attempt ${count} (${diff.split('\n').length} lines)`);
+      logger.debug(`New diff buffer size: ${diffBuffer.length}`);
 
       // Now commit the changes
       await retry(() => {
-        execSync('git commit -m "Changes from attempt ' + attemptCount + '"', { stdio: 'pipe' });
-        console.log('Changes committed successfully');
+        execSync('git commit -m "Changes from attempt ' + count + '"', { stdio: 'pipe' });
+        logger.success('Changes committed successfully');
       });
+      return diff;
     } else {
-      console.log('No changes detected in git diff');
+      logger.info('No changes detected in git diff');
       // Log the current git state for debugging
       const gitState = {
         status: execSync('git status', { encoding: 'utf-8' }),
         head: execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf-8' }),
         lastCommit: execSync('git log -1 --oneline', { encoding: 'utf-8' })
       };
+      return '';
     }
   } catch (error) {
-    console.error('Error in generateDiff:', error.message);
-    console.error('Current working directory:', process.cwd());
+    logger.error('Error in generateDiff:', error.message);
+    logger.debug('Current working directory:', process.cwd());
     // If it's a git error, show more details
     if (error.message.includes('git')) {
       try {
@@ -122,54 +119,55 @@ async function generateDiff() {
           head: execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf-8' }),
           lastCommit: execSync('git log -1 --oneline', { encoding: 'utf-8' })
         };
-        console.error('Git diagnostics:', diagnostics);
+        logger.error('Git diagnostics:', diagnostics);
       } catch (diagError) {
-        console.error('Could not get git diagnostics:', diagError.message);
+        logger.error('Could not get git diagnostics:', diagError.message);
       }
     }
+    return '';
   }
 }
 
 // Function to get all stored diffs in XML format
-function getDiffsAsXML() {
-  console.log(`\n\n------ DIFF BUFFER STATUS ------`);
-  console.log(`Buffer size: ${diffBuffer.length}`);
-  console.log(`Buffer contents: ${JSON.stringify(diffBuffer.map(d => ({ count: d.count, lines: d.diff.split('\n').length })))}`);
+function getDiffBufferStatus() {
+  logger.debug(`\n\n------ DIFF BUFFER STATUS ------`);
+  logger.debug(`Buffer size: ${diffBuffer.length}`);
+  logger.debug(`Buffer contents: ${JSON.stringify(diffBuffer.map(d => ({ count: d.count, lines: d.diff.split('\n').length })))}`);
   
   if (diffBuffer.length === 0) {
-    console.log('No diffs stored in buffer');
+    logger.info('No diffs stored in buffer');
     // Log git status for debugging
     try {
       const status = execSync('git status --short', { encoding: 'utf-8' });
-      console.log('Current git status:', status || 'Clean working directory');
+      logger.git('Current git status:', status || 'Clean working directory');
     } catch (error) {
-      console.error('Could not get git status:', error.message);
+      logger.error('Could not get git status:', error.message);
     }
     return '';
   }
   
   const xml = diffBuffer.map(({ count, diff }) => {
     const lines = diff.split('\n').length;
-    console.log(`Processing diff ${count} with ${lines} lines`);
+    logger.debug(`Processing diff ${count} with ${lines} lines`);
     return `<attemptDiff count="${count}">${diff}</attemptDiff>`;
   }).join('\n');
   
-  console.log(`Generated XML with ${diffBuffer.length} diff tags`);
-  console.log(`------ END DIFF BUFFER STATUS ------\n\n`);
+  logger.debug(`Generated XML with ${diffBuffer.length} diff tags`);
+  logger.debug(`------ END DIFF BUFFER STATUS ------\n\n`);
   return xml;
 }
 
 // Function to clear diff buffer
 function clearDiffBuffer() {
   diffBuffer = [];
-  console.log('Cleared diff buffer');
+  logger.success('Cleared diff buffer');
 }
 
 async function getFiles() {
   const codebaseDir = path.join(__dirname, '..'); // Parent directory of src
   const currentDir = process.cwd();
   
-  console.log(`Loading ignore patterns from:\n- Codebase: ${codebaseDir}\n- Current: ${currentDir}`);
+  logger.info(`Loading ignore patterns from:\n- Codebase: ${codebaseDir}\n- Current: ${currentDir}`);
   // Check for ignore files in codebase directory first
   const codebaseIgnores = await loadIgnoreFiles(codebaseDir);
   // Then check current directory
@@ -187,7 +185,7 @@ async function getFiles() {
     case: false // Windows-friendly case insensitivity
   });
   
-  console.log(`Total files included: ${files.length}`);
+  logger.info(`Total files included: ${files.length}`);
   const relativeFiles = files.map(file => path.relative(currentDir, file));
   
   // Format files in XML schema
@@ -197,7 +195,7 @@ async function getFiles() {
       const content = await fs.promises.readFile(filePath, 'utf-8');
       return `\n<file path="${file.replace(/\\/g, '/')}">\n${content}\n</file>\n`;
     } catch (error) {
-      console.error(`Error reading file ${filePath}: ${error.message}`);
+      logger.error(`Error reading file ${filePath}: ${error.message}`);
       return `\n<file path="${file.replace(/\\/g, '/')}"></file>\n`;
     }
   })).then(files => files.join('\n'));
@@ -208,12 +206,12 @@ async function loadIgnoreFiles(directory) {
   const ignoreFiles = ['.llmignore', '.nocontents'];
   const patterns = [];
   
-  console.log(`Checking for ignore files in: ${directory}`);
+  logger.debug(`Checking for ignore files in: ${directory}`);
   
   for (const file of ignoreFiles) {
     const filePath = path.join(directory, file);
     if (fs.existsSync(filePath)) {
-      console.log(`Found ignore file: ${filePath}`);
+      logger.file(`Found ignore file: ${filePath}`);
       const content = fs.readFileSync(filePath, 'utf-8');
       const cleaned = content
         .split(/\r?\n/) // Handle both LF and CRLF
@@ -267,7 +265,7 @@ module.exports = {
   getFiles,
   writeFile,
   generateDiff,
-  getDiffsAsXML,
+  getDiffBufferStatus,
   clearDiffBuffer,
   diff
 };

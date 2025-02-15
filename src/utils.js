@@ -2,6 +2,7 @@ const fsp = require('fs').promises;
 const ignore = require('ignore');
 const path = require('path');
 const { exec, spawn } = require('child_process');
+const logger = require('./utils/logger');
 
 const cmdhistory = [];
 
@@ -14,7 +15,7 @@ function product(a, b) {
 }
 
 async function executeCommand(command, logHandler = null, options = {}) {
-  console.log('Executing command:', command);
+  logger.system('Executing command:', command);
   return new Promise((resolve, reject) => {
     const child = exec(command, {
       timeout: options.timeout || 300000, // 5 minute default timeout
@@ -52,7 +53,7 @@ async function loadIgnorePatterns(ignoreFile = '.llmignore') {
     try {
       const content = await fsp.readFile(filePath, 'utf8');
       ig.add(content.split('\n').filter(l => !l.startsWith('#')));
-      console.log(`Loaded ignore patterns from ${path.relative(process.cwd(), filePath)}`);
+      logger.info(`Loaded ignore patterns from ${path.relative(process.cwd(), filePath)}`);
     } catch (error) {
       if (error.code !== 'ENOENT') {
         throw error;
@@ -75,7 +76,7 @@ async function loadNoContentsPatterns(ignoreFile = '.nocontents') {
     try {
       const content = await fsp.readFile(filePath, 'utf8');
       ig.add(content.split('\n').filter(l => !l.startsWith('#')));
-      console.log(`Loaded nocontents patterns from ${path.relative(process.cwd(), filePath)}`);
+      logger.info(`Loaded nocontents patterns from ${path.relative(process.cwd(), filePath)}`);
     } catch (error) {
       if (error.code !== 'ENOENT') {
         throw error;
@@ -102,29 +103,29 @@ async function makeApiRequest(messages, tools, apiKey, endpoint) {
       stream: false,
     }),
   }];
-  console.log('waiting for api request...');
+  logger.info('Waiting for API request...');
   const response = await fetch(...data);
-  console.log('api request done');
+  logger.success('API request completed');
 
   async function writeToLastCall(data) {
     try {
       await fsp.writeFile('../lastcall.txt', data, 'utf8');
     } catch (error) {
-      console.error('Error writing to lastcall.txt:', error);
+      logger.error('Error writing to lastcall.txt:', error);
     }
   }
   if (!response.ok) {
     writeToLastCall(response);
     const error = await response.json();
-    console.error('API Error:', JSON.stringify(error, null, 2));
+    logger.error('API Error:', error);
     throw new Error(`API error: ${error.message || response.statusText}`);
   }
   const responseData = await response.json();
   try {
     await fsp.writeFile('../lastresponse.txt', JSON.stringify(responseData, null, 2), 'utf8');
-    console.log('API response written to lastresponse.txt');
+    logger.success('API response written to lastresponse.txt');
   } catch (error) {
-    console.error('Error writing to lastresponse.txt:', error);
+    logger.error('Error writing to lastresponse.txt:', error);
   }
   const val = responseData;
   return val;
@@ -133,10 +134,10 @@ async function makeApiRequest(messages, tools, apiKey, endpoint) {
 async function directoryExists(dir) {
   try {
     await fsp.access(dir);
-    console.log(`Directory exists: ${dir}`);
+    logger.file(`Directory exists: ${dir}`);
     return true;
   } catch {
-    console.log(`Directory does not exist: ${dir}`);
+    logger.file(`Directory does not exist: ${dir}`);
     return false;
   }
 }
@@ -183,7 +184,7 @@ function getCWD() {
 function killProcessGroup(pid) {
   try {
     if (process.platform === 'win32') {
-      console.log(`Terminating process tree for PID ${pid}`);
+      logger.system(`Terminating process tree for PID ${pid}`);
       require('child_process').execSync(
         `taskkill /F /T /PID ${pid}`, 
         { stdio: 'ignore', timeout: 60000 }
@@ -197,7 +198,7 @@ function killProcessGroup(pid) {
       process.kill(-pid, 'SIGKILL');
     }
   } catch (error) {
-    console.log(`Process group termination error: ${error.message}`);
+    logger.error(`Process group termination error: ${error.message}`);
   }
 }
 

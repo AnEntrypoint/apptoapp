@@ -6,6 +6,8 @@ const { makeApiRequest, loadCursorRules, getCWD } = require('./utils');
 const { executeCommand, cmdhistory } = require('./utils');
 const fs = require('fs');
 const path = require('path');
+const { program } = require('commander');
+const logger = require('./utils/logger');
 
 dotenv.config();
 
@@ -19,11 +21,11 @@ async function runBuild() {
   if (process.env.NODE_ENV !== 'test') {
     // First delete package-lock.json to ensure clean install
     try {
-      fs.unlinkSync(path.join(getCWD(), 'package-lock.json'));
-      console.log('Deleted package-lock.json for clean install');
+      await fs.promises.unlink('package-lock.json');
+      logger.success('Deleted package-lock.json for clean install');
     } catch (err) {
       if (err.code !== 'ENOENT') {
-        console.error('Error deleting package-lock.json:', err);
+        logger.error('Error deleting package-lock.json:', err);
       }
     }
     
@@ -38,7 +40,7 @@ async function runBuild() {
   const logBuffer = [];
   const logHandler = (data) => {
     logBuffer.push(data);
-    console.log(data);
+    logger.debug(data);
   };
  
   return new Promise((resolve, reject) => {
@@ -50,13 +52,13 @@ async function runBuild() {
     const killWithRetry = async (pid, attempts = 5) => {
       for (let i = 1; i <= attempts; i++) {
         try {
-          console.log(`Attempt ${i} to kill process group ${pid}`);
+          logger.system(`Attempt ${i} to kill process group ${pid}`);
           process.kill(-pid, 'SIGKILL');
           await new Promise(resolve => setTimeout(resolve, 1000));
           // Verify if process exists
           process.kill(pid, 0); // Throws if process doesn't exist
         } catch (err) {
-          console.log(`Process group ${pid} successfully terminated`);
+          logger.success(`Process group ${pid} successfully terminated`);
           return true;
         }
       }
@@ -64,16 +66,16 @@ async function runBuild() {
     };
 
     const handleTimeout = () => {
-      console.log(`Test timeout after ${TEST_TIMEOUT}ms - initiating cleanup`);
+      logger.warn(`Test timeout after ${TEST_TIMEOUT}ms - initiating cleanup`);
       isTimedOut = true;
       
       if (testProcess?.childProcess) {
         const pid = testProcess.childProcess.pid;
-        console.log(`Terminating process tree for PID: ${pid}`);
+        logger.system(`Terminating process tree for PID: ${pid}`);
         
         // Windows needs extra time for process tree termination
         const cleanupTimer = setTimeout(() => {
-          console.log('Final force exit');
+          logger.warn('Final force exit');
           process.exit(1);
         }, 30000); // 30 second cleanup window
 
@@ -91,7 +93,7 @@ async function runBuild() {
 
     // Add forced process termination for all environments
     const forceKill = () => {
-      console.log('Initiating forced process termination');
+      logger.warn('Initiating forced process termination');
       if (testProcess?.childProcess) {
         testProcess.childProcess.kill('SIGKILL');
       }
@@ -101,7 +103,7 @@ async function runBuild() {
 
     // Add secondary timeout for guaranteed exit
     const finalExitTimer = setTimeout(() => {
-      console.error('FINAL FORCED EXIT - PROCESS HUNG');
+      logger.error('FINAL FORCED EXIT - PROCESS HUNG');
       forceKill();
     }, TEST_TIMEOUT + 60000); // Add 1 minute buffer to initial timeout
 
@@ -119,7 +121,7 @@ async function runBuild() {
         if (process.env.NODE_ENV === 'test') {
           resolve(`Test failed with code ${result.code}`);
         } else {
-          console.error('Failed with exit code:', result.code);
+          logger.error('Failed with exit code:', result.code);
           reject(new Error(`Test failed: ${result.stderr || result.stdout}`));
         }
       } else {
@@ -145,12 +147,12 @@ async function main(instruction, errors) {
     // clearDiffBuffer(); - removing this line to allow diffs to accumulate
     
     if (!instruction || instruction.trim() === '') {
-      console.log('No specific instruction provided. Running default test mode.');
+      logger.info('No specific instruction provided. Running default test mode.');
       instruction = 'Run project tests and verify setup';
     }
 
     const files = await getFiles();
-    console.log(`\n\n--------------------------------\n\nUser instruction:\n\n--------------------------------\n${instruction}\n\n`);
+    logger.info(`\n\n--------------------------------\n\nUser instruction:\n\n--------------------------------\n${instruction}\n\n`);
 
     // In test mode, skip the LLM call and just write a test file
     if (process.env.NODE_ENV === 'test') {
@@ -170,7 +172,7 @@ async function main(instruction, errors) {
       // Add deduplication function
       async function deduplicateContentWithLLM(content) {
         try {
-          console.log('Deduplicating summary buffer (length:', content.length, ')');
+          logger.debug('Deduplicating summary buffer (length:', content.length, ')');
           const response = await makeApiRequest(
             [{
               role: "system",
@@ -185,7 +187,7 @@ async function main(instruction, errors) {
           );
           return response.choices[0].message.content.split('\n');
         } catch (error) {
-          console.error('Deduplication failed, using original content:', error.message);
+          logger.error('Deduplication failed, using original content:', error.message);
           return content; // Fallback to original content
         }
       }
@@ -193,15 +195,15 @@ async function main(instruction, errors) {
       // Process summary buffer before using
       let processedHistory = [];
       if (summaryBuffer.length > 0) {
-        console.log('Pre-processing summary buffer (original length:', summaryBuffer.length, ')');
+        logger.debug('Pre-processing summary buffer (original length:', summaryBuffer.length, ')');
         try {
           if (!process.env.MISTRAL_API_KEY) throw new Error('No API key for deduplication');
           processedHistory = await deduplicateContentWithLLM([...new Set(summaryBuffer)]);
           summaryBuffer.length = 0; // Clear original buffer
           summaryBuffer.push(...processedHistory); // Replace with deduplicated
-          console.log('Deduplicated summary buffer (new length:', processedHistory.length, ')');
+          logger.debug('Deduplicated summary buffer (new length:', processedHistory.length, ')');
         } catch (error) {
-          console.error('Summary processing error:', error.message);
+          logger.error('Summary processing error:', error.message);
           processedHistory = summaryBuffer;
         }
       }
@@ -305,8 +307,8 @@ async function main(instruction, errors) {
       const outputFilePath = path.join(__dirname, '../../lastprompt.txt');
       fs.writeFileSync(outputFilePath, messages[0].content);
 
-      console.log(`Messages have been written to ${outputFilePath}`);
-      console.log(`${JSON.stringify(messages).length} B of reasoning input`);
+      logger.success(`Messages have been written to ${outputFilePath}`);
+      logger.debug(`${JSON.stringify(messages).length} B of reasoning input`);
       while (retryCount < MAX_RETRIES) {
         try {
           const response = await makeApiRequest(
@@ -318,7 +320,7 @@ async function main(instruction, errors) {
 
           return response.choices[0].message.content;
         } catch (error) {
-          console.error(`API request failed (attempt ${retryCount + 1}/${MAX_RETRIES}):`, error);
+          logger.error(`API request failed (attempt ${retryCount + 1}/${MAX_RETRIES}):`, error);
           retryCount++;
           if (retryCount >= MAX_RETRIES) {
             throw error;
@@ -338,7 +340,8 @@ async function main(instruction, errors) {
       throw new Error('Invalid response from LLM');
     }
 
-    console.log(`${JSON.stringify(brainstormedTasks).length} B of reasoning output`);
+    logger.debug(`${JSON.stringify(brainstormedTasks).length} B of reasoning output`);
+    logger.debug(brainstormedTasks);
 
     const filesToEdit = brainstormedTasks.match(/<file\s+path="([^"]+)"[^>]*>([\s\S]*?)<\/file>/gi) || [];
     const cliCommands = brainstormedTasks.match(/<cli>([\s\S]*?)<\/cli>/g) || [];
@@ -353,7 +356,7 @@ async function main(instruction, errors) {
     }
 
     if (process.env.NODE_ENV !== 'test' && filesToEdit.length === 0 && cliCommands.length === 0 && summaries.length === 0) {
-      console.log(brainstormedTasks);
+      logger.debug(brainstormedTasks);
       throw new Error('No files to edit, cli commands or summaries found');
     }
 
@@ -365,14 +368,14 @@ async function main(instruction, errors) {
         const filePath = fileMatch[1];
         const fileContent = fileMatch[2];
         
-        console.log(`[FS] Writing ${filePath} (${fileContent.length} bytes)`);
+        logger.file(`Writing ${filePath} (${fileContent.length} bytes)`);
         try {
           const fullPath = path.join(process.cwd(), filePath);
           fs.mkdirSync(path.dirname(fullPath), { recursive: true });
           fs.writeFileSync(fullPath, fileContent);
-          console.log(`[FS] Successfully wrote ${filePath}`);
+          logger.success(`Successfully wrote ${filePath}`);
         } catch (error) {
-          console.error(`Failed to write ${filePath}: ${error.message}`);
+          logger.error(`Failed to write ${filePath}: ${error.message}`);
           throw error;
         }
       }
@@ -385,9 +388,9 @@ async function main(instruction, errors) {
           const command = commandMatch[1].trim();
           try {
             const result = await executeCommand(command);
-            console.log({result})
+            logger.system("Code: ", result.code)
           } catch (error) {
-            console.error(`Failed to execute ${command}: ${error.message}`);
+            logger.error(`Failed to execute ${command}: ${error.message}`);
           }
         }
       }
@@ -399,24 +402,24 @@ async function main(instruction, errors) {
         for (const summary of summaries) {
           const summaryMatch = summary.match(/<text>([\s\S]*?)<\/text>/);
           if (summaryMatch) {
-            console.log('\n\n ----- Changelog -----\n\n', summaryMatch[1].trim(), '\n\n');
+            logger.info('\n\n ----- Changelog -----\n\n', summaryMatch[1].trim(), '\n\n');
           }
         }
       }
       await runBuild();
-      console.log('Build successful', cmdhistory);
+      logger.success('Build successful', cmdhistory);
  
     } catch (error) {
-      console.error('Failed:', error, cmdhistory);
+      logger.error('Failed:', error, cmdhistory);
       if (summaryBuffer && summaryBuffer.length > 0) {
-        console.log('\n\n ----- Summary Buffer -----\n');
+        logger.info('\n\n ----- Summary Buffer -----\n');
         for (const summary of summaryBuffer) {
           const summaryMatch = summary.match(/<text>([\s\S]*?)<\/text>/);
           if (summaryMatch) {
-            console.log(summaryMatch[1].trim(), '\n');
+            logger.info(summaryMatch[1].trim(), '\n');
           }
         }
-        console.log('\n');
+        logger.info('\n');
       }
     if (attempts < MAX_ATTEMPTS) {
         attempts++;
@@ -425,25 +428,25 @@ async function main(instruction, errors) {
           const todoPath = path.join(process.cwd(), 'TODO.txt');
           if (fs.existsSync(todoPath)) {
             todoContent = fs.readFileSync(todoPath, 'utf8');
-            console.log('TODO.txt contents:\n', todoContent);
+            logger.info('TODO.txt contents:\n', todoContent);
             summaryBuffer.push(`${todoContent}`);
           } else {
-            console.log('TODO.txt not found in current directory');
+            logger.warn('TODO.txt not found in current directory');
           }
         } catch (err) {
-          console.error('Error reading TODO.txt:', err);
+          logger.error('Error reading TODO.txt:', err);
         }
-        console.log(`Retrying main function (attempt ${attempts}/${MAX_ATTEMPTS})...`);
+        logger.info(`Retrying main function (attempt ${attempts}/${MAX_ATTEMPTS})...`);
         await main(process.argv[2], error.message);
       } else {
         throw new Error('Max attempts reached');
       }
     }
 
-    console.log('Final directory contents:', fs.readdirSync(process.cwd()));
+    logger.debug('Final directory contents:', fs.readdirSync(process.cwd()));
 
   } catch (error) {
-    console.error('Application error:', error);
+    logger.error('Application error:', error);
     if (process.env.NODE_ENV === 'test') {
       throw error; // In test environment, propagate the error
     } else {
@@ -454,7 +457,7 @@ async function main(instruction, errors) {
 
 const instruction = process.argv[2];
 main(instruction).catch((error) => {
-  console.error('Application error:', error);
+  logger.error('Application error:', error);
   process.exit(0);
 });
 
