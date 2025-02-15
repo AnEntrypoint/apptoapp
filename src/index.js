@@ -267,7 +267,6 @@ async function main(instruction, errors) {
             + `Ensure code is fully covered by tests and handle edge cases.`
             + `Use a modular pproach to build everything, and generalize code to be reusable.`
             + `Ensure adherence to best practices in performance, security, and maintainability.`
-            + `Always perform modifications by making unit tests and iterating against it with npm run test`
             + 'fix as many linting errors as possible, the backend will run npm run test automatically which lints the codebase\n'
             + 'always refactor files that are longer than 100 lines into smaller files\n'
             + 'interdepencency should be minimized, if you see a function that is dependent on another function, refactor it to be more independent\n'

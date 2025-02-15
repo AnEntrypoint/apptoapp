@@ -1,12 +1,12 @@
 const { exec } = require('child_process');
 const fs = require('fs').promises;
 const path = require('path');
-
+ 
 async function executeCommand(command, options = {}) {
   return new Promise((resolve, reject) => {
     const child = exec(command, {
       timeout: 5000,
-      ...options,
+      ...options, 
     }, (error, stdout, stderr) => {
       if (error) {
         reject(stdout||stderr);

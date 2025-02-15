@@ -82,7 +82,7 @@ async function generateDiff() {
     
     // Get the diff of staged changes
     const diff = await retry(() => 
-      execSync('git diff --cached', { encoding: 'utf-8' })
+      execSync('git diff --cached --no-ext-diff --no-color', { encoding: 'utf-8' })
     );
     console.log('Diff generated, length:', diff.length, 'characters');
     
@@ -109,7 +109,6 @@ async function generateDiff() {
         head: execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf-8' }),
         lastCommit: execSync('git log -1 --oneline', { encoding: 'utf-8' })
       };
-      console.log('Current git state:', gitState);
     }
   } catch (error) {
     console.error('Error in generateDiff:', error.message);

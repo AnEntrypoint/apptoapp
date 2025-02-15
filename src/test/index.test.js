@@ -1,10 +1,7 @@
+
 const { main } = require('../index.js');
 const { loadIgnorePatterns } = require('../utils');
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
 const fsp = require('fs').promises;
-const { execSync } = require('child_process');
 const { clearDiffBuffer } = require('../files');
 
 // Increase timeout for all tests in this file
@@ -47,16 +44,12 @@ async function retryCleanup(dir, maxAttempts = 5) {
 }
 
 describe('main', () => {
-  let tempDir;
-  let originalCwd;
   let originalEnv;
   let mockFetch;
 
   beforeEach(async () => {
     // Create temp directory and set it as cwd
     tempDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'test-'));
-    originalCwd = process.cwd();
-    process.chdir(tempDir);
 
     // Store original environment
     originalEnv = process.env.NODE_ENV;
@@ -90,12 +83,12 @@ describe('main', () => {
     execSync('git init');
     execSync('git config user.name "Test User"');
     execSync('git config user.email "test@example.com"');
-    
+
     // Create initial file
     fs.writeFileSync('test.txt', 'initial content');
     execSync('git add test.txt');
     execSync('git commit -m "initial commit"');
-    
+
     // Clear any existing diffs
     clearDiffBuffer();
   });
@@ -137,17 +130,17 @@ describe('main', () => {
   test('should collect diffs after each attempt', async () => {
     // Make a change that will be detected
     fs.writeFileSync('test.txt', 'modified content');
-    
+
     // Run main with a test instruction
     await main('test instruction');
-    
+
     // Check if artifacts directory was created
     expect(fs.existsSync(path.join(tempDir, 'artifacts'))).toBe(true);
-    
+
     // Check if diffs file was created
     const diffsPath = path.join(tempDir, 'artifacts', 'attempt_diffs.xml');
     expect(fs.existsSync(diffsPath)).toBe(true);
-    
+
     // Check content of diffs file
     const diffsContent = fs.readFileSync(diffsPath, 'utf-8');
     expect(diffsContent).toContain('<?xml version="1.0" encoding="UTF-8"?>');
