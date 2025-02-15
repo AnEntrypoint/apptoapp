@@ -14,7 +14,17 @@ const mockChalk = {
   white: jest.fn(str => str)
 };
 
-jest.mock('chalk', () => mockChalk);
+// Mock chalk module
+jest.mock('chalk', () => ({
+  blue: str => mockChalk.blue(str),
+  green: str => mockChalk.green(str),
+  yellow: str => mockChalk.yellow(str),
+  red: str => mockChalk.red(str),
+  gray: str => mockChalk.gray(str),
+  magenta: str => mockChalk.magenta(str),
+  cyan: str => mockChalk.cyan(str),
+  white: str => mockChalk.white(str)
+}));
 
 // Mock Date.toISOString
 const mockDate = '2025-01-01T00:00:00.000Z';
