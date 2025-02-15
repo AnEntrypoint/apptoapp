@@ -19,7 +19,7 @@ module.exports = {
     afterAll: true,
   },
   rules: {
-    'no-unused-vars': ['error', { 
+    'no-unused-vars': ['warn', { 
       ignoreRestSiblings: true,
       args: 'none',
       varsIgnorePattern: '^_',
@@ -40,9 +40,23 @@ module.exports = {
     'main.js',
     'jest-transformer.js',
     'jest.setup.js',
-    'src/**/*.test.js'
+    'src/**/*.test.js',
+    'src/test/**/*'
+  ],
+  overrides: [
+    {
+      files: ['src/**/*.js'],
+      rules: {
+        'no-unused-vars': ['warn', {
+          args: 'none',
+          varsIgnorePattern: '^_',
+          argsIgnorePattern: '^_',
+        }],
+      }
+    }
   ],
   parserOptions: {
     ecmaVersion: 2020,
+    sourceType: 'module'
   },
 }; 

@@ -1,30 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="jest tests" tests="11" failures="0" errors="0" time="3.845">
-  <testsuite name="main" errors="0" failures="0" skipped="0" timestamp="2025-02-15T18:30:38" time="2.22" tests="2">
-    <testcase classname="main should handle test instruction" name="main should handle test instruction" time="1.001">
+<testsuites name="jest tests" tests="11" failures="0" errors="0" time="4.045">
+  <testsuite name="main" errors="0" failures="0" skipped="0" timestamp="2025-02-15T18:31:09" time="2.235" tests="2">
+    <testcase classname="main should handle test instruction" name="main should handle test instruction" time="1">
     </testcase>
-    <testcase classname="main should collect diffs after each attempt" name="main should collect diffs after each attempt" time="0.594">
+    <testcase classname="main should collect diffs after each attempt" name="main should collect diffs after each attempt" time="0.597">
     </testcase>
   </testsuite>
-  <testsuite name="diff" errors="0" failures="0" skipped="0" timestamp="2025-02-15T18:30:40" time="1.343" tests="5">
+  <testsuite name="diff" errors="0" failures="0" skipped="0" timestamp="2025-02-15T18:31:11" time="1.54" tests="5">
     <testcase classname="diff should return the difference between two numbers" name="diff should return the difference between two numbers" time="0.001">
     </testcase>
     <testcase classname="diff should handle negative numbers" name="diff should handle negative numbers" time="0.001">
     </testcase>
-    <testcase classname="diff should handle zero" name="diff should handle zero" time="0.002">
+    <testcase classname="diff should handle zero" name="diff should handle zero" time="0.001">
     </testcase>
-    <testcase classname="diff functionality should generate and store diffs" name="diff functionality should generate and store diffs" time="0.648">
+    <testcase classname="diff functionality should generate and store diffs" name="diff functionality should generate and store diffs" time="0.651">
     </testcase>
-    <testcase classname="diff functionality should clear diff buffer" name="diff functionality should clear diff buffer" time="0.603">
+    <testcase classname="diff functionality should clear diff buffer" name="diff functionality should clear diff buffer" time="0.8">
     </testcase>
   </testsuite>
-  <testsuite name="tools" errors="0" failures="0" skipped="0" timestamp="2025-02-15T18:30:42" time="0.116" tests="2">
+  <testsuite name="tools" errors="0" failures="0" skipped="0" timestamp="2025-02-15T18:31:13" time="0.111" tests="2">
     <testcase classname="tools should execute a command and return the output" name="tools should execute a command and return the output" time="0.019">
     </testcase>
     <testcase classname="tools should handle errors when executing a command" name="tools should handle errors when executing a command" time="0.018">
     </testcase>
   </testsuite>
-  <testsuite name="utils" errors="0" failures="0" skipped="0" timestamp="2025-02-15T18:30:42" time="0.075" tests="2">
+  <testsuite name="utils" errors="0" failures="0" skipped="0" timestamp="2025-02-15T18:31:13" time="0.073" tests="2">
     <testcase classname="utils should return the sum of two numbers" name="utils should return the sum of two numbers" time="0.001">
     </testcase>
     <testcase classname="utils should return the product of two numbers" name="utils should return the product of two numbers" time="0.001">
