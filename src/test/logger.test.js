@@ -35,6 +35,9 @@ Date.prototype.toISOString = jest.fn(() => mockDate);
 const originalConsoleLog = console.log;
 console.log = jest.fn();
 
+// Clear module cache
+jest.resetModules();
+
 // Import logger module
 const logger = require('../utils/logger');
 
