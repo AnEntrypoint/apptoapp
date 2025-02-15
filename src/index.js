@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const dotenv = require('dotenv');
-const { getFiles, writeFile, generateDiff, getDiffsAsXML, clearDiffBuffer } = require('./files.js');
+const { getFiles, writeFile, generateDiff, getDiffBufferStatus, clearDiffBuffer } = require('./files.js');
 const { makeApiRequest, loadCursorRules, getCWD } = require('./utils');
 const { executeCommand, cmdhistory } = require('./utils');
 const fs = require('fs');
@@ -217,7 +217,7 @@ async function main(instruction, errors) {
           return `Command failed: ${command}\nSTDOUT: ${stdout}\nSTDERR: ${stderr}`;
         }
       }
-      const diffsXML = getDiffsAsXML();
+      const diffsXML = getDiffBufferStatus();
       
       const artifacts = [
         //`\n\n${cmdhistory.length > 0 ? `Logs: (fix the errors in the logs if needed)\n<logs>${cmdhistory.join('\n')}</logs>\n\n` : ''}\n\n`,
