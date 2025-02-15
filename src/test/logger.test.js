@@ -31,12 +31,10 @@ const mockDate = '2025-01-01T00:00:00.000Z';
 const originalToISOString = Date.prototype.toISOString;
 Date.prototype.toISOString = jest.fn(() => mockDate);
 
-// Import logger module
-const logger = require('../utils/logger');
-
 describe('logger', () => {
   let mockConsoleLog;
   let originalConsole;
+  let logger;
 
   beforeAll(() => {
     mockConsoleLog = jest.fn();
@@ -45,6 +43,9 @@ describe('logger', () => {
       ...originalConsole,
       log: mockConsoleLog
     };
+    jest.isolateModules(() => {
+      logger = require('../utils/logger');
+    });
   });
 
   beforeEach(() => {
