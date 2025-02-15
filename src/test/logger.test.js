@@ -1,16 +1,18 @@
-const logger = require('../utils/logger');
-
 describe('logger', () => {
   let consoleLogSpy;
   let originalConsoleLog;
+  let logger;
 
   beforeAll(() => {
     originalConsoleLog = console.log;
   });
 
   beforeEach(() => {
+    // Clear the module cache and reload the logger
+    jest.resetModules();
     console.log = jest.fn();
     consoleLogSpy = console.log;
+    logger = require('../utils/logger');
   });
 
   afterEach(() => {
