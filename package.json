@@ -4,7 +4,7 @@
   "description": "CLI tool for automated debugging",
   "main": "node src/index.js",
   "scripts": {
-    "test": "jest --detectOpenHandles --forceExit",
+    "test": "jest --detectOpenHandles --forceExit --testTimeout=120000 --maxWorkers=1",
     "lint": "eslint .",
     "build": "webpack --mode production",
     "dev": "webpack --mode development --watch",

@@ -9,6 +9,8 @@ const path = require('path');
 
 dotenv.config();
 
+const TEST_TIMEOUT = process.env.CI ? 300000 : 180000; // 5 minutes for CI, 3 minutes locally
+
 async function runBuild() {
   let result; let code; let stdout; let
     stderr;
@@ -45,82 +47,69 @@ async function runBuild() {
     let isTimedOut = false;
     let processKilled = false;
 
-    const handleTimeout = () => {
-      console.log('Test command timed out - initiating force kill');
-      isTimedOut = true;
-      if (testProcess?.childProcess) {
-        if (!processKilled) {
-          processKilled = true;
-          const pid = testProcess.childProcess.pid;
-          console.log(`Terminating process group for PID: ${pid}`);
-
-          const killWithRetry = async (attempt = 1) => {
-            try {
-              console.log(`Kill attempt ${attempt}`);
-              
-              if (process.platform === 'win32') {
-                require('child_process').execSync(`taskkill /F /T /PID ${pid}`);
-              } else {
-                // Kill entire process group
-                process.kill(-pid, 'SIGKILL');
-              }
-            } catch (error) {
-              console.log(`Kill attempt ${attempt} failed: ${error.message}`);
-            }
-
-            // Verify process status
-            try {
-              const psOutput = require('child_process').execSync(
-                process.platform === 'win32'
-                  ? `tasklist /FI "PID eq ${pid}"`
-                  : `ps -p ${pid}`
-              ).toString();
-              
-              if (psOutput.includes(`${pid}`)) {
-                console.log(`Process still alive after attempt ${attempt}`);
-                if (attempt < 5) {
-                  await new Promise(resolve => setTimeout(resolve, 1000));
-                  return killWithRetry(attempt + 1);
-                }
-                console.log('Nuclear option: killing all node processes');
-                require('child_process').execSync(
-                  process.platform === 'win32'
-                    ? `taskkill /F /IM node.exe`
-                    : `pkill -9 node`
-                );
-              }
-            } catch (psError) {
-              console.log('Process verified as terminated');
-            }
-          };
-
-          killWithRetry().finally(() => {
-            console.log('Final cleanup');
-            testProcess.childProcess.kill('SIGKILL');
-            resolve(`Test timed out after ${timeoutDuration}ms\nProcess group terminated`);
-          });
+    const killWithRetry = async (pid, attempts = 3) => {
+      for (let i = 1; i <= attempts; i++) {
+        try {
+          console.log(`Attempt ${i} to kill process group ${pid}`);
+          process.kill(-pid, 'SIGKILL');
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          // Verify if process exists
+          process.kill(pid, 0); // Throws if process doesn't exist
+        } catch (err) {
+          console.log(`Process group ${pid} successfully terminated`);
+          return true;
         }
-      } else {
-        console.log('No process to kill - timeout occurred before process started');
-        resolve('Test timed out before process started');
+      }
+      return false;
+    };
+
+    const handleTimeout = () => {
+      console.log(`Test timeout after ${TEST_TIMEOUT}ms - initiating cleanup`);
+      isTimedOut = true;
+      
+      if (testProcess?.childProcess) {
+        const pid = testProcess.childProcess.pid;
+        console.log(`Terminating process tree for PID: ${pid}`);
+        
+        // Windows needs extra time for process tree termination
+        const cleanupTimer = setTimeout(() => {
+          console.log('Final force exit');
+          process.exit(1);
+        }, 30000); // 30 second cleanup window
+
+        killWithRetry(pid).finally(() => {
+          clearTimeout(cleanupTimer);
+          resolve(`Tests timed out after ${TEST_TIMEOUT}ms`);
+        });
       }
     };
 
-    testProcess = executeCommand('npm run test', logHandler);
+    testProcess = executeCommand('npx jest --detectOpenHandles --forceExit --testTimeout=120000 --maxWorkers=1', logHandler);
     
-    // Add process exit handler
-    const child = testProcess.childProcess;
-    if (child) {
-      console.log('Test process started with PGID:', child.pid);
-      child.on('exit', (code, signal) => {
-        console.log(`Test process exited with code ${code} (${signal})`);
-        if (timeoutId) clearTimeout(timeoutId);
-      });
-    }
+    // Add universal timeout handling regardless of NODE_ENV
+    timeoutId = setTimeout(handleTimeout, TEST_TIMEOUT);
 
-    if (process.env.NODE_ENV !== 'test') {
-      timeoutId = setTimeout(handleTimeout, timeoutDuration);
-    }
+    // Add forced process termination for all environments
+    const forceKill = () => {
+      console.log('Initiating forced process termination');
+      if (testProcess?.childProcess) {
+        testProcess.childProcess.kill('SIGKILL');
+      }
+      // Add final cleanup for child processes
+      setTimeout(() => process.exit(0), 5000);
+    };
+
+    // Add secondary timeout for guaranteed exit
+    const finalExitTimer = setTimeout(() => {
+      console.error('FINAL FORCED EXIT - PROCESS HUNG');
+      forceKill();
+    }, TEST_TIMEOUT + 60000); // Add 1 minute buffer to initial timeout
+
+    // Cleanup timers when process completes
+    testProcess.finally(() => {
+      clearTimeout(timeoutId);
+      clearTimeout(finalExitTimer);
+    });
 
     testProcess.then((result) => {
       if (isTimedOut) return; // Ignore if already timed out
@@ -168,6 +157,46 @@ async function main(instruction, errors) {
         cmdhistory.length = 0;
         cmdhistory.unshift(newcmdhistory);
       }
+
+      // Add deduplication function
+      async function deduplicateContentWithLLM(content) {
+        try {
+          console.log('Deduplicating summary buffer (length:', content.length, ')');
+          const response = await makeApiRequest(
+            [{
+              role: "system",
+              content: "Remove duplicate lines from this content while maintaining order. Only respond with the deduplicated text."
+            }, {
+              role: "user",
+              content: content.join('\n')
+            }],
+            [],
+            process.env.MISTRAL_API_KEY,
+            'https://codestral.mistral.ai/v1/chat/completions'
+          );
+          return response.choices[0].message.content.split('\n');
+        } catch (error) {
+          console.error('Deduplication failed, using original content:', error.message);
+          return content; // Fallback to original content
+        }
+      }
+
+      // Process summary buffer before using
+      let processedHistory = [];
+      if (summaryBuffer.length > 0) {
+        console.log('Pre-processing summary buffer (original length:', summaryBuffer.length, ')');
+        try {
+          if (!process.env.MISTRAL_API_KEY) throw new Error('No API key for deduplication');
+          processedHistory = await deduplicateContentWithLLM([...new Set(summaryBuffer)]);
+          summaryBuffer.length = 0; // Clear original buffer
+          summaryBuffer.push(...processedHistory); // Replace with deduplicated
+          console.log('Deduplicated summary buffer (new length:', processedHistory.length, ')');
+        } catch (error) {
+          console.error('Summary processing error:', error.message);
+          processedHistory = summaryBuffer;
+        }
+      }
+
       function safeExecSync(command) {
         try {
           return require('child_process').execSync(command, { stdio: 'pipe' }).toString().trim();
@@ -177,11 +206,11 @@ async function main(instruction, errors) {
           return `Command failed: ${command}\nSTDOUT: ${stdout}\nSTDERR: ${stderr}`;
         }
       }
-
+      
       const artifacts = [
         //`\n\n${cmdhistory.length > 0 ? `Logs: (fix the errors in the logs if needed)\n<logs>${cmdhistory.join('\n')}</logs>\n\n` : ''}\n\n`,
         files?`\n\n---FILES---\n\n${files}\n\n---END OF FILES---\n\n`:``,
-        summaryBuffer.length > 0?`\n\n<history>${summaryBuffer.join('\n')}</history>\n\n`:``,
+        processedHistory.length > 0 ? `\n\n<history>${processedHistory.join('\n')}</history>\n\n` : ``,
         `\n\n<nodeEnv>${process.env.NODE_ENV || 'development'}</nodeEnv>\n\n`,
         `\n\n<attempts>This is attempt number ${attempts} of ${MAX_ATTEMPTS} to complete the user instruction: ${instruction} and fix the errors in the logs and tests</attempts>\n\n`,
         `\n\n<nodeVersion>${process.version}</nodeVersion>\n\n`,
@@ -197,7 +226,7 @@ async function main(instruction, errors) {
         errors?`\n\n<errors>${errors}</errors>\n\n`:``,
         `\n\n<currentWorkingDirectory>${process.cwd()}</currentWorkingDirectory>\n\n`,
         `\n\n<terminalType>${process.env.TERM || process.platform === 'win32' ? 'cmd/powershell' : 'bash'}</terminalType>\n\n`,
-        cliBuffer.length > 0?`\n\n<bashhistory>${cliBuffer.join('\n')}</bashhistory>\n\n`:``,
+        cliBuffer.length > 0?`\n\n<bashhistory>${cliBuffer.map(c=>c.replace(/<cli>/g, '').replace(/<\/cli>/g, '')).join('\n')}</bashhistory>\n\n`:``,
         `\n\n<rules>Rules:\n${cursorRules}</rules>\n\n`,
       ]
       const messages = [
@@ -205,7 +234,8 @@ async function main(instruction, errors) {
           role: 'system',
           content: 'You are a senior programmer with over 20 years of experience, you make expert and mature software development choices, your main goal is to complete the user instruction\n'
             + '\n// Code Quality & Best Practices\n'
-            + `It is possible that you are in the middle of a task, look at <attempts></attempts> and <todo></todo> and <logs></logs>to see what you have already done and what you need to do, the primary instruction is the user message`
+            + `It is possible that you are in the middle of a task, look at <attempts></attempts> and <todo></todo> and <logs></logs>, as well as TODO.txt and CHANGELOG.txt to see what you have already done and what you need to do, dont repeat steps that were already perofrmed`
+            + `the primary instruction is the user message`
             + `Follow the user's requirements closely and precisely`
             + `Plan step-by-step; describe what to build in pseudocode with great detail.`
             + `Confirm the plan before writing code, ensuring it adheres to specified guidelines.`

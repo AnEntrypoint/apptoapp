@@ -1,4 +1,3 @@
-
 const { main } = require('../index.js');
 const { loadIgnorePatterns } = require('../utils');
 const fs = require('fs');
@@ -97,7 +96,11 @@ describe('main', () => {
     } catch (error) {
       console.error('Final cleanup attempt failed:', error);
       // If cleanup fails after all retries, we should restart the test process
-      process.kill(process.pid, 'SIGTERM');
+      if (process.platform === 'win32') {
+        require('child_process').execSync(`taskkill /F /T /PID ${process.pid}`);
+      } else {
+        process.kill(process.pid, 'SIGTERM');
+      }
     }
 
     jest.clearAllMocks();

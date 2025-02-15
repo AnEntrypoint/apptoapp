@@ -35,10 +35,10 @@ async function getFiles() {
     const filePath = path.join(currentDir, file);
     try {
       const content = await fs.promises.readFile(filePath, 'utf-8');
-      return `\n<file path="${file}">\n${content}\n</file>\n`;
+      return `\n<file path="${file.replace(/\\/g, '/')}">\n${content}\n</file>\n`;
     } catch (error) {
       console.error(`Error reading file ${filePath}: ${error.message}`);
-      return `\n<file path="${file}"></file>\n`;
+      return `\n<file path="${file.replace(/\\/g, '/')}"></file>\n`;
     }
   })).then(files => files.join('\n'));
   return xmlFiles;
@@ -77,33 +77,27 @@ async function loadIgnoreFiles(directory) {
 
 async function writeFile(filePath, content) {
   try {
-    // Ensure the directory exists
     const dir = path.dirname(filePath);
-
-    // Check if the directory exists
-    try {
-      await fs.access(dir);
-    } catch (accessError) {
-      throw new Error(`Directory does not exist: ${dir}`);
+    await fsp.mkdir(dir, { recursive: true }); // Windows needs explicit recursive creation
+    
+    // Retry logic for Windows file locking
+    let retries = 3;
+    while (retries-- > 0) {
+      try {
+        await fsp.writeFile(filePath, content, 'utf-8');
+        return;
+      } catch (error) {
+        if (error.code === 'EPERM' && process.platform === 'win32') {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        } else {
+          throw error;
+        }
+      }
     }
-
-    // Check if the directory is writable
-    try {
-      await fs.access(dir, fs.constants.W_OK);
-    } catch (accessError) {
-      throw new Error(`Cannot write to directory: ${dir}`);
-    }
-
-    // Write the file
-    console.log(`Writing to ${filePath}`);
-    await fs.writeFile(filePath, content, 'utf-8');
   } catch (error) {
-    // Explicitly handle different error cases
-    if (error.code === 'ENOENT') {
-      throw new Error(`Cannot write to path: ${filePath}`);
-    }
-    if (error.code === 'EACCES') {
-      throw new Error(`Permission denied: ${filePath}`);
+    // Handle Windows-specific error codes
+    if (error.code === 'EACCES' || error.code === 'EPERM') {
+      throw new Error(`Permission denied: ${filePath} - ${error.message}`);
     }
     throw error;
   }

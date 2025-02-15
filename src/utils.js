@@ -1,7 +1,7 @@
 const fsp = require('fs').promises;
 const ignore = require('ignore');
 const path = require('path');
-const { exec } = require('child_process');
+const { exec, spawn } = require('child_process');
 
 const cmdhistory = [];
 
@@ -15,80 +15,28 @@ function product(a, b) {
 
 async function executeCommand(command, logHandler = null, options = {}) {
   console.log('Executing command:', command);
-  console.log('Command history size:', cmdhistory.join().length, 'B');
   return new Promise((resolve, reject) => {
-    try {
-      const child = spawn(command, {
-        shell: true,
-        detached: true, // Create new process group
-        stdio: ['inherit', 'pipe', 'pipe']
+    const child = exec(command, {
+      timeout: options.timeout || 300000, // 5 minute default timeout
+      ...options
+    }, (error, stdout, stderr) => {
+      resolve({
+        code: error ? error.code : 0,
+        stdout: stdout.toString(),
+        stderr: stderr.toString(),
+        kill: () => child.kill()
       });
-    
-      cmdhistory.push(command);
-      if (cmdhistory.length > 100) cmdhistory.splice(0, cmdhistory.length - 100);
+    });
 
-      const output = { stdout: [], stderr: [] };
-      let isResolved = false;
-
-      child.stdout.on('data', (data) => {
-        const trimmed = data.toString().trim();
-        cmdhistory.push(trimmed);
-        if (cmdhistory.length > 1000) cmdhistory.splice(0, cmdhistory.length - 1000);
-        output.stdout.push(trimmed);
-        if (logHandler) {
-          (logHandler||console.log)(trimmed);
-        } else {
-          console.log(`[CMD] ${trimmed}`);
-        }
-      });
-
-      child.stderr.on('data', (data) => {
-        const trimmed = data.toString().trim();
-        (logHandler||console.error)(trimmed);
-        cmdhistory.push(trimmed);
-        if (cmdhistory.length > 1000) cmdhistory.splice(0, cmdhistory.length - 1000);
-        output.stderr.push(trimmed);
-        // console.error(`[CMD-ERR] ${trimmed}`);
-      });
-
-      const cleanup = () => {
-        if (!isResolved) {
-          isResolved = true;
-          child.stdout.removeAllListeners();
-          child.stderr.removeAllListeners();
-          child.removeAllListeners();
-        }
-      };
-
-      child.on('close', (code) => {
-        if (!isResolved) {
-          cleanup();
-          resolve({
-            code,
-            stdout: output.stdout.join('\n'),
-            stderr: output.stderr.join('\n'),
-            kill: () => child.kill(),
-          });
-        }
-      });
-
-      child.on('error', (error) => {
-        console.error('Command execution error:', error);
-        if (!isResolved) {
-          cleanup();
-          reject(new Error(`Command failed: ${error.message}`));
-        }
-      });
-
-      // Attach kill method to the promise
-      child.kill = () => {
-        cleanup();
-        child.kill('SIGTERM');
-      };
-    } catch (error) {
-      console.error('Command initialization error:', error);
-      reject(new Error(`Command initialization failed: ${error.message}`));
+    if (logHandler) {
+      child.stdout.on('data', logHandler);
+      child.stderr.on('data', logHandler);
     }
+
+    // Attach kill method to the promise
+    child.kill = () => {
+      child.kill('SIGTERM');
+    };
   });
 }
 
@@ -229,6 +177,28 @@ async function loadCursorRules() {
 // Add helper to show current working directory
 function getCWD() {
     return process.cwd();
+}
+
+// Add this helper function
+function killProcessGroup(pid) {
+  try {
+    if (process.platform === 'win32') {
+      console.log(`Terminating process tree for PID ${pid}`);
+      require('child_process').execSync(
+        `taskkill /F /T /PID ${pid}`, 
+        { stdio: 'ignore', timeout: 60000 }
+      );
+      // Additional cleanup for Windows service hosts
+      require('child_process').execSync(
+        `taskkill /F /IM conhost.exe /T`,
+        { stdio: 'ignore' }
+      );
+    } else {
+      process.kill(-pid, 'SIGKILL');
+    }
+  } catch (error) {
+    console.log(`Process group termination error: ${error.message}`);
+  }
 }
 
 module.exports = {
