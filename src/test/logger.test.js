@@ -14,7 +14,7 @@ describe('logger', () => {
   test('should log info messages', () => {
     logger.info('Test info message');
     expect(consoleLogSpy).toHaveBeenCalledWith(
-      expect.stringContaining('ℹ️'),
+      expect.stringMatching(/ℹ️.*INFO/),
       'Test info message'
     );
   });
@@ -22,7 +22,7 @@ describe('logger', () => {
   test('should log success messages', () => {
     logger.success('Test success message');
     expect(consoleLogSpy).toHaveBeenCalledWith(
-      expect.stringContaining('✅'),
+      expect.stringMatching(/✅.*SUCCESS/),
       'Test success message'
     );
   });
@@ -30,7 +30,7 @@ describe('logger', () => {
   test('should log warning messages', () => {
     logger.warn('Test warning message');
     expect(consoleLogSpy).toHaveBeenCalledWith(
-      expect.stringContaining('⚠️'),
+      expect.stringMatching(/⚠️.*WARNING/),
       'Test warning message'
     );
   });
@@ -38,7 +38,7 @@ describe('logger', () => {
   test('should log error messages', () => {
     logger.error('Test error message');
     expect(consoleLogSpy).toHaveBeenCalledWith(
-      expect.stringContaining('❌'),
+      expect.stringMatching(/❌.*ERROR/),
       'Test error message'
     );
   });
@@ -46,7 +46,7 @@ describe('logger', () => {
   test('should log debug messages', () => {
     logger.debug('Test debug message');
     expect(consoleLogSpy).toHaveBeenCalledWith(
-      expect.stringContaining('🔍'),
+      expect.stringMatching(/🔍.*DEBUG/),
       'Test debug message'
     );
   });
@@ -54,7 +54,7 @@ describe('logger', () => {
   test('should log system messages', () => {
     logger.system('Test system message');
     expect(consoleLogSpy).toHaveBeenCalledWith(
-      expect.stringContaining('⚙️'),
+      expect.stringMatching(/⚙️.*SYSTEM/),
       'Test system message'
     );
   });
@@ -62,7 +62,7 @@ describe('logger', () => {
   test('should log git messages', () => {
     logger.git('Test git message');
     expect(consoleLogSpy).toHaveBeenCalledWith(
-      expect.stringContaining('📦'),
+      expect.stringMatching(/📦.*GIT/),
       'Test git message'
     );
   });
@@ -70,7 +70,7 @@ describe('logger', () => {
   test('should log file messages', () => {
     logger.file('Test file message');
     expect(consoleLogSpy).toHaveBeenCalledWith(
-      expect.stringContaining('📄'),
+      expect.stringMatching(/📄.*FILE/),
       'Test file message'
     );
   });

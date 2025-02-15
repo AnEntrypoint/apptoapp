@@ -1,4 +1,3 @@
-
 const chalk = require('chalk');
 
 // Maximum length for truncated strings
@@ -66,7 +65,7 @@ function createLogger(type) {
     const formattedArgs = args.map(formatValue);
     console.log(
       color(`${prefix} [${timestamp}] ${type.padEnd(padLength)}`),
-      ...formattedArgs.map(arg => color(arg))
+      ...formattedArgs
     );
   };
 }
