@@ -44,6 +44,10 @@ describe('logger', () => {
       log: mockConsoleLog
     };
     jest.isolateModules(() => {
+      jest.doMock('console', () => ({
+        ...originalConsole,
+        log: mockConsoleLog
+      }));
       logger = require('../utils/logger');
     });
   });
