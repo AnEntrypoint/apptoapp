@@ -27,7 +27,8 @@ module.exports = {
     'no-console': 'off',
     'no-unused-vars': ['error', { 
       'argsIgnorePattern': '^_',
-      'varsIgnorePattern': '^_'
+      'varsIgnorePattern': '^_',
+      'ignoreRestSiblings': true
     }],
     'no-prototype-builtins': 'off',
     'no-control-regex': 'off',
@@ -35,5 +36,5 @@ module.exports = {
     'no-func-assign': 'off',
     'no-cond-assign': 'off'
   },
-  ignorePatterns: ['dist/*']
+  ignorePatterns: ['dist/**/*', 'node_modules/**/*']
 } 

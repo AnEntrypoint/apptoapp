@@ -53,7 +53,7 @@ async function runBuild() {
         try {
           logger.system(`Attempt ${i} to kill process group ${pid}`);
           process.kill(-pid, 'SIGKILL');
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 5000));
           // Verify if process exists
           process.kill(pid, 0); // Throws if process doesn't exist
         } catch (err) {
