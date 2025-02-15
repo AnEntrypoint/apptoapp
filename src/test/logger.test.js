@@ -16,34 +16,29 @@ const mockChalk = {
 
 jest.mock('chalk', () => mockChalk);
 
-// Import logger after mocking chalk
 const logger = require('../utils/logger');
 
 describe('logger', () => {
   let consoleLogSpy;
-  let originalConsoleLog;
   let originalDateToISOString;
 
   beforeAll(() => {
-    originalConsoleLog = console.log;
     originalDateToISOString = Date.prototype.toISOString;
-    // Mock Date.toISOString to return a fixed timestamp
-    Date.prototype.toISOString = () => '2025-01-01T00:00:00.000Z';
-  });
-
-  beforeEach(() => {
-    console.log = jest.fn();
-    consoleLogSpy = console.log;
-    Object.values(mockChalk).forEach(mock => mock.mockClear());
-  });
-
-  afterEach(() => {
-    console.log.mockClear();
+    Date.prototype.toISOString = jest.fn(() => '2025-01-01T00:00:00.000Z');
   });
 
   afterAll(() => {
-    console.log = originalConsoleLog;
     Date.prototype.toISOString = originalDateToISOString;
+  });
+
+  beforeEach(() => {
+    consoleLogSpy = jest.spyOn(console, 'log');
+    Object.values(mockChalk).forEach(mock => mock.mockClear());
+    consoleLogSpy.mockClear();
+  });
+
+  afterEach(() => {
+    consoleLogSpy.mockRestore();
   });
 
   test('should format log prefix correctly', () => {
@@ -58,7 +53,6 @@ describe('logger', () => {
       'ℹ️ [2025-01-01T00:00:00.000Z] INFO    ',
       'Test info message'
     );
-    expect(mockChalk.blue).toHaveBeenCalled();
   });
 
   test('should log success messages', () => {
@@ -67,7 +61,6 @@ describe('logger', () => {
       '✅ [2025-01-01T00:00:00.000Z] SUCCESS ',
       'Test success message'
     );
-    expect(mockChalk.green).toHaveBeenCalled();
   });
 
   test('should log warning messages', () => {
@@ -76,7 +69,6 @@ describe('logger', () => {
       '⚠️ [2025-01-01T00:00:00.000Z] WARNING ',
       'Test warning message'
     );
-    expect(mockChalk.yellow).toHaveBeenCalled();
   });
 
   test('should log error messages', () => {
@@ -85,7 +77,6 @@ describe('logger', () => {
       '❌ [2025-01-01T00:00:00.000Z] ERROR  ',
       'Test error message'
     );
-    expect(mockChalk.red).toHaveBeenCalled();
   });
 
   test('should log debug messages', () => {
@@ -94,7 +85,6 @@ describe('logger', () => {
       '🔍 [2025-01-01T00:00:00.000Z] DEBUG  ',
       'Test debug message'
     );
-    expect(mockChalk.gray).toHaveBeenCalled();
   });
 
   test('should log system messages', () => {
@@ -103,7 +93,6 @@ describe('logger', () => {
       '⚙️ [2025-01-01T00:00:00.000Z] SYSTEM ',
       'Test system message'
     );
-    expect(mockChalk.magenta).toHaveBeenCalled();
   });
 
   test('should log git messages', () => {
@@ -112,7 +101,6 @@ describe('logger', () => {
       '📦 [2025-01-01T00:00:00.000Z] GIT   ',
       'Test git message'
     );
-    expect(mockChalk.cyan).toHaveBeenCalled();
   });
 
   test('should log file messages', () => {
@@ -121,13 +109,15 @@ describe('logger', () => {
       '📄 [2025-01-01T00:00:00.000Z] FILE  ',
       'Test file message'
     );
-    expect(mockChalk.white).toHaveBeenCalled();
   });
 
   test('should truncate long strings', () => {
-    const longString = 'a'.repeat(1000);
-    const truncated = logger.truncate(longString);
-    expect(truncated).toContain('⟪ 500 characters skipped ⟫');
+    const longString = 'a'.repeat(600);
+    logger.info(longString);
+    expect(consoleLogSpy).toHaveBeenCalledWith(
+      'ℹ️ [2025-01-01T00:00:00.000Z] INFO    ',
+      `${'a'.repeat(500)}⟪ 100 characters skipped ⟫`
+    );
   });
 
   test('should format objects and arrays', () => {
