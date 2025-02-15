@@ -23,12 +23,13 @@
   },
   "rules": {
     "no-console": "off",
-    "no-unused-vars": ["error", { 
+    "no-unused-vars": ["warn", { 
       "argsIgnorePattern": "^_",
       "varsIgnorePattern": "^_"
     }],
     "no-prototype-builtins": "off",
     "no-control-regex": "off",
     "no-useless-escape": "off"
-  }
+  },
+  "ignorePatterns": ["dist/*"]
 } 

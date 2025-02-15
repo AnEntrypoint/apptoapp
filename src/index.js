@@ -36,7 +36,6 @@ async function runBuild() {
     stderr = result.stderr;
   }
 
-  const timeoutDuration = process.env.NODE_ENV === 'test' ? 5000 : 10000;
   const logBuffer = [];
   const logHandler = (data) => {
     logBuffer.push(data);
@@ -98,7 +97,7 @@ async function runBuild() {
         testProcess.childProcess.kill('SIGKILL');
       }
       // Add final cleanup for child processes
-      setTimeout(() => process.exit(0), 5000);
+      setTimeout(() => process.exit(0), 60000);
     };
 
     // Add secondary timeout for guaranteed exit
