@@ -94,20 +94,6 @@ async function makeApiRequest(messages, tools, apiKey, endpoint, model = 'groq')
   let provider;
   try {
     provider = createLLMProvider(model, apiKey, endpoint);
-  } catch (error) {
-    // If Groq fails, try falling back to Mistral
-    if (model === 'groq') {
-      logger.warn('Failed to initialize Groq provider, falling back to Mistral');
-      model = 'mistral';
-      provider = createLLMProvider(model, process.env.MISTRAL_API_KEY);
-    } else {
-      throw error;
-    }
-  }
-  
-  logger.info(`Using ${model} provider for API request...`);
-  
-  try {
     const response = await provider.makeRequest(messages, tools);
     
     try {
@@ -119,8 +105,22 @@ async function makeApiRequest(messages, tools, apiKey, endpoint, model = 'groq')
     
     return response;
   } catch (error) {
-    logger.error(`API Error with ${model}:`, error);
-    throw error;
+    // If Groq fails, try falling back to Mistral
+    if (model === 'groq') {
+      logger.warn('Failed with Groq provider, falling back to Mistral');
+      model = 'mistral';
+      try {
+        provider = createLLMProvider(model, process.env.MISTRAL_API_KEY, endpoint);
+        const response = await provider.makeRequest(messages, tools);
+        return response;
+      } catch (mistralError) {
+        logger.error(`API Error with Mistral fallback:`, mistralError);
+        throw mistralError;
+      }
+    } else {
+      logger.error(`API Error with ${model}:`, error);
+      throw error;
+    }
   }
 }
 
