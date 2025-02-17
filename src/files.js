@@ -265,9 +265,6 @@ async function writeFile(filePath, content) {
 
 module.exports = {
   getFiles,
-  writeFile,
   generateDiff,
-  getDiffBufferStatus,
-  clearDiffBuffer,
-  diff
+  getDiffBufferStatus
 };
