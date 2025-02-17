@@ -1,7 +1,19 @@
 const { createLLMProvider, MistralProvider, GroqProvider } = require('../llm/providers');
 
-// Mock console.log and logger to reduce noise in tests
-console.log = jest.fn();
+// Mock console methods to reduce noise in tests
+const originalConsole = { ...console };
+beforeAll(() => {
+  console.log = jest.fn();
+  console.error = jest.fn();
+  console.warn = jest.fn();
+});
+
+afterAll(() => {
+  console.log = originalConsole.log;
+  console.error = originalConsole.error;
+  console.warn = originalConsole.warn;
+});
+
 jest.mock('../utils/logger', () => ({
   debug: jest.fn(),
   error: jest.fn(),
@@ -38,13 +50,22 @@ describe('MistralProvider', () => {
     mockFetch.mockReset();
   });
 
-  test('should handle API errors', async () => {
+  test('should handle API errors gracefully', async () => {
     const messages = [{ role: 'user', content: 'test' }];
     
-    // Mock a failed response that will fail all retries
-    mockFetch.mockRejectedValue(new Error('API Error'));
+    // Mock a failed response
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 401,
+      text: async () => JSON.stringify({
+        message: 'Unauthorized',
+        request_id: 'test-request-id'
+      })
+    });
 
-    await expect(provider.makeRequest(messages)).rejects.toThrow('API Error');
+    await expect(provider.makeRequest(messages))
+      .rejects
+      .toThrow('API Error 401: Unauthorized');
   });
 });
 
@@ -94,14 +115,17 @@ describe('GroqProvider', () => {
     expect(response).toEqual(mockResponse);
   });
 
-  test('handles API errors correctly', async () => {
+  test('handles API errors gracefully', async () => {
     const messages = [
       { role: 'user', content: 'Hello' }
     ];
 
-    const mockError = new Error('API Error');
-    provider.groq.chat.completions.create = jest.fn().mockRejectedValue(mockError);
+    provider.groq.chat.completions.create = jest.fn().mockRejectedValue(
+      new Error('API Error')
+    );
 
-    await expect(provider.makeRequest(messages)).rejects.toThrow('API Error');
+    await expect(provider.makeRequest(messages))
+      .rejects
+      .toThrow('API Error');
   });
 }); 
