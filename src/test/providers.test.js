@@ -128,12 +128,10 @@ describe('OpenRouterProvider', () => {
   beforeEach(() => {
     provider = new OpenRouterProvider(mockApiKey, mockSiteUrl, mockSiteName);
     global.fetch = jest.fn();
-    jest.useFakeTimers();
   });
 
   afterEach(() => {
     jest.resetAllMocks();
-    jest.useRealTimers();
   });
 
   it('initializes with API key and site info', () => {
@@ -151,10 +149,10 @@ describe('OpenRouterProvider', () => {
       choices: [{ message: { content: 'test response' } }]
     };
     
-    global.fetch.mockResolvedValueOnce({
+    global.fetch.mockImplementationOnce(() => Promise.resolve({
       ok: true,
       json: () => Promise.resolve(mockResponse)
-    });
+    }));
 
     const response = await provider.makeRequest(messages, tools);
     expect(response).toEqual(mockResponse);
@@ -190,7 +188,7 @@ describe('OpenRouterProvider', () => {
       statusText: 'Unauthorized',
       text: () => Promise.resolve('Invalid API key')
     };
-    global.fetch.mockResolvedValueOnce(errorResponse);
+    global.fetch.mockImplementationOnce(() => Promise.resolve(errorResponse));
 
     await expect(provider.makeRequest([{ role: 'user', content: 'test' }]))
       .rejects
@@ -214,9 +212,10 @@ describe('OpenRouterProvider', () => {
     };
 
     global.fetch
-      .mockResolvedValueOnce(rateLimitResponse)
-      .mockResolvedValueOnce(successResponse);
+      .mockImplementationOnce(() => Promise.resolve(rateLimitResponse))
+      .mockImplementationOnce(() => Promise.resolve(successResponse));
 
+    process.env.NODE_ENV = 'test'; // Skip actual delay in tests
     const response = await provider.makeRequest([{ role: 'user', content: 'test' }]);
     expect(response.choices[0].message.content).toBe('success');
     expect(global.fetch).toHaveBeenCalledTimes(2);

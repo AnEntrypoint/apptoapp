@@ -320,7 +320,7 @@ async function main(instruction, errors, model = 'mistral') {
     } else if (model === 'openrouter') {
       apiKey = process.env.OPENROUTER_API_KEY;
     }
-
+ 
     // Final validation
     if (!apiKey) {
       throw new Error(`No API key found for ${model} provider`);
