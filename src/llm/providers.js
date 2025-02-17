@@ -161,19 +161,24 @@ class OpenRouterProvider {
           body: JSON.stringify(requestBody)
         });
 
+        let responseData;
+        try {
+          responseData = await response.json();
+        } catch (e) {
+          responseData = null;
+        }
+
         if (!response.ok) {
-          const responseText = await response.text();
           console.error('OpenRouter API Error:', {
             status: response.status,
-            bodyPreview: responseText.slice(0, 200)
+            bodyPreview: JSON.stringify(responseData).slice(0, 200)
           });
 
           // In test mode, handle errors based on environment variables
           if (process.env.NODE_ENV === 'test') {
-            if (process.env.TEST_SUCCESS === 'true') {
+            if (process.env.TEST_SUCCESS === 'true' && responseData) {
               // For success test, proceed with normal response handling
-              const data = await response.json();
-              return data.choices[0].message.content;
+              return responseData.choices[0].message.content;
             } else {
               // For error tests, always throw rate limit error
               throw new Error('429 Too Many Requests');
@@ -188,13 +193,12 @@ class OpenRouterProvider {
           throw new Error(`API Error ${response.status}: ${response.statusText}`);
         }
 
-        const data = await response.json();
         console.log('OpenRouter API Response:', {
-          model: data.model,
-          contentLength: data.choices[0]?.message?.content?.length || 0
+          model: responseData.model,
+          contentLength: responseData.choices[0]?.message?.content?.length || 0
         });
 
-        return data.choices[0].message.content;
+        return responseData.choices[0].message.content;
       } catch (error) {
         console.error('OpenRouter request failed:', error.message);
         
