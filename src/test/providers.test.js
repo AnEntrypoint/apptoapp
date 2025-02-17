@@ -157,16 +157,18 @@ describe('OpenRouterProvider', () => {
     };
     
     // Mock successful response
-    global.fetch.mockResolvedValue({
+    const response = {
       ok: true,
       status: 200,
       statusText: 'OK',
       json: () => Promise.resolve(mockResponse),
       text: () => Promise.resolve(JSON.stringify(mockResponse))
-    });
+    };
 
-    const response = await provider.makeRequest(messages, tools);
-    expect(response).toEqual(mockResponse);
+    global.fetch.mockResolvedValue(response);
+
+    const result = await provider.makeRequest(messages, tools);
+    expect(result).toEqual(mockResponse);
 
     const expectedBody = {
       model: 'deepseek/deepseek-r1:free',
@@ -196,10 +198,10 @@ describe('OpenRouterProvider', () => {
     process.env.NODE_ENV = 'test';
     const errorResponse = {
       ok: false,
-      status: 500,
-      statusText: 'Internal Server Error',
-      text: () => Promise.resolve('Server Error'),
-      json: () => Promise.resolve({ error: 'Server Error' })
+      status: 401,
+      statusText: 'Unauthorized',
+      text: () => Promise.resolve('Unauthorized'),
+      json: () => Promise.resolve({ error: 'Unauthorized' })
     };
     
     // Mock fetch to always return error
