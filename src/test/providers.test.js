@@ -79,8 +79,10 @@ describe('LLM Providers', () => {
     test('should handle API errors', async () => {
       const messages = [{ role: 'user', content: 'test' }];
       
-      // Mock a failed response
-      global.fetch.mockRejectedValueOnce(new Error('API Error'));
+      // Mock a failed response that will fail all retries
+      global.fetch.mockImplementation(() => {
+        throw new Error('API Error');
+      });
 
       await expect(provider.makeRequest(messages)).rejects.toThrow('API Error');
     });

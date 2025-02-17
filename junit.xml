@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="jest tests" tests="28" failures="1" errors="0" time="4.385">
-  <testsuite name="LLM Providers" errors="0" failures="1" skipped="0" timestamp="2025-02-17T18:17:56" time="0.543" tests="7">
-    <testcase classname="LLM Providers MistralProvider should make request with correct parameters" name="LLM Providers MistralProvider should make request with correct parameters" time="0.005">
+<testsuites name="jest tests" tests="28" failures="1" errors="0" time="4.338">
+  <testsuite name="LLM Providers" errors="0" failures="1" skipped="0" timestamp="2025-02-17T18:18:26" time="0.519" tests="7">
+    <testcase classname="LLM Providers MistralProvider should make request with correct parameters" name="LLM Providers MistralProvider should make request with correct parameters" time="0.004">
     </testcase>
     <testcase classname="LLM Providers MistralProvider should handle API errors" name="LLM Providers MistralProvider should handle API errors" time="0.003">
       <failure>Error: expect(received).rejects.toThrow()
@@ -9,7 +9,7 @@
 Received promise resolved instead of rejected
 Resolved to value: {&quot;choices&quot;: [{&quot;finish_reason&quot;: &quot;stop&quot;, &quot;message&quot;: {&quot;content&quot;: &quot;Test response&quot;, &quot;role&quot;: &quot;assistant&quot;}}], &quot;model&quot;: &quot;codestral-latest&quot;, &quot;object&quot;: &quot;chat.completion&quot;}
     at expect (C:\dev\apptoapp\node_modules\expect\build\index.js:113:15)
-    at Object.expect (C:\dev\apptoapp\src\test\providers.test.js:89:13)
+    at Object.expect (C:\dev\apptoapp\src\test\providers.test.js:85:13)
     at Promise.then.completed (C:\dev\apptoapp\node_modules\jest-circus\build\utils.js:298:28)
     at new Promise (&lt;anonymous&gt;)
     at callAsyncCircusFn (C:\dev\apptoapp\node_modules\jest-circus\build\utils.js:231:10)
@@ -24,67 +24,67 @@ Resolved to value: {&quot;choices&quot;: [{&quot;finish_reason&quot;: &quot;stop
     at runTestInternal (C:\dev\apptoapp\node_modules\jest-runner\build\runTest.js:367:16)
     at runTest (C:\dev\apptoapp\node_modules\jest-runner\build\runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="LLM Providers createLLMProvider should create MistralProvider" name="LLM Providers createLLMProvider should create MistralProvider" time="0.001">
+    <testcase classname="LLM Providers createLLMProvider should create MistralProvider" name="LLM Providers createLLMProvider should create MistralProvider" time="0.002">
     </testcase>
-    <testcase classname="LLM Providers createLLMProvider should throw error for unsupported provider" name="LLM Providers createLLMProvider should throw error for unsupported provider" time="0.006">
+    <testcase classname="LLM Providers createLLMProvider should throw error for unsupported provider" name="LLM Providers createLLMProvider should throw error for unsupported provider" time="0.004">
     </testcase>
-    <testcase classname="LLM Providers GroqProvider initializes with API key" name="LLM Providers GroqProvider initializes with API key" time="0.002">
+    <testcase classname="LLM Providers GroqProvider initializes with API key" name="LLM Providers GroqProvider initializes with API key" time="0.003">
     </testcase>
     <testcase classname="LLM Providers GroqProvider makeRequest sends correct request format" name="LLM Providers GroqProvider makeRequest sends correct request format" time="0.003">
     </testcase>
-    <testcase classname="LLM Providers GroqProvider handles API errors correctly" name="LLM Providers GroqProvider handles API errors correctly" time="0.005">
+    <testcase classname="LLM Providers GroqProvider handles API errors correctly" name="LLM Providers GroqProvider handles API errors correctly" time="0.006">
     </testcase>
   </testsuite>
-  <testsuite name="main" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:17:57" time="1.828" tests="2">
-    <testcase classname="main should handle test instruction" name="main should handle test instruction" time="1.044">
+  <testsuite name="main" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:18:27" time="1.908" tests="2">
+    <testcase classname="main should handle test instruction" name="main should handle test instruction" time="1.107">
     </testcase>
-    <testcase classname="main should collect diffs after each attempt" name="main should collect diffs after each attempt" time="0.619">
+    <testcase classname="main should collect diffs after each attempt" name="main should collect diffs after each attempt" time="0.64">
     </testcase>
   </testsuite>
-  <testsuite name="diff" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:17:59" time="1.625" tests="5">
+  <testsuite name="diff" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:18:29" time="1.518" tests="5">
     <testcase classname="diff should return the difference between two numbers" name="diff should return the difference between two numbers" time="0.001">
     </testcase>
-    <testcase classname="diff should handle negative numbers" name="diff should handle negative numbers" time="0.001">
+    <testcase classname="diff should handle negative numbers" name="diff should handle negative numbers" time="0">
     </testcase>
     <testcase classname="diff should handle zero" name="diff should handle zero" time="0.001">
     </testcase>
-    <testcase classname="diff functionality should generate and store diffs" name="diff functionality should generate and store diffs" time="0.863">
+    <testcase classname="diff functionality should generate and store diffs" name="diff functionality should generate and store diffs" time="0.73">
     </testcase>
-    <testcase classname="diff functionality should clear diff buffer" name="diff functionality should clear diff buffer" time="0.666">
-    </testcase>
-  </testsuite>
-  <testsuite name="tools" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:18:01" time="0.088" tests="2">
-    <testcase classname="tools should execute a command and return the output" name="tools should execute a command and return the output" time="0.019">
-    </testcase>
-    <testcase classname="tools should handle errors when executing a command" name="tools should handle errors when executing a command" time="0.019">
+    <testcase classname="diff functionality should clear diff buffer" name="diff functionality should clear diff buffer" time="0.694">
     </testcase>
   </testsuite>
-  <testsuite name="utils" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:18:01" time="0.081" tests="4">
+  <testsuite name="tools" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:18:30" time="0.089" tests="2">
+    <testcase classname="tools should execute a command and return the output" name="tools should execute a command and return the output" time="0.02">
+    </testcase>
+    <testcase classname="tools should handle errors when executing a command" name="tools should handle errors when executing a command" time="0.018">
+    </testcase>
+  </testsuite>
+  <testsuite name="utils" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:18:31" time="0.08" tests="4">
     <testcase classname="utils should return the sum of two numbers" name="utils should return the sum of two numbers" time="0.001">
     </testcase>
     <testcase classname="utils should return the product of two numbers" name="utils should return the product of two numbers" time="0.001">
     </testcase>
-    <testcase classname="makeApiRequest should use Mistral exclusively" name="makeApiRequest should use Mistral exclusively" time="0.006">
+    <testcase classname="makeApiRequest should use Mistral exclusively" name="makeApiRequest should use Mistral exclusively" time="0.004">
     </testcase>
-    <testcase classname="makeApiRequest should handle API errors" name="makeApiRequest should handle API errors" time="0.004">
+    <testcase classname="makeApiRequest should handle API errors" name="makeApiRequest should handle API errors" time="0.003">
     </testcase>
   </testsuite>
-  <testsuite name="Logger" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:18:01" time="0.062" tests="8">
-    <testcase classname="Logger should truncate long strings" name="Logger should truncate long strings" time="0.003">
+  <testsuite name="Logger" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:18:31" time="0.063" tests="8">
+    <testcase classname="Logger should truncate long strings" name="Logger should truncate long strings" time="0.002">
     </testcase>
     <testcase classname="Logger should not truncate short strings" name="Logger should not truncate short strings" time="0.001">
     </testcase>
-    <testcase classname="Logger should handle non-string inputs" name="Logger should handle non-string inputs" time="0.002">
+    <testcase classname="Logger should handle non-string inputs" name="Logger should handle non-string inputs" time="0.001">
     </testcase>
     <testcase classname="Logger should handle undefined input" name="Logger should handle undefined input" time="0.001">
     </testcase>
-    <testcase classname="Logger should handle null input" name="Logger should handle null input" time="0.001">
+    <testcase classname="Logger should handle null input" name="Logger should handle null input" time="0.002">
     </testcase>
     <testcase classname="Logger should handle circular references" name="Logger should handle circular references" time="0.001">
     </testcase>
-    <testcase classname="Logger should format values correctly" name="Logger should format values correctly" time="0.001">
+    <testcase classname="Logger should format values correctly" name="Logger should format values correctly" time="0.002">
     </testcase>
-    <testcase classname="Logger logging functions should not throw" name="Logger logging functions should not throw" time="0.002">
+    <testcase classname="Logger logging functions should not throw" name="Logger logging functions should not throw" time="0.003">
     </testcase>
   </testsuite>
 </testsuites>
