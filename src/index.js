@@ -375,13 +375,13 @@ async function main(instruction, errors, model = 'mistral') {
     logger.debug('Final directory contents:', fs.readdirSync(process.cwd()));
 
   } catch (error) {
-    console.error(error)
-    logger.error('Application error:', error, error.message);
-    if (process.env.NODE_ENV === 'test') {
-      throw error; // In test environment, propagate the error
-    } else {
-      process.exit(1);
-    }
+    console.error('Error:', error);
+    process.exitCode = 1;
+  } finally {
+    // Clean up any remaining handles
+    setTimeout(() => {
+      process.exit(process.exitCode || 0);
+    }, 100);
   }
 }
 

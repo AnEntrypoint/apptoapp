@@ -178,6 +178,9 @@ class OpenRouterProvider {
           if (process.env.NODE_ENV === 'test') {
             if (process.env.TEST_SUCCESS === 'true') {
               // For success test, don't throw error
+              if (!responseData?.choices?.[0]?.message?.content) {
+                throw new Error('Invalid response format from OpenRouter API');
+              }
               return responseData.choices[0].message.content;
             } else {
               // For error tests, always throw rate limit error
