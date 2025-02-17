@@ -1,6 +1,7 @@
 const { exec } = require('child_process');
 const fs = require('fs').promises;
 const path = require('path');
+const logger = require('./utils/logger');
  
 async function executeCommand(command) {
   return new Promise((resolve, reject) => {
