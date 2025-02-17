@@ -291,7 +291,26 @@ async function main(instruction, errors, model = 'mistral') {
       return;
     }
 
-    const brainstormedTasks = await brainstormTaskWithLLM(instruction, getCurrentModel(), attempts, MAX_ATTEMPTS, errors);
+    let brainstormedTasks;
+    try {
+      brainstormedTasks = await brainstormTaskWithLLM(instruction, getCurrentModel(), attempts, MAX_ATTEMPTS, errors);
+    } catch (error) {
+      if (error.message.includes('Invalid Groq API key') || 
+          error.message.includes('unauthorized') ||
+          error.message.includes('401')) {
+        logger.error('Authentication error with Groq API. Falling back to Mistral...');
+        setCurrentModel('mistral');
+        brainstormedTasks = await brainstormTaskWithLLM(instruction, getCurrentModel(), attempts, MAX_ATTEMPTS, errors);
+      } else if (error.message.includes('rate limit') || 
+                 error.message.includes('429')) {
+        logger.warn('Rate limit hit. Waiting before retry...');
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        brainstormedTasks = await brainstormTaskWithLLM(instruction, getCurrentModel(), attempts, MAX_ATTEMPTS, errors);
+      } else {
+        throw error;
+      }
+    }
+
     if (!brainstormedTasks || typeof brainstormedTasks !== 'string') {
       if (process.env.NODE_ENV === 'test') {
         return; // In test environment, just return
@@ -300,7 +319,6 @@ async function main(instruction, errors, model = 'mistral') {
     }
 
     logger.debug(`${JSON.stringify(brainstormedTasks).length} B of reasoning output`);
-    //logger.debug(brainstormedTasks);
 
     const filesToEdit = brainstormedTasks.match(/<file\s+path="([^"]+)"[^>]*>([\s\S]*?)<\/file>/gi) || [];
     const cliCommands = brainstormedTasks.match(/<cli>([\s\S]*?)<\/cli>/g) || [];
@@ -321,9 +339,64 @@ async function main(instruction, errors, model = 'mistral') {
 
     const upgradeModelTag = brainstormedTasks.match(/<upgradeModel>/);
     if (upgradeModelTag) {
-      logger.warn('Upgrade model tag found, switching to Groq');
-      setCurrentModel('groq');
-      apiKey = process.env.GROQ_API_KEY;
+      logger.warn('Upgrade model tag found, switching to deepseek with fallback chain');
+      let deepseekSuccess = false;
+      
+      // Try TogetherAI first
+      if (!deepseekSuccess && process.env.TOGETHER_API_KEY) {
+        logger.info('Attempting to use TogetherAI for deepseek...');
+        setCurrentModel('together');
+        try {
+          brainstormedTasks = await brainstormTaskWithLLM(instruction, getCurrentModel(), attempts, MAX_ATTEMPTS, errors);
+          logger.success('Successfully used TogetherAI for deepseek');
+          deepseekSuccess = true;
+        } catch (error) {
+          logger.warn('TogetherAI failed:', error.message);
+        }
+      }
+
+      // Try OpenRouter next if TogetherAI failed
+      if (!deepseekSuccess && process.env.OPENROUTER_API_KEY) {
+        logger.info('Attempting to use OpenRouter for deepseek...');
+        setCurrentModel('openrouter');
+        try {
+          brainstormedTasks = await brainstormTaskWithLLM(instruction, getCurrentModel(), attempts, MAX_ATTEMPTS, errors);
+          logger.success('Successfully used OpenRouter for deepseek');
+          deepseekSuccess = true;
+        } catch (error) {
+          logger.warn('OpenRouter failed:', error.message);
+        }
+      }
+
+      // Finally try Groq if both TogetherAI and OpenRouter failed
+      if (!deepseekSuccess && process.env.GROQ_API_KEY) {
+        logger.info('Attempting to use Groq as final fallback...');
+        setCurrentModel('groq');
+        try {
+          brainstormedTasks = await brainstormTaskWithLLM(instruction, getCurrentModel(), attempts, MAX_ATTEMPTS, errors);
+          logger.success('Successfully used Groq');
+          deepseekSuccess = true;
+        } catch (error) {
+          logger.warn('Groq failed:', error.message);
+          // If Groq fails, fall back to Mistral
+          logger.warn('Failed with Groq provider, falling back to Mistral');
+          logger.info('Updating model from groq to mistral');
+          setCurrentModel('mistral');
+          try {
+            brainstormedTasks = await brainstormTaskWithLLM(instruction, getCurrentModel(), attempts, MAX_ATTEMPTS, errors);
+            logger.success('Successfully used Mistral as final fallback');
+            deepseekSuccess = true;
+          } catch (error) {
+            logger.error('Mistral fallback also failed:', error.message);
+          }
+        }
+      }
+
+      // If all providers failed, stay with current model
+      if (!deepseekSuccess) {
+        logger.warn('All deepseek providers failed, staying with current model');
+        setCurrentModel(model);
+      }
     }
 
     if (filesToEdit && filesToEdit.length > 0) {

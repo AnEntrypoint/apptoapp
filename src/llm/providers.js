@@ -5,6 +5,11 @@ const { retryWithBackoff } = require('../utils/retry');
 
 class MistralProvider {
   constructor(apiKey, endpoint) {
+    console.log('[MistralProvider] Constructor start');
+    if (!apiKey) {
+      console.error('[MistralProvider] No API key provided');
+      throw new Error('Mistral API key is required');
+    }
     this.apiKey = apiKey;
     this.endpoint = endpoint || process.env.MISTRAL_CHAT_ENDPOINT || 'https://codestral.mistral.ai/v1/chat/completions';
     this.headers = {
@@ -12,11 +17,15 @@ class MistralProvider {
       'Authorization': `Bearer ${this.apiKey}`,
       'Accept': 'application/json'
     };
+    console.log('[MistralProvider] Initialized with endpoint:', this.endpoint);
+    console.log('[MistralProvider] Constructor end');
   }
 
   async makeRequest(messages, tools = []) {
+    console.log('[MistralProvider] makeRequest start');
     return retryWithBackoff(async () => {
-      console.log('Making Mistral API request to:', this.endpoint);
+      console.log('[MistralProvider] Retry attempt start');
+      console.log('[MistralProvider] Making request to:', this.endpoint);
 
       const requestBody = {
         model: process.env.MISTRAL_MODEL || 'codestral-latest',
@@ -27,45 +36,142 @@ class MistralProvider {
       };
 
       try {
-        console.log('Sending request with headers:', {
+        console.log('[MistralProvider] Request headers:', {
           ...this.headers,
           'Authorization': 'Bearer *****' + this.apiKey.slice(-4)
         });
 
+        console.log('[MistralProvider] Request body:', {
+          model: requestBody.model,
+          messageCount: messages.length,
+          toolCount: tools.length,
+          firstMessagePreview: messages[0]?.content?.slice(0, 100) + '...',
+          messageTypes: messages.map(m => m.role).join(', '),
+          totalContentLength: messages.reduce((acc, m) => acc + (m.content?.length || 0), 0)
+        });
+
+        console.log('[MistralProvider] Initiating fetch request');
         const response = await fetch(this.endpoint, {
           method: 'POST',
           headers: this.headers,
-          body: JSON.stringify(requestBody)
+          body: JSON.stringify(requestBody),
+          timeout: 120000 // 2 minute timeout
         });
+        console.log('[MistralProvider] Fetch request complete');
+        console.log('[MistralProvider] Response status:', response.status);
+        console.log('[MistralProvider] Response headers:', Object.fromEntries([...response.headers.entries()]));
 
-        console.log('Response status:', response.status);
-
-        if (!response.ok) {
-          const responseText = await response.text();
-          console.error('API Error:', {
-            status: response.status,
-            bodyPreview: responseText.slice(0, 200)
-          });
-          throw new Error(`API Error ${response.status}: ${response.statusText}`);
+        let responseText;
+        try {
+          console.log('[MistralProvider] Reading response text');
+          responseText = await response.text();
+          console.log('[MistralProvider] Response text length:', responseText.length);
+          console.log('[MistralProvider] Response text preview:', responseText.slice(0, 200) + '...');
+        } catch (e) {
+          console.error('[MistralProvider] Error reading response text:', e);
+          console.error('[MistralProvider] Error stack:', e.stack);
+          throw new Error('Failed to read response text: ' + e.message);
         }
 
-        const data = await response.json();
-        console.log('API Response:', {
-          messageId: data.id,
-          contentLength: data.choices[0]?.message?.content?.length || 0
+        if (!response.ok) {
+          console.error('[MistralProvider] API Error:', {
+            status: response.status,
+            statusText: response.statusText,
+            bodyPreview: responseText.slice(0, 200),
+            headers: Object.fromEntries([...response.headers.entries()])
+          });
+
+          // Handle specific error cases
+          if (response.status === 401) {
+            console.error('[MistralProvider] Authentication error');
+            throw new Error('Invalid Mistral API key');
+          }
+          if (response.status === 429) {
+            console.error('[MistralProvider] Rate limit error');
+            throw new Error('Mistral API rate limit exceeded');
+          }
+          if (response.status === 400) {
+            console.error('[MistralProvider] Bad request error');
+            throw new Error('Invalid request to Mistral API: ' + responseText);
+          }
+          if (response.status === 500) {
+            console.error('[MistralProvider] Server error');
+            throw new Error('Mistral API server error: ' + responseText);
+          }
+          if (response.status === 503) {
+            console.error('[MistralProvider] Service unavailable');
+            throw new Error('Mistral API service unavailable: ' + responseText);
+          }
+          
+          console.error('[MistralProvider] Unhandled API error');
+          throw new Error(`Mistral API Error ${response.status}: ${response.statusText}\nResponse: ${responseText}`);
+        }
+
+        let data;
+        try {
+          console.log('[MistralProvider] Parsing JSON response');
+          data = JSON.parse(responseText);
+          console.log('[MistralProvider] JSON parsed successfully');
+        } catch (e) {
+          console.error('[MistralProvider] JSON parse error:', e);
+          console.error('[MistralProvider] Failed JSON:', responseText);
+          throw new Error('Invalid JSON response from Mistral API: ' + responseText);
+        }
+
+        if (!data?.choices?.[0]?.message?.content) {
+          console.error('[MistralProvider] Invalid response format:', data);
+          throw new Error('Invalid response format from Mistral API');
+        }
+
+        console.log('[MistralProvider] Response validation:', {
+          hasId: !!data.id,
+          hasChoices: !!data.choices,
+          choicesLength: data.choices?.length,
+          hasMessage: !!data.choices?.[0]?.message,
+          hasContent: !!data.choices?.[0]?.message?.content,
+          contentLength: data.choices?.[0]?.message?.content?.length
         });
+
+        console.log('[MistralProvider] Request successful');
         return data;
 
       } catch (error) {
-        console.error('Request failed:', error);
+        console.error('[MistralProvider] Request failed:', {
+          message: error.message,
+          stack: error.stack,
+          cause: error.cause,
+          name: error.name,
+          code: error.code
+        });
+
+        // For network or timeout errors, throw a retryable error
+        if (error.message.includes('ECONNRESET') || 
+            error.message.includes('timeout') ||
+            error.message.includes('network error') ||
+            error.message.includes('ETIMEDOUT') ||
+            error.message.includes('ECONNREFUSED')) {
+          console.warn('[MistralProvider] Network/timeout error, will retry');
+          throw new Error('Temporary network error: ' + error.message);
+        }
+
+        // For response parsing errors
+        if (error.message.includes('JSON')) {
+          console.error('[MistralProvider] JSON parsing error');
+          throw new Error('Failed to parse Mistral API response: ' + error.message);
+        }
+
+        console.error('[MistralProvider] Unhandled error, rethrowing');
         throw error;
       }
-    });
+    }, 5, 2000); // 5 retries, starting with 2 second delay
   }
 }
 
 class GroqProvider {
   constructor(apiKey) {
+    if (!apiKey) {
+      throw new Error('Groq API key is required');
+    }
     this.apiKey = apiKey;
     this.groq = new Groq({
       apiKey: this.apiKey
@@ -78,11 +184,17 @@ class GroqProvider {
       console.log('Making Groq API request');
       
       try {
+        // Truncate messages if they're too long
+        const truncatedMessages = messages.map(msg => ({
+          ...msg,
+          content: msg.content.length > 4000 ? msg.content.slice(0, 4000) + '...' : msg.content
+        }));
+
         const requestBody = {
-          messages,
-          model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
+          messages: truncatedMessages,
+          model: process.env.GROQ_MODEL || 'mixtral-8x7b-32768',
           temperature: 0.6,
-          max_completion_tokens: 32768,
+          max_tokens: 32768,
           top_p: 0.95,
           stream: false,
           stop: null
@@ -101,15 +213,51 @@ class GroqProvider {
 
         const chatCompletion = await this.groq.chat.completions.create(requestBody);
 
+        if (!chatCompletion?.choices?.[0]?.message?.content) {
+          console.error('Invalid response from Groq:', chatCompletion);
+          throw new Error('Invalid response format from Groq API');
+        }
+
         console.log('Groq API Response:', {
           model: chatCompletion.model,
-          contentLength: chatCompletion.choices[0]?.message?.content?.length || 0
+          contentLength: chatCompletion.choices[0].message.content.length
         });
 
-        return chatCompletion;
+        return {
+          id: chatCompletion.id,
+          choices: [{
+            message: chatCompletion.choices[0].message
+          }]
+        };
       } catch (error) {
         console.error('Groq request failed:', error.message);
-        throw error;
+        
+        // Check for specific error types
+        if (error.message.includes('401') || error.message.includes('unauthorized')) {
+          throw new Error('Invalid Groq API key');
+        }
+        if (error.message.includes('429') || error.message.includes('rate_limit_exceeded')) {
+          throw new Error('Groq API rate limit exceeded');
+        }
+        if (error.message.includes('413') || error.message.includes('Request too large')) {
+          throw new Error('Request too large for Groq API');
+        }
+        if (error.message.includes('model not found')) {
+          throw new Error(`Model ${process.env.GROQ_MODEL || 'mixtral-8x7b-32768'} not found`);
+        }
+        if (error.message.includes('invalid request')) {
+          throw new Error('Invalid request to Groq API: ' + error.message);
+        }
+        
+        // For network or timeout errors, throw a retryable error
+        if (error.message.includes('ECONNRESET') || 
+            error.message.includes('timeout') ||
+            error.message.includes('network error')) {
+          throw new Error('Temporary network error: ' + error.message);
+        }
+        
+        // For unknown errors, include more details
+        throw new Error('Groq API error: ' + error.message);
       }
     });
   }
@@ -117,6 +265,9 @@ class GroqProvider {
 
 class OpenRouterProvider {
   constructor(apiKey, siteUrl = '', siteName = '') {
+    if (!apiKey) {
+      throw new Error('OpenRouter API key is required');
+    }
     this.apiKey = apiKey;
     this.endpoint = 'https://openrouter.ai/api/v1/chat/completions';
     this.siteUrl = siteUrl;
@@ -136,7 +287,7 @@ class OpenRouterProvider {
       
       try {
         const requestBody = {
-          model: process.env.OPENROUTER_MODEL || 'deepseek/deepseek-r1:free',
+          model: process.env.OPENROUTER_MODEL || 'deepseek/deepseek-coder-33b-instruct',
           messages,
           temperature: 0.6,
           max_tokens: 32768,
@@ -167,16 +318,7 @@ class OpenRouterProvider {
           console.log('Response data after json():', responseData);
         } catch (e) {
           console.error('Error parsing response:', e);
-          responseData = null;
-        }
-
-        // In test mode with TEST_SUCCESS, bypass response.ok check and retry logic
-        if (process.env.NODE_ENV === 'test' && process.env.TEST_SUCCESS === 'true') {
-          if (!responseData?.choices?.[0]?.message?.content) {
-            console.error('Invalid response data:', responseData);
-            throw new Error('Invalid response format from OpenRouter API');
-          }
-          return responseData.choices[0].message.content;
+          throw new Error('Failed to parse OpenRouter API response: ' + e.message);
         }
 
         if (!response.ok) {
@@ -185,17 +327,17 @@ class OpenRouterProvider {
             bodyPreview: JSON.stringify(responseData).slice(0, 200)
           });
 
-          // In test mode without TEST_SUCCESS, always throw rate limit error
-          if (process.env.NODE_ENV === 'test') {
-            throw new Error('429 Too Many Requests');
-          }
-
-          // Handle rate limit errors
           if (response.status === 429) {
-            throw new Error('429 Too Many Requests');
+            throw new Error('OpenRouter API rate limit exceeded');
+          }
+          if (response.status === 413) {
+            throw new Error('Request too large for OpenRouter API');
+          }
+          if (response.status === 401) {
+            throw new Error('Invalid OpenRouter API key');
           }
 
-          throw new Error(`API Error ${response.status}: ${response.statusText}`);
+          throw new Error(`OpenRouter API Error ${response.status}: ${response.statusText}`);
         }
 
         if (!responseData?.choices?.[0]?.message?.content) {
@@ -203,23 +345,17 @@ class OpenRouterProvider {
           throw new Error('Invalid response format from OpenRouter API');
         }
 
-        console.log('OpenRouter API Response:', {
-          model: responseData.model,
-          contentLength: responseData.choices[0].message.content.length
-        });
-
-        return responseData.choices[0].message.content;
+        return {
+          id: responseData.id,
+          choices: [{
+            message: responseData.choices[0].message
+          }]
+        };
       } catch (error) {
         console.error('OpenRouter request failed:', error.message);
-        
-        // In test mode without TEST_SUCCESS, always throw rate limit error
-        if (process.env.NODE_ENV === 'test' && !process.env.TEST_SUCCESS) {
-          throw new Error('429 Too Many Requests');
-        }
-        
         throw error;
       }
-    }, process.env.NODE_ENV === 'test' ? 1 : 5); // Only retry once in test mode
+    });
   }
 }
 
@@ -235,7 +371,7 @@ class TogetherProvider {
     return retryWithBackoff(async () => {
       console.log('Making Together API request');
       const requestBody = {
-        model: 'deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free',
+        model: process.env.TOGETHER_MODEL || 'deepseek-coder-33b-instruct',
         messages,
         temperature: 0.6,
         max_tokens: 32768,
@@ -244,6 +380,12 @@ class TogetherProvider {
       };
 
       try {
+        console.log('Sending request to Together:', {
+          model: requestBody.model,
+          messageCount: messages.length,
+          toolCount: tools.length
+        });
+
         const response = await fetch(this.endpoint, {
           method: 'POST',
           headers: {
@@ -254,26 +396,52 @@ class TogetherProvider {
           signal: this.abortController.signal
         });
 
-        // Handle test mode responses
-        if (process.env.NODE_ENV === 'test') {
-          if (!process.env.TEST_SUCCESS) {
-            return {
-              model: requestBody.model,
-              choices: [{
-                message: {
-                  content: 'Test response from Together'
-                }
-              }]
-            };
-          }
+        let responseData;
+        try {
+          responseData = await response.json();
+          console.log('Response data after json():', responseData);
+        } catch (e) {
+          console.error('Error parsing response:', e);
+          throw new Error('Failed to parse Together API response: ' + e.message);
         }
 
-        const responseData = await response.json();
-        return responseData;
+        if (!response.ok) {
+          console.error('Together API Error:', {
+            status: response.status,
+            bodyPreview: JSON.stringify(responseData).slice(0, 200)
+          });
+
+          if (response.status === 429) {
+            throw new Error('Together API rate limit exceeded');
+          }
+          if (response.status === 413) {
+            throw new Error('Request too large for Together API');
+          }
+          if (response.status === 401) {
+            throw new Error('Invalid Together API key');
+          }
+
+          throw new Error(`Together API Error ${response.status}: ${response.statusText}`);
+        }
+
+        if (!responseData?.choices?.[0]?.message?.content) {
+          console.error('Invalid response data:', responseData);
+          throw new Error('Invalid response format from Together API');
+        }
+
+        return {
+          id: responseData.id,
+          choices: [{
+            message: responseData.choices[0].message
+          }]
+        };
+      } catch (error) {
+        console.error('Together request failed:', error.message);
+        throw error;
       } finally {
         this.abortController.abort();
       }
-    }, process.env.NODE_ENV === 'test' ? 1 : 5);
+    });
   }
 }
 

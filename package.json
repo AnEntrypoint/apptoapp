@@ -18,9 +18,11 @@
     "commander": "^13.1.0",
     "dotenv": "^16.4.7",
     "fast-glob": "^3.3.3",
-    "groq-sdk": "^0.15.0",
+    "groq-sdk": "^0.13.0",
     "ignore": "^7.0.3",
-    "node-fetch": "^2.6.7"
+    "node-fetch": "^2.6.7",
+    "p-retry": "^4.6.2",
+    "p-timeout": "^4.1.0"
   },
   "devDependencies": {
     "eslint": "^8.40.0",
