@@ -205,6 +205,9 @@ describe('OpenRouterProvider', () => {
 
     const result = await provider.makeRequest(messages, tools);
     
+    console.log('Response Data:', mockResponseData);
+    console.log('Response:', mockResponse);
+    
     expect(global.fetch).toHaveBeenCalledWith(
       'https://openrouter.ai/api/v1/chat/completions',
       expectedOptions
