@@ -201,17 +201,18 @@ describe('OpenRouterProvider', () => {
       body: JSON.stringify(expectedBody)
     };
 
-    // Mock fetch to return the mock response
-    const mockFetch = jest.fn().mockResolvedValue(mockResponse);
-    global.fetch = mockFetch;
+    // Mock fetch using spyOn
+    const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue(mockResponse);
 
     const result = await provider.makeRequest(messages, tools);
     
-    expect(mockFetch).toHaveBeenCalledWith(
+    expect(fetchSpy).toHaveBeenCalledWith(
       'https://openrouter.ai/api/v1/chat/completions',
       expectedOptions
     );
     expect(result).toEqual(mockResponseData);
+
+    fetchSpy.mockRestore();
   });
 
   it('handles rate limit errors gracefully in test mode', async () => {
@@ -328,17 +329,18 @@ describe('TogetherProvider', () => {
       body: JSON.stringify(expectedBody)
     };
 
-    // Mock fetch to return the mock response
-    const mockFetch = jest.fn().mockResolvedValue(mockResponse);
-    global.fetch = mockFetch;
+    // Mock fetch using spyOn
+    const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue(mockResponse);
 
     const result = await provider.makeRequest(messages, tools);
     
-    expect(mockFetch).toHaveBeenCalledWith(
+    expect(fetchSpy).toHaveBeenCalledWith(
       'https://api.together.xyz/v1/chat/completions',
       expectedOptions
     );
     expect(result).toEqual(mockResponseData);
+
+    fetchSpy.mockRestore();
   });
 
   it('handles rate limit errors gracefully in test mode', async () => {
