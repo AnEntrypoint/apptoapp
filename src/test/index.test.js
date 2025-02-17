@@ -31,6 +31,7 @@ describe('main', () => {
   let originalCwd;
 
   beforeEach(async () => {
+    jest.resetModules();
     // Store original working directory
     originalCwd = process.cwd();
     
@@ -59,25 +60,14 @@ describe('main', () => {
     jest.spyOn(console, 'log').mockImplementation(() => {});
   });
 
-  afterEach(async () => {
-    // Restore console.log
-    jest.restoreAllMocks();
-
-    // Restore original state
-    process.chdir(originalCwd);
-    process.env.NODE_ENV = originalEnv;
-
-    // Clean up with retries
-    try {
-      await fsp.rm(tempDir, { recursive: true, force: true });
-    } catch (error) {
-      console.warn('Cleanup warning:', error.message);
-    }
-
-    // Cleanup environment variables
+  afterEach(() => {
     delete process.env.TOGETHER_API_KEY;
     delete process.env.OPENROUTER_API_KEY;
     jest.resetAllMocks();
+    
+    // Reset model state between tests
+    const { getCurrentModel } = require('../index');
+    getCurrentModel().currentModel = 'mistral';
   });
 
   test('should handle test instruction', async () => {

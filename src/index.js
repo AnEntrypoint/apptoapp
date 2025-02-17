@@ -219,7 +219,7 @@ async function main(instruction, errors, model = 'mistral') {
   let retryCount = 0;
   const MAX_RETRIES = 3;
   const MAX_ATTEMPTS = 20;
-  currentModel = model;
+  let currentModel = model;
 
   try {
     if (!instruction || instruction.trim() === '') {
@@ -249,8 +249,6 @@ async function main(instruction, errors, model = 'mistral') {
       apiKey = process.env.MISTRAL_API_KEY;
     } else if (model === 'openrouter') {
       apiKey = process.env.OPENROUTER_API_KEY;
-    } else if (model === 'together') {
-      apiKey = process.env.TOGETHER_API_KEY;
     }
  
     // Final validation
@@ -277,6 +275,7 @@ async function main(instruction, errors, model = 'mistral') {
     }
 
     logger.debug(`${JSON.stringify(brainstormedTasks).length} B of reasoning output`);
+    //logger.debug(brainstormedTasks);
 
     const filesToEdit = brainstormedTasks.match(/<file\s+path="([^"]+)"[^>]*>([\s\S]*?)<\/file>/gi) || [];
     const cliCommands = brainstormedTasks.match(/<cli>([\s\S]*?)<\/cli>/g) || [];
@@ -297,29 +296,9 @@ async function main(instruction, errors, model = 'mistral') {
 
     const upgradeModelTag = brainstormedTasks.match(/<upgradeModel>/);
     if (upgradeModelTag) {
-      logger.warn('Upgrade model tag found, trying Together.ai');
-      if (process.env.TOGETHER_API_KEY) {
-        currentModel = 'together';
-        logger.info('Switching to Together.ai provider');
-        return await main(instruction, errors, 'together');
-      } else {
-        logger.warn('No Together.ai API key available, trying OpenRouter');
-        if (process.env.OPENROUTER_API_KEY) {
-          currentModel = 'openrouter';
-          logger.info('Switching to OpenRouter provider');
-          return await main(instruction, errors, 'openrouter');
-        } else {
-          logger.warn('No OpenRouter API key available, trying Groq');
-          if (process.env.GROQ_API_KEY) {
-            currentModel = 'groq';
-            logger.info('Switching to Groq provider');
-            return await main(instruction, errors, 'groq');
-          } else {
-            logger.error('No alternative providers available');
-            throw new Error('No alternative providers available');
-          }
-        }
-      }
+      logger.warn('Upgrade model tag found, switching to Groq');
+      currentModel = 'groq';
+      apiKey = process.env.GROQ_API_KEY;
     }
 
     if (filesToEdit && filesToEdit.length > 0) {
@@ -339,6 +318,7 @@ async function main(instruction, errors, model = 'mistral') {
         } catch (error) {
           logger.error(`Failed to write ${filePath}: ${error.message}`);
           cmdhistory.push(`Failed to write ${filePath}: ${error.message}`);
+          //throw error;
         }
       }
     }
@@ -424,6 +404,5 @@ program.parse();
 
 module.exports = {
   main,
-  currentModel: () => currentModel,
-  brainstormTaskWithLLM
+  getCurrentModel
 };
