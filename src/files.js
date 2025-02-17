@@ -15,8 +15,8 @@ function diff(a, b) {
 }
 
 // Function to generate and store a diff
-async function generateDiff(attemptCount = 0) {
-  logger.git('Generating diff for current attempt...');
+async function generateDiff() {
+  logger.git('Generating diff...');
   logger.debug(`Current diff buffer size: ${diffBuffer.length}`);
   
   // Remove stale git lock file if it exists

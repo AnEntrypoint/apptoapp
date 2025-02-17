@@ -73,6 +73,10 @@ describe('diff functionality', () => {
     // Make a change
     fs.writeFileSync('test.txt', 'modified content');
 
+    // Create and commit a file change
+    execSync('git add test.txt');
+    execSync('git commit -m "test change"');
+
     await generateDiff();
     const xml = getDiffBufferStatus();
 

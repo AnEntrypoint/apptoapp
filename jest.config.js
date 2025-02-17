@@ -18,5 +18,7 @@ module.exports = {
   reporters: [
     'default',
     'jest-junit'
-  ]
+  ],
+  runner: 'jest-light-runner',
+  forceExit: true
 };

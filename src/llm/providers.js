@@ -70,7 +70,7 @@ class MistralProvider {
         const data = await response.json();
         console.log('API Response:', {
           messageId: data.id,
-          contentLength: data.choices[0].message.content?.length
+          contentLength: data.choices[0]?.message?.content?.length || 0
         });
         return data;
 

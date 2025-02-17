@@ -7,6 +7,10 @@ global.fetch = fetch;
 // Mock any global configurations or environment variables
 process.env.NODE_ENV = 'test';
 process.env.JEST_RUNNING = 'true';
+process.env.GIT_AUTHOR_NAME = 'apptoapp';
+process.env.GIT_AUTHOR_EMAIL = 'author@apptoapp.com';
+process.env.GIT_COMMITTER_NAME = 'apptoapp';
+process.env.GIT_COMMITTER_EMAIL = 'author@apptoapp.com';
 
 // Mock all logger functions for tests
 jest.mock('./src/utils/logger', () => ({

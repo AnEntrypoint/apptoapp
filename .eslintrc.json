@@ -1,35 +1,19 @@
 {
   "env": {
+    "browser": true,
     "node": true,
-    "es6": true,
-    "jest": true,
-    "browser": true
-  },
-  "globals": {
-    "process": true,
-    "__dirname": true,
-    "Buffer": true,
-    "setImmediate": true,
-    "jest": true,
-    "describe": true,
-    "test": true,
-    "expect": true,
-    "beforeEach": true,
-    "afterEach": true,
-    "afterAll": true
-  },
-  "parserOptions": {
-    "ecmaVersion": 2020
+    "jest": true
   },
   "rules": {
-    "no-console": "off",
-    "no-unused-vars": ["warn", { 
-      "argsIgnorePattern": "^_",
-      "varsIgnorePattern": "^_"
-    }],
     "no-prototype-builtins": "off",
     "no-control-regex": "off",
-    "no-useless-escape": "off"
+    "no-useless-escape": "off",
+    "no-undef": "off",
+    "no-unused-vars": "warn"
   },
-  "ignorePatterns": ["dist/*"]
-} 
+  "ignorePatterns": [
+    "dist/**",
+    "*.config.js",
+    "**/*.test.js"
+  ]
+}

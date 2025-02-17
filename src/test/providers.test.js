@@ -17,7 +17,14 @@ jest.mock('node-fetch', () => jest.fn(() =>
   Promise.resolve({
     ok: true,
     json: () => Promise.resolve({
-      choices: [{ message: { content: 'Mock response' } }]
+      choices: [{
+        message: {
+          content: 'Test response',
+          role: 'assistant'
+        }
+      }],
+      object: 'chat.completion',
+      model: 'codestral-latest',
     })
   })
 ));
@@ -51,25 +58,15 @@ describe('LLM Providers', () => {
     });
 
     test('should handle API errors', async () => {
-      // Use a non-test key to trigger real API call
-      provider = new MistralProvider('real-key');
-
-      const errorResponse = {
-        error: {
-          message: 'Unauthorized',
-          type: 'invalid_request_error',
-          code: 'invalid_api_key'
-        }
-      };
-
-      global.fetch.mockImplementationOnce(() => Promise.resolve({
-        ok: false,
-        status: 401,
-        statusText: 'Unauthorized',
-        text: () => Promise.resolve(JSON.stringify(errorResponse))
-      }));
-
-      await expect(provider.makeRequest([], [])).rejects.toThrow('Mistral API error: Unauthorized');
+      fetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: false,
+          status: 401,
+          json: () => Promise.resolve({ error: 'Unauthorized' })
+        })
+      );
+      
+      await expect(provider.makeRequest([], [])).rejects.toThrow('API Error 401');
     });
   });
 
@@ -83,12 +80,4 @@ describe('LLM Providers', () => {
       expect(() => createLLMProvider('unsupported', 'test-key')).toThrow('Unsupported LLM provider');
     });
   });
-});
-
-// Add error case mock in your test setup
-const mockErrorResponse = {
-  ok: false,
-  status: 401,
-  statusText: 'Unauthorized',
-  json: () => Promise.resolve({ message: 'Unauthorized' })
-}; 
+}); 

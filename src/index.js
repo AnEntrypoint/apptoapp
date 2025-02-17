@@ -8,9 +8,9 @@ const fs = require('fs');
 const path = require('path');
 const { program } = require('commander');
 const logger = require('./utils/logger');
-
 dotenv.config();
 const TEST_TIMEOUT = process.env.CI ? 300000 : 10000; // 10 seconds for all environments
+let currentModel = 'mistral';
 
 async function runBuild() {
   let result; let code; let stdout; let
