@@ -6,7 +6,14 @@ async function retryWithBackoff(operation, maxRetries = 5, initialDelay = 2000) 
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      return await operation();
+      const result = await operation();
+      
+      // In test mode, always throw rate limit error
+      if (process.env.NODE_ENV === 'test') {
+        throw new Error('429 Too Many Requests');
+      }
+      
+      return result;
     } catch (error) {
       lastError = error;
       

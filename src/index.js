@@ -46,41 +46,9 @@ async function runBuild() {
     let testProcess;
     let isTimedOut = false;
 
-    const killWithRetry = async (pid, attempts = 5) => {
-      for (let i = 1; i <= attempts; i++) {
-        try {
-          logger.system(`Attempt ${i} to kill process group ${pid}`);
-          process.kill(-pid, 'SIGKILL');
-          await new Promise(resolve => setTimeout(resolve, 5000));
-          // Verify if process exists
-          process.kill(pid, 0); // Throws if process doesn't exist
-        } catch (err) {
-          logger.success(`Process group ${pid} successfully terminated`);
-          return true;
-        }
-      }
-      return false;
-    };
-
     const handleTimeout = () => {
       logger.warn(`Test timeout after ${TEST_TIMEOUT}ms - initiating cleanup`);
       isTimedOut = true;
-
-      if (testProcess?.childProcess) {
-        const pid = testProcess.childProcess.pid;
-        logger.system(`Terminating process tree for PID: ${pid}`);
-
-        // Windows needs extra time for process tree termination
-        const cleanupTimer = setTimeout(() => {
-          logger.warn('Final force exit');
-          process.exit(1);
-        }, 3000); // 30 second cleanup window
-
-        killWithRetry(pid).finally(() => {
-          clearTimeout(cleanupTimer);
-          resolve(`Tests timed out after ${TEST_TIMEOUT}ms`);
-        });
-      }
     };
 
     testProcess = executeCommand('npx jest --detectOpenHandles --forceExit --testTimeout=10000 --maxWorkers=1 --passWithNoTests', logHandler);
