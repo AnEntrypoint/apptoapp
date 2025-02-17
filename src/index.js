@@ -196,7 +196,7 @@ async function main(instruction, errors, model = 'mistral') {
       }
 
       // Process summary buffer before using
-      let processedHistory = [];
+      /*let processedHistory = [];
       if (summaryBuffer.length > 0) {
         logger.debug('Pre-processing summary buffer (original length:', summaryBuffer.join('\n').length, ')');
         try {
@@ -209,7 +209,7 @@ async function main(instruction, errors, model = 'mistral') {
           logger.error('Summary processing error:', error.message);
           processedHistory = summaryBuffer;
         }
-      }
+      }*/
 
       function safeExecSync(command) {
         try {
@@ -225,7 +225,7 @@ async function main(instruction, errors, model = 'mistral') {
       const artifacts = [
         `\n\n<userinstruction>${instruction}</userinstruction>\n`,
         files?`\n\n${files}\n\n`:``,
-        processedHistory.length > 0 ? `\n\n<history>${processedHistory.join('\n')}</history>\n` : ``,
+        summaryBuffer.length > 0 ? `\n\n${summaryBuffer.map((s,i)=>`<attemptSummary number="${i}">${s}</attemptSummary>\n`).join('\n')}\n` : ``,
         `\n\n<nodeEnv>${process.env.NODE_ENV || 'development'}</nodeEnv>\n`,
         `\n\n<attempts>This is attempt number ${attempts} of ${MAX_ATTEMPTS} to complete the user instruction: ${instruction} and fix the errors in the logs and tests</attempts>\n`,
         `\n\n<nodeVersion>${process.version}</nodeVersion>\n`,
@@ -250,10 +250,10 @@ async function main(instruction, errors, model = 'mistral') {
           role: 'system',
           content: 'You are a senior programmer with over 20 years of experience, you make expert and mature software development choices, your main goal is to complete the user instruction\n'
             + '\n// Task Management\n'
-            + `Always look at your progress using <attempts>, <todo>, <history>, <cmdhistory>, TODO.txt, CHANGELOG.txt and <attemptDiff> tags\n`
+            + `Always look at your progress using <attempts>, <attemptSummary>, <cmdhistory>, TODO.txt, CHANGELOG.txt and <attemptDiff> tags\n`
             + `Always pay special attention to <attemptDiff> tags, they are the most important part of the task, they are the difference between the current and the previous attempts, used to track progress\n`
             + `Always remove completed tasks from TODO.txt and move them to CHANGELOG.txt\n`
-            + `Always avoid repeating steps - if issues persist that are already listed fixed in CHANGELOG.txt or if previous attempts appear in <attemptDiff>, <history> and <cmdhistory> and tags, try a alternative approach and record what failed and why and how it failed in NOTES.txt for future iterations\n`
+            + `Always avoid repeating steps - if issues persist that are already listed fixed in CHANGELOG.txt or if previous attempts appear in <attemptDiff>, <attemptHistory> and <cmdhistory> and tags, try a alternative approach and record what failed and why and how it failed in NOTES.txt for future iterations\n`
             + `Follow user requirements precisely and plan step-by-step, the users instructions are in <userinstruction>, thery are your primary goal, everything else is secondary\n`
             + `Always output your reasoning in <text> tags, as past tense as if the tasks have been completed\n`
             
