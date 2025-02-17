@@ -130,19 +130,20 @@ describe('GroqProvider', () => {
 
 describe('OpenRouterProvider', () => {
   let provider;
+  let originalEnv;
   const mockApiKey = 'test-api-key';
   const mockSiteUrl = 'https://github.com/anEntrypoint/apptoapp';
   const mockSiteName = 'apptoapp';
 
   beforeEach(() => {
+    originalEnv = process.env.NODE_ENV;
     provider = new OpenRouterProvider(mockApiKey, mockSiteUrl, mockSiteName);
     global.fetch = jest.fn();
-    process.env.NODE_ENV = 'test'; // Ensure we're in test mode
   });
 
   afterEach(() => {
+    process.env.NODE_ENV = originalEnv;
     jest.resetAllMocks();
-    delete process.env.NODE_ENV;
   });
 
   it('initializes with API key and site info', () => {
@@ -153,7 +154,7 @@ describe('OpenRouterProvider', () => {
   });
 
   it('makeRequest sends correct request format', async () => {
-    process.env.NODE_ENV = 'production'; // Temporarily disable test mode
+    process.env.NODE_ENV = 'production';
     const messages = [{ role: 'user', content: 'test' }];
     const tools = [];
     const mockResponse = {
@@ -195,10 +196,10 @@ describe('OpenRouterProvider', () => {
         body: JSON.stringify(expectedBody)
       }
     );
-    process.env.NODE_ENV = 'test'; // Restore test mode
   });
 
   it('handles API errors gracefully', async () => {
+    process.env.NODE_ENV = 'test';
     const errorResponse = {
       ok: false,
       status: 500,
@@ -218,7 +219,7 @@ describe('OpenRouterProvider', () => {
   });
 
   it('retries on rate limit errors', async () => {
-    process.env.NODE_ENV = 'production'; // Temporarily disable test mode
+    process.env.NODE_ENV = 'production';
     const messages = [{ role: 'user', content: 'test' }];
     const rateLimitResponse = {
       ok: false,
@@ -250,6 +251,5 @@ describe('OpenRouterProvider', () => {
     const response = await provider.makeRequest(messages);
     expect(response.choices[0].message.content).toBe('success');
     expect(global.fetch).toHaveBeenCalledTimes(2);
-    process.env.NODE_ENV = 'test'; // Restore test mode
   });
 }); 

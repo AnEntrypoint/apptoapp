@@ -199,7 +199,6 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
         + `If you cant make progress on an issue, or detect that you've fixed it more than once and its still broken, record what failed and why and how it failed, and a list of possible solutions in TODO.txt for future iterations, and add an <upgradeModel></upgradeModel> tag to the end of your response\n`
         + `Follow user requirements precisely and plan step-by-step, the users instructions are in <userinstruction>, thery are your primary goal, everything else is secondary\n`
         + `Always output your reasoning in <text> tags, as past tense as if the tasks have been completed\n`
-        + `Always output your reasoning in <text> tags, as past tense as if the tasks have been completed\n`
         + '\n// Code Quality\n'
         + `Write clean, DRY, maintainable code following SOLID principles\n`
         + `Focus on readability and complete implementations\n`
