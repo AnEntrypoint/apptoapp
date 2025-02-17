@@ -1,61 +1,61 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="jest tests" tests="28" failures="0" errors="0" time="4.899">
-  <testsuite name="main" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:21:32" time="2.038" tests="2">
-    <testcase classname="main should handle test instruction" name="main should handle test instruction" time="1.035">
+<testsuites name="jest tests" tests="28" failures="0" errors="0" time="4.505">
+  <testsuite name="main" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:24:43" time="2.057" tests="2">
+    <testcase classname="main should handle test instruction" name="main should handle test instruction" time="1.021">
     </testcase>
-    <testcase classname="main should collect diffs after each attempt" name="main should collect diffs after each attempt" time="0.6">
+    <testcase classname="main should collect diffs after each attempt" name="main should collect diffs after each attempt" time="0.624">
     </testcase>
   </testsuite>
-  <testsuite name="diff" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:21:34" time="1.904" tests="5">
+  <testsuite name="diff" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:24:45" time="1.497" tests="5">
     <testcase classname="diff should return the difference between two numbers" name="diff should return the difference between two numbers" time="0.001">
     </testcase>
-    <testcase classname="diff should handle negative numbers" name="diff should handle negative numbers" time="0.002">
+    <testcase classname="diff should handle negative numbers" name="diff should handle negative numbers" time="0.001">
     </testcase>
-    <testcase classname="diff should handle zero" name="diff should handle zero" time="0.002">
+    <testcase classname="diff should handle zero" name="diff should handle zero" time="0.001">
     </testcase>
-    <testcase classname="diff functionality should generate and store diffs" name="diff functionality should generate and store diffs" time="1.157">
+    <testcase classname="diff functionality should generate and store diffs" name="diff functionality should generate and store diffs" time="0.738">
     </testcase>
-    <testcase classname="diff functionality should clear diff buffer" name="diff functionality should clear diff buffer" time="0.657">
+    <testcase classname="diff functionality should clear diff buffer" name="diff functionality should clear diff buffer" time="0.664">
     </testcase>
   </testsuite>
-  <testsuite name="createLLMProvider" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:21:36" time="0.578" tests="7">
+  <testsuite name="createLLMProvider" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:24:46" time="0.558" tests="7">
     <testcase classname="createLLMProvider should create MistralProvider" name="createLLMProvider should create MistralProvider" time="0.001">
     </testcase>
-    <testcase classname="createLLMProvider should create GroqProvider" name="createLLMProvider should create GroqProvider" time="0.002">
+    <testcase classname="createLLMProvider should create GroqProvider" name="createLLMProvider should create GroqProvider" time="0.001">
     </testcase>
-    <testcase classname="createLLMProvider should throw error for unsupported provider" name="createLLMProvider should throw error for unsupported provider" time="0.01">
+    <testcase classname="createLLMProvider should throw error for unsupported provider" name="createLLMProvider should throw error for unsupported provider" time="0.011">
     </testcase>
-    <testcase classname="MistralProvider should handle API errors" name="MistralProvider should handle API errors" time="0.49">
+    <testcase classname="MistralProvider should handle API errors" name="MistralProvider should handle API errors" time="0.469">
     </testcase>
-    <testcase classname="GroqProvider initializes with API key" name="GroqProvider initializes with API key" time="0.002">
+    <testcase classname="GroqProvider initializes with API key" name="GroqProvider initializes with API key" time="0.001">
     </testcase>
-    <testcase classname="GroqProvider makeRequest sends correct request format" name="GroqProvider makeRequest sends correct request format" time="0.001">
+    <testcase classname="GroqProvider makeRequest sends correct request format" name="GroqProvider makeRequest sends correct request format" time="0.003">
     </testcase>
     <testcase classname="GroqProvider handles API errors correctly" name="GroqProvider handles API errors correctly" time="0.002">
     </testcase>
   </testsuite>
-  <testsuite name="tools" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:21:37" time="0.091" tests="2">
-    <testcase classname="tools should execute a command and return the output" name="tools should execute a command and return the output" time="0.02">
+  <testsuite name="tools" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:24:47" time="0.088" tests="2">
+    <testcase classname="tools should execute a command and return the output" name="tools should execute a command and return the output" time="0.018">
     </testcase>
-    <testcase classname="tools should handle errors when executing a command" name="tools should handle errors when executing a command" time="0.019">
+    <testcase classname="tools should handle errors when executing a command" name="tools should handle errors when executing a command" time="0.018">
     </testcase>
   </testsuite>
-  <testsuite name="utils" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:21:37" time="0.079" tests="4">
+  <testsuite name="utils" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:24:47" time="0.08" tests="4">
     <testcase classname="utils should return the sum of two numbers" name="utils should return the sum of two numbers" time="0.001">
     </testcase>
     <testcase classname="utils should return the product of two numbers" name="utils should return the product of two numbers" time="0.001">
     </testcase>
     <testcase classname="makeApiRequest should use Mistral exclusively" name="makeApiRequest should use Mistral exclusively" time="0.005">
     </testcase>
-    <testcase classname="makeApiRequest should handle API errors" name="makeApiRequest should handle API errors" time="0.003">
+    <testcase classname="makeApiRequest should handle API errors" name="makeApiRequest should handle API errors" time="0.004">
     </testcase>
   </testsuite>
-  <testsuite name="Logger" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:21:37" time="0.061" tests="8">
+  <testsuite name="Logger" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:24:47" time="0.063" tests="8">
     <testcase classname="Logger should truncate long strings" name="Logger should truncate long strings" time="0.001">
     </testcase>
     <testcase classname="Logger should not truncate short strings" name="Logger should not truncate short strings" time="0.001">
     </testcase>
-    <testcase classname="Logger should handle non-string inputs" name="Logger should handle non-string inputs" time="0.001">
+    <testcase classname="Logger should handle non-string inputs" name="Logger should handle non-string inputs" time="0">
     </testcase>
     <testcase classname="Logger should handle undefined input" name="Logger should handle undefined input" time="0.001">
     </testcase>
@@ -65,7 +65,7 @@
     </testcase>
     <testcase classname="Logger should format values correctly" name="Logger should format values correctly" time="0.001">
     </testcase>
-    <testcase classname="Logger logging functions should not throw" name="Logger logging functions should not throw" time="0.007">
+    <testcase classname="Logger logging functions should not throw" name="Logger logging functions should not throw" time="0.005">
     </testcase>
   </testsuite>
 </testsuites>

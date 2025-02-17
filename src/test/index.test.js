@@ -77,14 +77,8 @@ describe('main', () => {
 
   test('should handle test instruction', async () => {
     const instruction = 'test instruction';
-
-    // Run main with a timeout
-    await Promise.race([
-      main(instruction),
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Test timeout')), 30000)
-      )
-    ]);
+    
+    await main(instruction);
 
     // Verify process.exit was not called with error code
     expect(mockExit).not.toHaveBeenCalledWith(1);
@@ -94,13 +88,7 @@ describe('main', () => {
     // Make a change that will be detected
     fs.writeFileSync('test.txt', 'modified content');
 
-    // Run main with a timeout
-    await Promise.race([
-      main('test instruction'),
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Test timeout')), 30000)
-      )
-    ]);
+    await main('test instruction');
 
     // Verify process.exit was not called with error code
     expect(mockExit).not.toHaveBeenCalledWith(1);
