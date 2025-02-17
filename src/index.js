@@ -12,6 +12,10 @@ dotenv.config();
 const TEST_TIMEOUT = process.env.CI ? 300000 : 10000; // 10 seconds for all environments
 let currentModel;
 
+function handleSpecialCommands(input) {
+  // Function implementation
+}
+
 async function runBuild() {
   let result; let code; let stdout; let
     stderr;
@@ -276,6 +280,7 @@ async function main(instruction, errors, model = 'mistral') {
             + `Always analyze logs, CHANGELOG.txt and <attemptDiff> tags as well as <cmdhistory> and <history> tags carefully to avoid repetitive fixes\n`
             + `Look at the logs and history, if the history indicates you are having trouble fixing the errors repeatedly, pick a different approach\n`
             + `Never run tests using the cli commands, they run automatically at the end of the process\n`
+            + `always make 100% sure that none of the tests will get stuck, apply strategies to avoid that\n`
 
             + '\n// File Management\n'
             + `Use consistent file structure\n`

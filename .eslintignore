@@ -1,0 +1,4 @@
+dist/
+*.config.js
+**/__mocks__/*
+**/__snapshots__/* 

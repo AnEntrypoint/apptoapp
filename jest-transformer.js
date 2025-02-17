@@ -1,5 +1,5 @@
 module.exports = {
-  process(src, filename) {
+  process(src) {
     return {
       code: src,
     };

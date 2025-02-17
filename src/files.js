@@ -8,6 +8,7 @@ const logger = require('./utils/logger');
 
 // Buffer to store attempt diffs
 let diffBuffer = [];
+let attemptCount = 0;
 
 // Simple diff function for number comparison (used in tests)
 function diff(a, b) {

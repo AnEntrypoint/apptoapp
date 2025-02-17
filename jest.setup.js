@@ -1,5 +1,4 @@
 const fetch = require('node-fetch');
-const logger = require('./src/utils/logger');
 
 // Polyfill fetch for Node.js
 global.fetch = fetch;
@@ -13,7 +12,7 @@ process.env.GIT_COMMITTER_NAME = 'apptoapp';
 process.env.GIT_COMMITTER_EMAIL = 'author@apptoapp.com';
 
 // Mock all logger functions for tests
-jest.mock('../src/utils/logger', () => ({
+jest.mock('./src/utils/logger', () => ({
   info: jest.fn(),
   success: jest.fn(),
   warn: jest.fn(),
@@ -32,7 +31,7 @@ process.on('unhandledRejection', (reason, promise) => {
 // Prevent actual process.exit in tests
 const originalExit = process.exit;
 process.exit = (code) => {
-  logger.warn(`Process exit called with code ${code}, but prevented in test environment`);
+  console.warn(`Process exit called with code ${code}, but prevented in test environment`);
   return undefined;
 };
 
