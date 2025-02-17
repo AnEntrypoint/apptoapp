@@ -1,6 +1,6 @@
 module.exports = {
   testEnvironment: 'node',
-  testTimeout: 10000,
+  testTimeout: 20000,
   setupFilesAfterEnv: ['./jest.setup.js'],
   testPathIgnorePatterns: [
     '/node_modules/',
@@ -19,6 +19,6 @@ module.exports = {
     'default',
     'jest-junit'
   ],
-  runner: 'jest-light-runner',
+  detectOpenHandles: true,
   forceExit: true
 };

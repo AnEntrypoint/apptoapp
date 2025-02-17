@@ -13,7 +13,7 @@ process.env.GIT_COMMITTER_NAME = 'apptoapp';
 process.env.GIT_COMMITTER_EMAIL = 'author@apptoapp.com';
 
 // Mock all logger functions for tests
-jest.mock('./src/utils/logger', () => ({
+jest.mock('../src/utils/logger', () => ({
   info: jest.fn(),
   success: jest.fn(),
   warn: jest.fn(),
@@ -21,14 +21,12 @@ jest.mock('./src/utils/logger', () => ({
   debug: jest.fn(),
   system: jest.fn(),
   git: jest.fn(),
-  file: jest.fn(),
-  truncate: jest.requireActual('./src/utils/logger').truncate,
-  formatValue: jest.requireActual('./src/utils/logger').formatValue
+  file: jest.fn()
 }));
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
-  logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
 // Prevent actual process.exit in tests

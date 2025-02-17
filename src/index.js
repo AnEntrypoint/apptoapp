@@ -10,7 +10,7 @@ const { program } = require('commander');
 const logger = require('./utils/logger');
 dotenv.config();
 const TEST_TIMEOUT = process.env.CI ? 300000 : 10000; // 10 seconds for all environments
-let currentModel = 'mistral';
+let currentModel;
 
 async function runBuild() {
   let result; let code; let stdout; let
@@ -461,7 +461,6 @@ program
   .argument('[instruction]', 'Instruction to execute')
   .action((instruction, options) => {
     if (options && options.model) {
-      console.log('Model specified in options:', options.model);
       currentModel = options.model;
     } else {
       console.log('Using default Mistral model');
