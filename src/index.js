@@ -45,7 +45,6 @@ async function runBuild() {
     let timeoutId;
     let testProcess;
     let isTimedOut = false;
-    let processKilled = false;
 
     const killWithRetry = async (pid, attempts = 5) => {
       for (let i = 1; i <= attempts; i++) {

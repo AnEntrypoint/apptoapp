@@ -174,26 +174,26 @@ describe('OpenRouterProvider', () => {
       stream: false
     };
 
+    const expectedOptions = {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${mockApiKey}`,
+        'HTTP-Referer': mockSiteUrl,
+        'X-Title': mockSiteName,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(expectedBody)
+    };
+
     global.fetch.mockImplementation(async (url, options) => {
       expect(url).toBe('https://openrouter.ai/api/v1/chat/completions');
-      expect(options).toEqual({
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${mockApiKey}`,
-          'HTTP-Referer': mockSiteUrl,
-          'X-Title': mockSiteName,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(expectedBody)
-      });
+      expect(options).toEqual(expectedOptions);
       return response;
     });
 
-    try {
-      await provider.makeRequest(messages, tools);
-    } catch (error) {
-      expect(error.message).toBe('429 Too Many Requests');
-    }
+    await expect(provider.makeRequest(messages, tools))
+      .rejects
+      .toThrow('429 Too Many Requests');
 
     expect(global.fetch).toHaveBeenCalled();
   });
