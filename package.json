@@ -7,7 +7,7 @@
     "apptoapp": "src/index.js"
   },
   "scripts": {
-    "test": "jest --forceExit --testTimeout 20000 --maxWorkers 1",
+    "test": "jest",
     "lint": "eslint . --ignore-path .eslintignore",
     "build": "webpack --mode production",
     "dev": "webpack --mode development --watch",
