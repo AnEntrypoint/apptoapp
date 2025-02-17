@@ -178,9 +178,6 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
     `\n<installedDependencies>\n${safeExecSync('npm ls --depth=0')}\n</installedDependencies>\n`,
     `\n<gitStatus>\n${safeExecSync('git status --short 2>&1 || echo "Not a git repository"')}\n</gitStatus>\n`,
     `\n<gitBranch>${safeExecSync('git branch --show-current 2>&1 || echo "No branch"')}</gitBranch>\n`,
-    `\n<systemMemory>${Math.round(process.memoryUsage().rss / 1024 / 1024)}MB RSS</systemMemory>\n`,
-    `\n<platform>${process.platform} ${process.arch}</platform>\n`,
-    `\n<environmentKeys>${Object.keys(process.env).filter(k => k.startsWith('NODE_') || k.startsWith('npm_')).join(', ')}</environmentKeys>\n`,
     `\n<systemDate>${new Date().toISOString()}</systemDate>\n`,
     `\n<timestamp>${new Date().toISOString()}</timestamp>\n`,
     `\n<currentWorkingDirectory>${process.cwd()}</currentWorkingDirectory>\n`,
@@ -269,8 +266,8 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
       const response = await makeApiRequest(
         messages,
         [],
-        process.env.MISTRAL_API_KEY,
-        process.env.MISTRAL_CHAT_ENDPOINT,
+        model === 'mistral' ? process.env.MISTRAL_API_KEY : process.env.GROQ_API_KEY,
+        model === 'mistral' ? process.env.MISTRAL_CHAT_ENDPOINT : process.env.GROQ_CHAT_ENDPOINT,
         model
       );
       return response.choices[0].message.content;
@@ -287,11 +284,12 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
   return [];
 }
 
-async function main(instruction, errors, model = 'groq') {
+async function main(instruction, errors, model = 'mistral') {
   console.log('Using model:', model);
   let retryCount = 0;
   const MAX_RETRIES = 3;
   const MAX_ATTEMPTS = 20;
+  let currentModel = model;
 
   try {
     if (!instruction || instruction.trim() === '') {
@@ -299,17 +297,33 @@ async function main(instruction, errors, model = 'groq') {
       instruction = 'Run project tests and verify setup';
     }
 
-    // Try Groq first, fall back to Mistral if needed
-    let apiKey = process.env.GROQ_API_KEY;
-    if (!apiKey && model === 'groq') {
-      logger.warn('No Groq API key found, falling back to Mistral');
-      model = 'mistral';
+    // Validate API keys and select provider
+    let apiKey;
+    if (model === 'groq') {
+      apiKey = process.env.GROQ_API_KEY;
+      if (!apiKey) {
+        logger.warn('No Groq API key found, checking alternatives...');
+        const mistralKey = process.env.MISTRAL_API_KEY;
+        const openrouterKey = process.env.OPENROUTER_API_KEY;
+        if (openrouterKey) {
+          logger.info('Found OpenRouter API key, using OpenRouter');
+          model = 'openrouter';
+          apiKey = openrouterKey;
+        } else if (mistralKey) {
+          logger.info('Found Mistral API key, falling back to Mistral');
+          model = 'mistral';
+          apiKey = mistralKey;
+        }
+      }
+    } else if (model === 'mistral') {
       apiKey = process.env.MISTRAL_API_KEY;
+    } else if (model === 'openrouter') {
+      apiKey = process.env.OPENROUTER_API_KEY;
     }
 
     // Final validation
     if (!apiKey) {
-      throw new Error('No API key found for any provider');
+      throw new Error(`No API key found for ${model} provider`);
     }
 
     const files = await getFiles();
@@ -352,8 +366,9 @@ async function main(instruction, errors, model = 'groq') {
 
     const upgradeModelTag = brainstormedTasks.match(/<upgradeModel>/);
     if (upgradeModelTag) {
-      logger.warn('Upgrade model tag found, exiting without further processing.');
-      return; // Exit if <upgradeModel> tag is present
+      logger.warn('Upgrade model tag found, switching to Groq');
+      currentModel = 'groq';
+      apiKey = process.env.GROQ_API_KEY;
     }
 
     if (filesToEdit && filesToEdit.length > 0) {
@@ -372,7 +387,8 @@ async function main(instruction, errors, model = 'groq') {
           logger.success(`Successfully wrote ${filePath}`);
         } catch (error) {
           logger.error(`Failed to write ${filePath}: ${error.message}`);
-          throw error;
+          cmdhistory.push(`Failed to write ${filePath}: ${error.message}`);
+          //throw error;
         }
       }
     }
@@ -419,7 +435,7 @@ async function main(instruction, errors, model = 'groq') {
         }
         logger.info(`Retrying main function (attempt ${attempts}/${MAX_ATTEMPTS})...`);
         setTimeout(() => {
-          main(process.argv[2], error.message, model);
+          main(process.argv[2], error.message, currentModel);
         }, 1000);
       } else {
         throw new Error('Max attempts reached');
@@ -442,14 +458,10 @@ async function main(instruction, errors, model = 'groq') {
 // Parse command line arguments
 program
   .argument('[instruction]', 'Instruction to execute')
+  .option('-m, --model <type>', 'Model to use (mistral/groq)', 'mistral')
   .action((instruction, options) => {
-    if (options && options.model) {
-      currentModel = options.model;
-    } else {
-      console.log('Using default Groq model');
-      currentModel = 'groq';
-    }
-    main(instruction).catch((error) => {
+    currentModel = options.model;
+    main(instruction, null, currentModel).catch((error) => {
       console.error(error)
       logger.error('Application error:', error, error.message);
       process.exit(0);

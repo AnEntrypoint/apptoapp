@@ -89,11 +89,11 @@ async function loadNoContentsPatterns(ignoreFile = '.nocontents') {
 }
 
 async function makeApiRequest(messages, tools, apiKey, endpoint, model = 'groq') {
-  console.log(`Using ${model} model`);
+  console.log(`Using ${model} model at endpoint: ${endpoint || 'default'}`);
   
   let provider;
   try {
-    provider = createLLMProvider(model, apiKey);
+    provider = createLLMProvider(model, apiKey, endpoint);
   } catch (error) {
     // If Groq fails, try falling back to Mistral
     if (model === 'groq') {
