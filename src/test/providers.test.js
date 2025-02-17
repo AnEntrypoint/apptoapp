@@ -185,7 +185,9 @@ describe('OpenRouterProvider', () => {
       body: JSON.stringify(expectedBody)
     };
 
+    let fetchCalled = false;
     global.fetch.mockImplementation(async (url, options) => {
+      fetchCalled = true;
       expect(url).toBe('https://openrouter.ai/api/v1/chat/completions');
       expect(options).toEqual(expectedOptions);
       return response;
@@ -195,7 +197,7 @@ describe('OpenRouterProvider', () => {
       .rejects
       .toThrow('429 Too Many Requests');
 
-    expect(global.fetch).toHaveBeenCalled();
+    expect(fetchCalled).toBe(true);
   });
 
   it('handles API errors gracefully in test mode', async () => {
