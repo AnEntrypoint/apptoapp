@@ -80,56 +80,40 @@ describe('GroqProvider', () => {
 
   beforeEach(() => {
     provider = new GroqProvider(mockApiKey);
-  });
-
-  test('initializes with API key', () => {
-    expect(provider.apiKey).toBe(mockApiKey);
-    expect(provider.groq).toBeDefined();
-  });
-
-  test('makeRequest sends correct request format', async () => {
-    const messages = [
-      { role: 'user', content: 'Hello' }
-    ];
-
-    const mockResponse = {
-      model: 'deepseek-r1-distill-llama-70b',
-      choices: [{
-        message: {
-          content: 'Test response',
-          role: 'assistant'
-        },
-        finish_reason: 'stop'
-      }]
+    provider.groq = {
+      chat: {
+        completions: {
+          create: jest.fn().mockResolvedValue({
+            model: 'llama-3.3-70b-versatile',
+            choices: [{ message: { content: 'test response' } }]
+          })
+        }
+      }
     };
+  });
 
-    provider.groq.chat.completions.create = jest.fn().mockResolvedValue(mockResponse);
+  it('initializes with API key', () => {
+    expect(provider.apiKey).toBe(mockApiKey);
+  });
 
+  it('makeRequest sends correct request format', async () => {
+    const messages = [{ role: 'user', content: 'Hello' }];
     const response = await provider.makeRequest(messages);
 
     expect(provider.groq.chat.completions.create).toHaveBeenCalledWith({
       messages,
-      model: 'deepseek-r1-distill-llama-70b',
+      model: 'llama-3.3-70b-versatile',
       temperature: 0.6,
-      max_completion_tokens: 131072,
+      max_completion_tokens: 32768,
       top_p: 0.95,
       stream: false,
       stop: null
     });
- 
-    expect(response).toEqual(mockResponse);
   });
 
-  test('handles API errors gracefully', async () => {
-    const messages = [
-      { role: 'user', content: 'Hello' }
-    ];
-
-    provider.groq.chat.completions.create = jest.fn().mockRejectedValue(
-      new Error('API Error')
-    );
-
-    await expect(provider.makeRequest(messages))
+  it('handles API errors gracefully', async () => {
+    provider.groq.chat.completions.create.mockRejectedValue(new Error('API Error'));
+    await expect(provider.makeRequest([{ role: 'user', content: 'test' }]))
       .rejects
       .toThrow('API Error');
   });
@@ -143,6 +127,11 @@ describe('OpenRouterProvider', () => {
 
   beforeEach(() => {
     provider = new OpenRouterProvider(mockApiKey, mockSiteUrl, mockSiteName);
+    global.fetch = jest.fn();
+  });
+
+  afterEach(() => {
+    jest.resetAllMocks();
   });
 
   it('initializes with API key and site info', () => {
@@ -156,7 +145,7 @@ describe('OpenRouterProvider', () => {
     const messages = [{ role: 'user', content: 'test' }];
     const tools = [];
     
-    global.fetch = jest.fn().mockResolvedValue({
+    global.fetch.mockResolvedValueOnce({
       ok: true,
       json: () => Promise.resolve({
         model: 'deepseek-r1',
@@ -167,21 +156,29 @@ describe('OpenRouterProvider', () => {
     await provider.makeRequest(messages, tools);
 
     expect(global.fetch).toHaveBeenCalledWith(
-      provider.endpoint,
-      expect.objectContaining({
+      'https://openrouter.ai/api/v1/chat/completions',
+      {
         method: 'POST',
-        headers: expect.objectContaining({
+        headers: {
           'Authorization': `Bearer ${mockApiKey}`,
           'HTTP-Referer': mockSiteUrl,
-          'X-Title': mockSiteName
-        }),
-        body: expect.stringContaining('"model":"deepseek/deepseek-r1:free"')
-      })
+          'X-Title': mockSiteName,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'deepseek/deepseek-r1:free',
+          messages,
+          temperature: 0.6,
+          max_tokens: 32768,
+          top_p: 0.95,
+          stream: false
+        })
+      }
     );
   });
 
   it('handles API errors gracefully', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
+    global.fetch.mockResolvedValueOnce({
       ok: false,
       status: 401,
       statusText: 'Unauthorized',

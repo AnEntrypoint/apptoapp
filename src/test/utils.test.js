@@ -18,47 +18,44 @@ describe('utils', () => {
 });
 
 describe('makeApiRequest', () => {
-  const mockProvider = {
-    makeRequest: jest.fn().mockResolvedValue({
-      choices: [{
-        message: {
-          content: 'Test response'
-        }
-      }]
-    })
-  };
-
   beforeEach(() => {
-    jest.clearAllMocks();
-    createLLMProvider.mockReturnValue(mockProvider);
-    process.env.GROQ_API_KEY = 'test-groq-key';
+    jest.resetAllMocks();
     process.env.MISTRAL_API_KEY = 'test-mistral-key';
   });
 
-  afterEach(() => {
-    delete process.env.GROQ_API_KEY;
-    delete process.env.MISTRAL_API_KEY;
-  });
-
-  test('should use Groq by default', async () => {
+  it('should use Groq by default', async () => {
     await makeApiRequest([{ content: 'test' }], [], 'test-key');
-    expect(createLLMProvider).toHaveBeenCalledWith('groq', 'test-key');
+    expect(createLLMProvider).toHaveBeenCalledWith('groq', 'test-key', undefined);
   });
 
-  test('should fall back to Mistral if Groq fails', async () => {
+  it('should fall back to Mistral if Groq fails', async () => {
+    const mockProvider = {
+      makeRequest: jest.fn()
+    };
+    mockProvider.makeRequest
+      .mockRejectedValueOnce(new Error('Groq failed'))
+      .mockResolvedValueOnce({ choices: [{ message: { content: 'success' } }] });
+
     createLLMProvider
       .mockImplementationOnce(() => { throw new Error('Groq failed'); })
       .mockImplementationOnce(() => mockProvider);
 
-    await makeApiRequest([{ content: 'test' }], [], 'test-key');
-    
+    const result = await makeApiRequest([{ content: 'test' }], [], 'test-key');
+
     expect(createLLMProvider).toHaveBeenCalledTimes(2);
-    expect(createLLMProvider).toHaveBeenNthCalledWith(1, 'groq', 'test-key');
-    expect(createLLMProvider).toHaveBeenNthCalledWith(2, 'mistral', process.env.MISTRAL_API_KEY);
+    expect(createLLMProvider).toHaveBeenNthCalledWith(1, 'groq', 'test-key', undefined);
+    expect(createLLMProvider).toHaveBeenNthCalledWith(2, 'mistral', process.env.MISTRAL_API_KEY, undefined);
+    expect(result).toEqual({ choices: [{ message: { content: 'success' } }] });
   });
 
-  test('should handle API errors', async () => {
-    mockProvider.makeRequest.mockRejectedValueOnce(new Error('API Error'));
-    await expect(makeApiRequest([{ content: 'test' }], [], 'test-key')).rejects.toThrow('API Error');
+  it('should handle API errors', async () => {
+    const mockProvider = {
+      makeRequest: jest.fn().mockRejectedValue(new Error('API Error'))
+    };
+    createLLMProvider.mockReturnValue(mockProvider);
+
+    await expect(makeApiRequest([{ content: 'test' }], [], 'test-key'))
+      .rejects
+      .toThrow('API Error');
   });
 });
