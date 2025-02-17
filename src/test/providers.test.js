@@ -202,11 +202,12 @@ describe('OpenRouterProvider', () => {
     };
 
     // Mock fetch to return the mock response
-    global.fetch = jest.fn().mockResolvedValue(mockResponse);
+    const mockFetch = jest.fn().mockResolvedValue(mockResponse);
+    global.fetch = mockFetch;
 
     const result = await provider.makeRequest(messages, tools);
     
-    expect(global.fetch).toHaveBeenCalledWith(
+    expect(mockFetch).toHaveBeenCalledWith(
       'https://openrouter.ai/api/v1/chat/completions',
       expectedOptions
     );
@@ -327,11 +328,13 @@ describe('TogetherProvider', () => {
       body: JSON.stringify(expectedBody)
     };
 
-    global.fetch.mockResolvedValue(mockResponse);
+    // Mock fetch to return the mock response
+    const mockFetch = jest.fn().mockResolvedValue(mockResponse);
+    global.fetch = mockFetch;
 
     const result = await provider.makeRequest(messages, tools);
     
-    expect(global.fetch).toHaveBeenCalledWith(
+    expect(mockFetch).toHaveBeenCalledWith(
       'https://api.together.xyz/v1/chat/completions',
       expectedOptions
     );
