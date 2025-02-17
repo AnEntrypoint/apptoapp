@@ -70,6 +70,7 @@ describe('MistralProvider', () => {
     fetch.mockResolvedValue({
       ok: false,
       status: 401,
+      statusText: 'Unauthorized',
       text: async () => JSON.stringify({
         message: 'Unauthorized',
         request_id: 'test-request-id'
