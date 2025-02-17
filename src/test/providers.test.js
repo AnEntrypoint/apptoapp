@@ -21,14 +21,8 @@ jest.mock('../utils/logger', () => ({
   warn: jest.fn()
 }));
 
-// Mock retryWithBackoff to execute immediately in tests
-jest.mock('../llm/providers', () => {
-  const originalModule = jest.requireActual('../llm/providers');
-  return {
-    ...originalModule,
-    retryWithBackoff: async (operation) => operation()
-  };
-});
+// Don't mock retryWithBackoff, we want to use the real implementation
+jest.unmock('../utils/retry');
 
 describe('createLLMProvider', () => {
   it('should create MistralProvider', () => {
@@ -162,14 +156,14 @@ describe('OpenRouterProvider', () => {
       choices: [{ message: { content: 'test response' } }]
     };
     
-    global.fetch
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        statusText: 'OK',
-        json: () => Promise.resolve(mockResponse),
-        text: () => Promise.resolve(JSON.stringify(mockResponse))
-      });
+    // Mock successful response
+    global.fetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: () => Promise.resolve(mockResponse),
+      text: () => Promise.resolve(JSON.stringify(mockResponse))
+    });
 
     const response = await provider.makeRequest(messages, tools);
     expect(response).toEqual(mockResponse);
@@ -209,9 +203,7 @@ describe('OpenRouterProvider', () => {
     };
     
     // Mock fetch to always return error
-    for (let i = 0; i < 5; i++) {
-      global.fetch.mockResolvedValueOnce(errorResponse);
-    }
+    global.fetch.mockResolvedValue(errorResponse);
 
     await expect(provider.makeRequest([{ role: 'user', content: 'test' }]))
       .rejects

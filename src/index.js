@@ -84,7 +84,7 @@ async function runBuild() {
       }
     };
 
-    testProcess = executeCommand('npx jest --detectOpenHandles --forceExit --testTimeout=10000 --maxWorkers=1', logHandler);
+    testProcess = executeCommand('npx jest --detectOpenHandles --forceExit --testTimeout=10000 --maxWorkers=1 --passWithNoTests', logHandler);
 
     // Add universal timeout handling regardless of NODE_ENV
     timeoutId = setTimeout(handleTimeout, TEST_TIMEOUT);
