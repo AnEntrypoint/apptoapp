@@ -168,7 +168,7 @@ class OpenRouterProvider {
             bodyPreview: responseText.slice(0, 200)
           });
 
-          // In test environment, treat all errors as 429
+          // In test environment or rate limit, throw a rate limit error
           if (process.env.NODE_ENV === 'test' || response.status === 429) {
             throw new Error('429 Too Many Requests');
           }
@@ -184,11 +184,13 @@ class OpenRouterProvider {
 
         return data;
       } catch (error) {
-        // If we're in test mode and the error isn't already a rate limit error,
-        // convert it to one
+        console.error('OpenRouter request failed:', error.message);
+        
+        // In test environment, convert all errors to rate limit errors
         if (process.env.NODE_ENV === 'test' && !error.message.includes('429')) {
           throw new Error('429 Too Many Requests');
         }
+        
         throw error;
       }
     });

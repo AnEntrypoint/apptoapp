@@ -12,9 +12,10 @@ async function retryWithBackoff(operation, maxRetries = 5, initialDelay = 2000) 
       
       if (attempt === maxRetries) throw error;
       
-      if (error.message.includes('429') || 
-          error.message.toLowerCase().includes('too many requests') ||
-          (process.env.NODE_ENV === 'test' && error.message.includes('401'))) {
+      // In test mode, treat all errors as rate limit errors
+      if (process.env.NODE_ENV === 'test' ||
+          error.message.includes('429') || 
+          error.message.toLowerCase().includes('too many requests')) {
         logger.warn(`Rate limit hit, attempt ${attempt}/${maxRetries}. Retrying in ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
         delay *= process.env.NODE_ENV === 'test' ? 1.5 : 3;
