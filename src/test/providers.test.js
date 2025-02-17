@@ -159,8 +159,14 @@ describe('OpenRouterProvider', () => {
       ok: true,
       status: 200,
       json: () => Promise.resolve({
+        id: 'test-id',
         model: 'deepseek-r1',
-        choices: [{ message: { content: 'test response' } }]
+        choices: [{
+          message: {
+            role: 'assistant',
+            content: 'test response'
+          }
+        }]
       })
     };
 
