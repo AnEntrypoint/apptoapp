@@ -136,7 +136,7 @@ class OpenRouterProvider {
       
       try {
         const requestBody = {
-          model: process.env.OPENROUTER_MODEL || 'deepseek/deepseek-r1:free',
+          model: process.env.OPENROUTER_MODEL || 'deepseek/deepseek-r1-distilled-llama-70b-free',
           messages,
           temperature: 0.6,
           max_tokens: 32768,
