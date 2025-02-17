@@ -129,10 +129,12 @@ describe('OpenRouterProvider', () => {
     provider = new OpenRouterProvider(mockApiKey, mockSiteUrl, mockSiteName);
     global.fetch = jest.fn();
     process.env.NODE_ENV = 'test'; // Ensure we're in test mode
+    jest.useFakeTimers();
   });
 
   afterEach(() => {
     jest.resetAllMocks();
+    jest.useRealTimers();
     delete process.env.NODE_ENV;
   });
 
@@ -151,13 +153,13 @@ describe('OpenRouterProvider', () => {
       choices: [{ message: { content: 'test response' } }]
     };
     
-    global.fetch.mockImplementationOnce(() => Promise.resolve({
+    global.fetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
       statusText: 'OK',
       json: () => Promise.resolve(mockResponse),
       text: () => Promise.resolve(JSON.stringify(mockResponse))
-    }));
+    });
 
     const response = await provider.makeRequest(messages, tools);
     expect(response).toEqual(mockResponse);
@@ -225,10 +227,15 @@ describe('OpenRouterProvider', () => {
     };
 
     global.fetch
-      .mockImplementationOnce(() => Promise.resolve(rateLimitResponse))
-      .mockImplementationOnce(() => Promise.resolve(successResponse));
+      .mockResolvedValueOnce(rateLimitResponse)
+      .mockResolvedValueOnce(successResponse);
 
-    const response = await provider.makeRequest(messages);
+    const responsePromise = provider.makeRequest(messages);
+    
+    // Fast-forward through all timers
+    jest.runAllTimers();
+
+    const response = await responsePromise;
     expect(response.choices[0].message.content).toBe('success');
     expect(global.fetch).toHaveBeenCalledTimes(2);
   });
