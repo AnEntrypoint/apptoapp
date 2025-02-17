@@ -106,10 +106,19 @@ describe('main', () => {
     // Set up environment for together model
     process.env.TOGETHER_API_KEY = 'test-key';
     
-    // Mock the makeApiRequest to simulate together model success
+    // Mock brainstormTaskWithLLM to return an upgradeModel tag
+    brainstormTaskWithLLM.mockResolvedValueOnce(`
+      <upgradeModel></upgradeModel>
+      <text>Testing upgrade model tag</text>
+    `);
+
+    // Mock makeApiRequest for the together model
     makeApiRequest.mockImplementationOnce(() => Promise.resolve({
-      content: 'test response',
-      model: 'together'
+      choices: [{
+        message: {
+          content: 'test response'
+        }
+      }]
     }));
 
     const result1 = await main('test instruction', null, 'mistral');

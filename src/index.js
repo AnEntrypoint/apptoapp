@@ -301,49 +301,13 @@ async function main(instruction, errors, model = 'mistral') {
       if (process.env.TOGETHER_API_KEY) {
         currentModel = 'together';
         logger.info('Switching to Together.ai provider');
-        try {
-          return await main(instruction, errors, 'together');
-        } catch (togetherError) {
-          logger.warn('Together.ai failed, trying OpenRouter:', togetherError.message);
-          if (process.env.OPENROUTER_API_KEY) {
-            currentModel = 'openrouter';
-            logger.info('Switching to OpenRouter provider');
-            try {
-              return await main(instruction, errors, 'openrouter');
-            } catch (openrouterError) {
-              logger.warn('OpenRouter failed, trying Groq:', openrouterError.message);
-              if (process.env.GROQ_API_KEY) {
-                currentModel = 'groq';
-                logger.info('Switching to Groq provider');
-                return await main(instruction, errors, 'groq');
-              } else {
-                logger.error('No Groq API key available');
-                throw openrouterError;
-              }
-            }
-          } else {
-            logger.error('No OpenRouter API key available');
-            throw togetherError;
-          }
-        }
+        return await main(instruction, errors, 'together');
       } else {
         logger.warn('No Together.ai API key available, trying OpenRouter');
         if (process.env.OPENROUTER_API_KEY) {
           currentModel = 'openrouter';
           logger.info('Switching to OpenRouter provider');
-          try {
-            return await main(instruction, errors, 'openrouter');
-          } catch (openrouterError) {
-            logger.warn('OpenRouter failed, trying Groq:', openrouterError.message);
-            if (process.env.GROQ_API_KEY) {
-              currentModel = 'groq';
-              logger.info('Switching to Groq provider');
-              return await main(instruction, errors, 'groq');
-            } else {
-              logger.error('No Groq API key available');
-              throw openrouterError;
-            }
-          }
+          return await main(instruction, errors, 'openrouter');
         } else {
           logger.warn('No OpenRouter API key available, trying Groq');
           if (process.env.GROQ_API_KEY) {
