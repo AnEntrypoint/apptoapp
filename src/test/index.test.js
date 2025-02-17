@@ -1,4 +1,4 @@
-const { main } = require('../index.js');
+const { main, getCurrentModel } = require('../index.js');
 const { loadIgnorePatterns } = require('../utils');
 const fsp = require('fs').promises;
 const { clearDiffBuffer } = require('../files');
@@ -73,6 +73,11 @@ describe('main', () => {
     } catch (error) {
       console.warn('Cleanup warning:', error.message);
     }
+
+    // Cleanup environment variables
+    delete process.env.TOGETHER_API_KEY;
+    delete process.env.OPENROUTER_API_KEY;
+    jest.resetAllMocks();
   });
 
   test('should handle test instruction', async () => {
@@ -96,23 +101,20 @@ describe('main', () => {
 
   it('should handle upgradeModel tag with fallback chain', async () => {
     // Test case 1: Normal fallback chain
-    process.env.TOGETHER_API_KEY = 'mock-together-key'; // Add missing env var
+    process.env.TOGETHER_API_KEY = 'mock-together-key';
     process.env.OPENROUTER_API_KEY = 'mock-openrouter-key';
     
-    const result1 = await main('test instruction', null, 'mistral');
-    console.log('Current model after first test case:', currentModel());
-    expect(currentModel()).toBe('together');
+    await main('test instruction', null, 'mistral');
+    expect(getCurrentModel()).toBe('together');
 
     // Test case 2: Together.ai fails, OpenRouter succeeds
     delete process.env.TOGETHER_API_KEY;
-    const result2 = await main('test instruction', null, 'mistral');
-    console.log('Current model after second test case:', currentModel());
-    expect(currentModel()).toBe('openrouter');
+    await main('test instruction', null, 'mistral');
+    expect(getCurrentModel()).toBe('openrouter');
 
     // Test case 3: Both Together and OpenRouter fail
     delete process.env.OPENROUTER_API_KEY;
-    const result3 = await main('test instruction', null, 'mistral');
-    console.log('Current model after third test case:', currentModel());
-    expect(currentModel()).toBe('mistral');
+    await main('test instruction', null, 'mistral');
+    expect(getCurrentModel()).toBe('mistral');
   });
 });
