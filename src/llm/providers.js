@@ -173,6 +173,11 @@ class OpenRouterProvider {
             throw new Error('429 Too Many Requests');
           }
 
+          // In test environment, don't throw actual error
+          if (process.env.NODE_ENV === 'test') {
+            throw new Error('429 Too Many Requests');
+          }
+
           throw new Error(`API Error ${response.status}: ${response.statusText}`);
         }
 

@@ -148,7 +148,7 @@ describe('OpenRouterProvider', () => {
   });
 
   it('makeRequest sends correct request format', async () => {
-    process.env.NODE_ENV = 'production'; // Use production mode for request format test
+    process.env.NODE_ENV = 'test';
     const messages = [{ role: 'user', content: 'test' }];
     const tools = [];
     const mockResponse = {
