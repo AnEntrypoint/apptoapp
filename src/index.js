@@ -27,7 +27,7 @@ async function runBuild() {
         logger.error('Error deleting package-lock.json:', err);
       }
     }
-    
+
     // Run npm install
     result = await executeCommand('npm install');
     code = result.code;
@@ -40,7 +40,7 @@ async function runBuild() {
     logBuffer.push(data);
     logger.debug(data);
   };
- 
+
   return new Promise((resolve, reject) => {
     let timeoutId;
     let testProcess;
@@ -66,11 +66,11 @@ async function runBuild() {
     const handleTimeout = () => {
       logger.warn(`Test timeout after ${TEST_TIMEOUT}ms - initiating cleanup`);
       isTimedOut = true;
-      
+
       if (testProcess?.childProcess) {
         const pid = testProcess.childProcess.pid;
         logger.system(`Terminating process tree for PID: ${pid}`);
-        
+
         // Windows needs extra time for process tree termination
         const cleanupTimer = setTimeout(() => {
           logger.warn('Final force exit');
@@ -85,7 +85,7 @@ async function runBuild() {
     };
 
     testProcess = executeCommand('npx jest --detectOpenHandles --forceExit --testTimeout=10000 --maxWorkers=1', logHandler);
-    
+
     // Add universal timeout handling regardless of NODE_ENV
     timeoutId = setTimeout(handleTimeout, TEST_TIMEOUT);
 
@@ -114,7 +114,7 @@ async function runBuild() {
     testProcess.then((result) => {
       if (isTimedOut) return; // Ignore if already timed out
       if (timeoutId) clearTimeout(timeoutId);
-      
+
       if (result.code !== 0) {
         if (process.env.NODE_ENV === 'test') {
           resolve(`Test failed with code ${result.code}`);
@@ -145,7 +145,7 @@ async function main(instruction, errors, model = 'mistral') {
   try {
     // Only clear diff buffer if explicitly requested
     // clearDiffBuffer(); - removing this line to allow diffs to accumulate
-    
+
     if (!instruction || instruction.trim() === '') {
       logger.info('No specific instruction provided. Running default test mode.');
       instruction = 'Run project tests and verify setup';
@@ -178,7 +178,7 @@ async function main(instruction, errors, model = 'mistral') {
               role: "system",
               content: "Remove duplicate lines from this content while maintaining order. Only respond with the deduplicated text."
             }, {
-              role: "user", 
+              role: "user",
               content: Array.isArray(content) ? content.join('\n') : content
             }],
             [],
@@ -221,11 +221,11 @@ async function main(instruction, errors, model = 'mistral') {
         }
       }
       const diffsXML = getDiffBufferStatus();
-      
+
       const artifacts = [
         `\n\n<userinstruction>${instruction}</userinstruction>\n`,
-        files?`\n\n${files}\n\n`:``,
-        summaryBuffer.length > 0 ? `\n\n${summaryBuffer.map((s,i)=>`<attemptSummary number="${i}">${s}</attemptSummary>\n`).join('\n')}\n` : ``,
+        files ? `\n\n${files}\n\n` : ``,
+        summaryBuffer.length > 0 ? `\n\n${summaryBuffer.map((s, i) => `<attemptSummary number="${i}">${s}</attemptSummary>\n`).join('\n')}\n` : ``,
         `\n\n<nodeEnv>${process.env.NODE_ENV || 'development'}</nodeEnv>\n`,
         `\n\n<attempts>This is attempt number ${attempts} of ${MAX_ATTEMPTS} to complete the user instruction: ${instruction} and fix the errors in the logs and tests</attempts>\n`,
         `\n\n<nodeVersion>${process.version}</nodeVersion>\n`,
@@ -238,10 +238,10 @@ async function main(instruction, errors, model = 'mistral') {
         `\n\n<environmentKeys>${Object.keys(process.env).filter(k => k.startsWith('NODE_') || k.startsWith('npm_')).join(', ')}</environmentKeys>\n`,
         `\n\n<systemDate>${new Date().toISOString()}</systemDate>\n`,
         `\n\n<timestamp>${new Date().toISOString()}</timestamp>\n`,
-        errors?`\n\n<errors>${errors}</errors>\n`:``,
+        errors ? `\n\n<errors>${errors}</errors>\n` : ``,
         `\n\n<currentWorkingDirectory>${process.cwd()}</currentWorkingDirectory>\n`,
         `\n\n<terminalType>${process.env.TERM || process.platform === 'win32' ? 'cmd/powershell' : 'bash'}</terminalType>\n`,
-        cliBuffer.length > 0?`\n\n<bashhistory>${cliBuffer.map(c=>c.replace(/<cli>/g, '').replace(/<\/cli>/g, '')).join('\n')}</bashhistory>\n`:``,
+        cliBuffer.length > 0 ? `\n\n<bashhistory>${cliBuffer.map(c => c.replace(/<cli>/g, '').replace(/<\/cli>/g, '')).join('\n')}</bashhistory>\n` : ``,
         `\n\n<rules>Rules:\n${cursorRules}</rules>\n`,
         `\n\n${diffsXML}\n\n`,
       ]
@@ -254,9 +254,10 @@ async function main(instruction, errors, model = 'mistral') {
             + `Always pay special attention to <attemptDiff> tags, they are the most important part of the task, they are the difference between the current and the previous attempts, used to track progress\n`
             + `Always remove completed tasks from TODO.txt and move them to CHANGELOG.txt\n`
             + `Always avoid repeating steps - if issues persist that are already listed fixed in CHANGELOG.txt or if previous attempts appear in <attemptDiff>, <attemptHistory> and <cmdhistory> and tags, try a alternative approach and record what failed and why and how it failed in NOTES.txt for future iterations\n`
+            + `If you cant make progress on an issue, record what failed and why and how it failed in TODO.txt for future iterations, and add an <upgradeModel></upgradeModel> tag to the end of your response\n`
             + `Follow user requirements precisely and plan step-by-step, the users instructions are in <userinstruction>, thery are your primary goal, everything else is secondary\n`
             + `Always output your reasoning in <text> tags, as past tense as if the tasks have been completed\n`
-            
+
             + '\n// Code Quality\n'
             + `Write clean, DRY, maintainable code following SOLID principles\n`
             + `Focus on readability and complete implementations\n`
@@ -266,7 +267,7 @@ async function main(instruction, errors, model = 'mistral') {
             + `Always refactor files with over 100 lines into smaller modules\n`
             + `Minimize interdependencies between functions\n`
             + `Maximise code reuse and generalization\n`
-            
+
             + '\n// Testing & Debugging\n'
             + `Write comprehensive unit and integration tests\n`
             + `Use tests to discover and fix bugs\n`
@@ -281,22 +282,22 @@ async function main(instruction, errors, model = 'mistral') {
             + `Separate tests into their own folder\n`
             + `Only create necessary files in correct locations\n`
             + `Don't output unchanged files\n`
-            
+
             + '\n// Dependency Management\n'
             + `Use CLI for package management with --save/--save-dev\n`
             + `Resolve conflicts by removing package-lock.json and reinstalling\n`
-            
+
             + '\n// Documentation\n'
             + `Maintain clear JSDoc comments\n`
             + `Document user-facing text for i18n support\n`
             + `Explain changes in <text> tags with motivations and CLI commands, in past tense as if the tasks have been completed\n`
-            
+
             + '\n// Output Formatting\n'
             + `Only respond in XML tags\n`
             + `Always write files with the following format: <file path="path/to/file.js">...</file>\n`
             + `Always perform CLI commands with the following format: <cli>command</cli>\n`
             + `Always provide the complete changed files, no partial files\n`
-            
+
             + '\n// Performance & Security\n'
             + `Optimize performance while handling edge cases\n`
             + `Follow best practices for security and maintainability\n`
@@ -354,7 +355,7 @@ async function main(instruction, errors, model = 'mistral') {
     const summaries = brainstormedTasks.match(/<text>([\s\S]*?)<\/text>/g) || [];
 
     if (summaries && summaries.length > 0) {
-      summaryBuffer.unshift(...summaries);
+      summaryBuffer.unshift(...summaries.map(s => s.replace(/<text>/g, '').replace(/<\/text>/g, '')));
     }
 
     if (cliCommands && cliCommands.length > 0) {
@@ -363,18 +364,23 @@ async function main(instruction, errors, model = 'mistral') {
 
     if (process.env.NODE_ENV !== 'test' && filesToEdit.length === 0 && cliCommands.length === 0 && summaries.length === 0) {
       logger.debug(brainstormedTasks);
-      // Only throw if no upgradeModel tag was found
-      if(!upgradeModelMatch) throw new Error('No files to edit, cli commands or summaries found');
+      throw new Error('No files to edit, cli commands or summaries found');
+    }
+
+    const upgradeModelTag = brainstormedTasks.match(/<upgradeModel>/);
+    if (upgradeModelTag) {
+      logger.warn('Upgrade model tag found, exiting without further processing.');
+      return; // Exit if <upgradeModel> tag is present
     }
 
     if (filesToEdit && filesToEdit.length > 0) {
       for (const file of filesToEdit) {
         const fileMatch = file.match(/<file\s+path="([^"]+)"[^>]*>([\s\S]*?)<\/file>/);
         if (!fileMatch || fileMatch.length < 3) continue;
-        
+
         const filePath = fileMatch[1];
         const fileContent = fileMatch[2];
-        
+
         logger.file(`Writing ${filePath} (${fileContent.length} bytes)`);
         try {
           const fullPath = path.join(process.cwd(), filePath);
@@ -387,7 +393,7 @@ async function main(instruction, errors, model = 'mistral') {
         }
       }
     }
-    
+
     if (cliCommands && cliCommands.length > 0) {
       for (const cliCommand of cliCommands) {
         const commandMatch = cliCommand.match(/<cli>([\s\S]*?)<\/cli>/);
@@ -403,32 +409,17 @@ async function main(instruction, errors, model = 'mistral') {
       }
     }
     await generateDiff();
- 
+
     try {
       if (summaries && summaries.length > 0) {
-        for (const summary of summaries) {
-          const summaryMatch = summary.match(/<text>([\s\S]*?)<\/text>/);
-          if (summaryMatch) {
-            logger.info('\n\n ----- Changelog -----\n\n', summaryMatch[1].trim(), '\n\n');
-          }
-        }
+        console.log(summaryBuffer);
       }
       await runBuild();
       logger.success('Build successful', cmdhistory);
- 
+
     } catch (error) {
       logger.error('Failed:', error, cmdhistory);
-      if (summaryBuffer && summaryBuffer.length > 0) {
-        logger.info('\n\n ----- Summary Buffer -----\n');
-        for (const summary of summaryBuffer) {
-          const summaryMatch = summary.match(/<text>([\s\S]*?)<\/text>/);
-          if (summaryMatch) {
-            logger.info(summaryMatch[1].trim(), '\n');
-          }
-        }
-        logger.info('\n');
-      }
-    if (attempts < MAX_ATTEMPTS) {
+      if (attempts < MAX_ATTEMPTS) {
         attempts++;
         let todoContent;
         try {
