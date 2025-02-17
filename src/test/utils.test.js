@@ -31,15 +31,34 @@ describe('makeApiRequest', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     createLLMProvider.mockReturnValue(mockProvider);
+    process.env.GROQ_API_KEY = 'test-groq-key';
+    process.env.MISTRAL_API_KEY = 'test-mistral-key';
   });
 
-  test('should use Mistral exclusively', async () => {
-    await makeApiRequest([{ content: 'test' }], [], 'test-key', 'test-endpoint');
-    expect(createLLMProvider).toHaveBeenCalledWith('test-key');
+  afterEach(() => {
+    delete process.env.GROQ_API_KEY;
+    delete process.env.MISTRAL_API_KEY;
+  });
+
+  test('should use Groq by default', async () => {
+    await makeApiRequest([{ content: 'test' }], [], 'test-key');
+    expect(createLLMProvider).toHaveBeenCalledWith('groq', 'test-key');
+  });
+
+  test('should fall back to Mistral if Groq fails', async () => {
+    createLLMProvider
+      .mockImplementationOnce(() => { throw new Error('Groq failed'); })
+      .mockImplementationOnce(() => mockProvider);
+
+    await makeApiRequest([{ content: 'test' }], [], 'test-key');
+    
+    expect(createLLMProvider).toHaveBeenCalledTimes(2);
+    expect(createLLMProvider).toHaveBeenNthCalledWith(1, 'groq', 'test-key');
+    expect(createLLMProvider).toHaveBeenNthCalledWith(2, 'mistral', process.env.MISTRAL_API_KEY);
   });
 
   test('should handle API errors', async () => {
     mockProvider.makeRequest.mockRejectedValueOnce(new Error('API Error'));
-    await expect(makeApiRequest([{ content: 'test' }], [], 'test-key', 'test-endpoint')).rejects.toThrow('API Error');
+    await expect(makeApiRequest([{ content: 'test' }], [], 'test-key')).rejects.toThrow('API Error');
   });
 });

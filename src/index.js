@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 const dotenv = require('dotenv');
-const { getFiles, writeFile, generateDiff, getDiffBufferStatus, clearDiffBuffer } = require('./files.js');
-const { makeApiRequest, loadCursorRules, getCWD } = require('./utils');
+const { getFiles, generateDiff, getDiffBufferStatus } = require('./files.js');
+const { makeApiRequest, loadCursorRules } = require('./utils');
 const { executeCommand, cmdhistory } = require('./utils');
 const fs = require('fs');
 const path = require('path');
@@ -17,8 +17,7 @@ function handleSpecialCommands(input) {
 }
 
 async function runBuild() {
-  let result; let code; let stdout; let
-    stderr;
+  let result;
 
   // Only run npm upgrade in non-test environment
   if (process.env.NODE_ENV !== 'test') {
@@ -34,9 +33,6 @@ async function runBuild() {
 
     // Run npm install
     result = await executeCommand('npm install');
-    code = result.code;
-    stdout = result.stdout;
-    stderr = result.stderr;
   }
 
   const logBuffer = [];

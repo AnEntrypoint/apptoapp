@@ -1,7 +1,7 @@
 const fsp = require('fs').promises;
 const ignore = require('ignore');
 const path = require('path');
-const { exec, spawn } = require('child_process');
+const { exec } = require('child_process');
 const logger = require('./utils/logger');
 const { createLLMProvider } = require('./llm/providers');
 
@@ -17,7 +17,7 @@ function product(a, b) {
 
 async function executeCommand(command, logHandler = null, options = {}) {
   logger.system('Executing command:', command);
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const child = exec(command, {
       timeout: options.timeout || 300000, // 5 minute default timeout
       ...options
