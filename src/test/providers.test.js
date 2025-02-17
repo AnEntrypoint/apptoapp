@@ -76,12 +76,23 @@ describe('LLM Providers', () => {
     });
 
     test('should handle API errors', async () => {
-      // Override the default mock for this test
-      global.fetch.mockImplementation(() => {
-        throw new Error('API Error 401: Unauthorized');
-      });
-      
-      await expect(provider.makeRequest([], [])).rejects.toThrow('API Error 401');
+      // Create a mock response that will fail
+      const mockResponse = {
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized',
+        text: jest.fn().mockResolvedValue('{"error": "Unauthorized"}')
+      };
+
+      // Mock fetch to return our failing response
+      global.fetch.mockResolvedValue(mockResponse);
+
+      try {
+        await provider.makeRequest([], []);
+        fail('Expected an error to be thrown');
+      } catch (error) {
+        expect(error.message).toContain('API Error 401');
+      }
     });
   });
 

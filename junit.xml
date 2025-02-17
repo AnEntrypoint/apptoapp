@@ -1,19 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="jest tests" tests="25" failures="1" errors="0" time="4.852">
-  <testsuite name="diff" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:12:17" time="2.315" tests="5">
-    <testcase classname="diff should return the difference between two numbers" name="diff should return the difference between two numbers" time="0.004">
-    </testcase>
-    <testcase classname="diff should handle negative numbers" name="diff should handle negative numbers" time="0.001">
-    </testcase>
-    <testcase classname="diff should handle zero" name="diff should handle zero" time="0.001">
-    </testcase>
-    <testcase classname="diff functionality should generate and store diffs" name="diff functionality should generate and store diffs" time="0.826">
-    </testcase>
-    <testcase classname="diff functionality should clear diff buffer" name="diff functionality should clear diff buffer" time="0.964">
-    </testcase>
-  </testsuite>
-  <testsuite name="LLM Providers" errors="0" failures="1" skipped="0" timestamp="2025-02-17T18:12:20" time="0.126" tests="4">
-    <testcase classname="LLM Providers MistralProvider should make request with correct parameters" name="LLM Providers MistralProvider should make request with correct parameters" time="0.003">
+<testsuites name="jest tests" tests="25" failures="1" errors="0" time="4.297">
+  <testsuite name="LLM Providers" errors="0" failures="1" skipped="0" timestamp="2025-02-17T18:13:00" time="0.461" tests="4">
+    <testcase classname="LLM Providers MistralProvider should make request with correct parameters" name="LLM Providers MistralProvider should make request with correct parameters" time="0.006">
     </testcase>
     <testcase classname="LLM Providers MistralProvider should handle API errors" name="LLM Providers MistralProvider should handle API errors" time="0.003">
       <failure>Error: expect(received).rejects.toThrow()
@@ -21,7 +9,7 @@
 Received promise resolved instead of rejected
 Resolved to value: {&quot;choices&quot;: [{&quot;finish_reason&quot;: &quot;stop&quot;, &quot;message&quot;: {&quot;content&quot;: &quot;Test response&quot;, &quot;role&quot;: &quot;assistant&quot;}}], &quot;model&quot;: &quot;codestral-latest&quot;, &quot;object&quot;: &quot;chat.completion&quot;}
     at expect (C:\dev\apptoapp\node_modules\expect\build\index.js:113:15)
-    at Object.expect (C:\dev\apptoapp\src\test\providers.test.js:89:13)
+    at Object.expect (C:\dev\apptoapp\src\test\providers.test.js:84:13)
     at Promise.then.completed (C:\dev\apptoapp\node_modules\jest-circus\build\utils.js:298:28)
     at new Promise (&lt;anonymous&gt;)
     at callAsyncCircusFn (C:\dev\apptoapp\node_modules\jest-circus\build\utils.js:231:10)
@@ -36,35 +24,47 @@ Resolved to value: {&quot;choices&quot;: [{&quot;finish_reason&quot;: &quot;stop
     at runTestInternal (C:\dev\apptoapp\node_modules\jest-runner\build\runTest.js:367:16)
     at runTest (C:\dev\apptoapp\node_modules\jest-runner\build\runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="LLM Providers createLLMProvider should create MistralProvider" name="LLM Providers createLLMProvider should create MistralProvider" time="0.001">
+    <testcase classname="LLM Providers createLLMProvider should create MistralProvider" name="LLM Providers createLLMProvider should create MistralProvider" time="0.002">
     </testcase>
-    <testcase classname="LLM Providers createLLMProvider should throw error for unsupported provider" name="LLM Providers createLLMProvider should throw error for unsupported provider" time="0.005">
-    </testcase>
-  </testsuite>
-  <testsuite name="main" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:12:20" time="1.951" tests="2">
-    <testcase classname="main should handle test instruction" name="main should handle test instruction" time="1.136">
-    </testcase>
-    <testcase classname="main should collect diffs after each attempt" name="main should collect diffs after each attempt" time="0.699">
+    <testcase classname="LLM Providers createLLMProvider should throw error for unsupported provider" name="LLM Providers createLLMProvider should throw error for unsupported provider" time="0.004">
     </testcase>
   </testsuite>
-  <testsuite name="tools" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:12:22" time="0.122" tests="2">
-    <testcase classname="tools should execute a command and return the output" name="tools should execute a command and return the output" time="0.025">
+  <testsuite name="diff" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:13:01" time="1.568" tests="5">
+    <testcase classname="diff should return the difference between two numbers" name="diff should return the difference between two numbers" time="0.002">
     </testcase>
-    <testcase classname="tools should handle errors when executing a command" name="tools should handle errors when executing a command" time="0.019">
+    <testcase classname="diff should handle negative numbers" name="diff should handle negative numbers" time="0.005">
+    </testcase>
+    <testcase classname="diff should handle zero" name="diff should handle zero" time="0.001">
+    </testcase>
+    <testcase classname="diff functionality should generate and store diffs" name="diff functionality should generate and store diffs" time="0.78">
+    </testcase>
+    <testcase classname="diff functionality should clear diff buffer" name="diff functionality should clear diff buffer" time="0.665">
     </testcase>
   </testsuite>
-  <testsuite name="utils" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:12:22" time="0.077" tests="4">
-    <testcase classname="utils should return the sum of two numbers" name="utils should return the sum of two numbers" time="0.001">
+  <testsuite name="main" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:13:02" time="1.864" tests="2">
+    <testcase classname="main should handle test instruction" name="main should handle test instruction" time="1.036">
+    </testcase>
+    <testcase classname="main should collect diffs after each attempt" name="main should collect diffs after each attempt" time="0.714">
+    </testcase>
+  </testsuite>
+  <testsuite name="tools" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:13:04" time="0.103" tests="2">
+    <testcase classname="tools should execute a command and return the output" name="tools should execute a command and return the output" time="0.021">
+    </testcase>
+    <testcase classname="tools should handle errors when executing a command" name="tools should handle errors when executing a command" time="0.02">
+    </testcase>
+  </testsuite>
+  <testsuite name="utils" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:13:04" time="0.072" tests="4">
+    <testcase classname="utils should return the sum of two numbers" name="utils should return the sum of two numbers" time="0.002">
     </testcase>
     <testcase classname="utils should return the product of two numbers" name="utils should return the product of two numbers" time="0.001">
     </testcase>
-    <testcase classname="makeApiRequest should use Mistral exclusively" name="makeApiRequest should use Mistral exclusively" time="0.007">
+    <testcase classname="makeApiRequest should use Mistral exclusively" name="makeApiRequest should use Mistral exclusively" time="0.006">
     </testcase>
-    <testcase classname="makeApiRequest should handle API errors" name="makeApiRequest should handle API errors" time="0.004">
+    <testcase classname="makeApiRequest should handle API errors" name="makeApiRequest should handle API errors" time="0.005">
     </testcase>
   </testsuite>
-  <testsuite name="Logger" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:12:22" time="0.075" tests="8">
-    <testcase classname="Logger should truncate long strings" name="Logger should truncate long strings" time="0.001">
+  <testsuite name="Logger" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:13:05" time="0.071" tests="8">
+    <testcase classname="Logger should truncate long strings" name="Logger should truncate long strings" time="0.002">
     </testcase>
     <testcase classname="Logger should not truncate short strings" name="Logger should not truncate short strings" time="0.001">
     </testcase>
@@ -72,9 +72,9 @@ Resolved to value: {&quot;choices&quot;: [{&quot;finish_reason&quot;: &quot;stop
     </testcase>
     <testcase classname="Logger should handle undefined input" name="Logger should handle undefined input" time="0.001">
     </testcase>
-    <testcase classname="Logger should handle null input" name="Logger should handle null input" time="0.002">
+    <testcase classname="Logger should handle null input" name="Logger should handle null input" time="0.001">
     </testcase>
-    <testcase classname="Logger should handle circular references" name="Logger should handle circular references" time="0.002">
+    <testcase classname="Logger should handle circular references" name="Logger should handle circular references" time="0.001">
     </testcase>
     <testcase classname="Logger should format values correctly" name="Logger should format values correctly" time="0.002">
     </testcase>
