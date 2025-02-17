@@ -144,16 +144,27 @@ describe('OpenRouterProvider', () => {
   it('makeRequest sends correct request format', async () => {
     const messages = [{ role: 'user', content: 'test' }];
     const tools = [];
+    const mockResponse = {
+      model: 'deepseek-r1',
+      choices: [{ message: { content: 'test response' } }]
+    };
     
     global.fetch.mockResolvedValueOnce({
       ok: true,
-      json: () => Promise.resolve({
-        model: 'deepseek-r1',
-        choices: [{ message: { content: 'test response' } }]
-      })
+      json: () => Promise.resolve(mockResponse)
     });
 
-    await provider.makeRequest(messages, tools);
+    const response = await provider.makeRequest(messages, tools);
+    expect(response).toEqual(mockResponse);
+
+    const expectedBody = {
+      model: 'deepseek/deepseek-r1:free',
+      messages,
+      temperature: 0.6,
+      max_tokens: 32768,
+      top_p: 0.95,
+      stream: false
+    };
 
     expect(global.fetch).toHaveBeenCalledWith(
       'https://openrouter.ai/api/v1/chat/completions',
@@ -165,25 +176,19 @@ describe('OpenRouterProvider', () => {
           'X-Title': mockSiteName,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          model: 'deepseek/deepseek-r1:free',
-          messages,
-          temperature: 0.6,
-          max_tokens: 32768,
-          top_p: 0.95,
-          stream: false
-        })
+        body: JSON.stringify(expectedBody)
       }
     );
   });
 
   it('handles API errors gracefully', async () => {
-    global.fetch.mockResolvedValueOnce({
+    const errorResponse = {
       ok: false,
       status: 401,
       statusText: 'Unauthorized',
       text: () => Promise.resolve('Invalid API key')
-    });
+    };
+    global.fetch.mockResolvedValueOnce(errorResponse);
 
     await expect(provider.makeRequest([{ role: 'user', content: 'test' }]))
       .rejects
