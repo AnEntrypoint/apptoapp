@@ -148,7 +148,7 @@ describe('OpenRouterProvider', () => {
   });
 
   it('makeRequest sends correct request format', async () => {
-    process.env.NODE_ENV = 'production';
+    process.env.NODE_ENV = 'test';
     const messages = [{ role: 'user', content: 'test' }];
     const tools = [];
     const mockResponse = {
@@ -213,7 +213,7 @@ describe('OpenRouterProvider', () => {
   });
 
   it('retries on rate limit errors', async () => {
-    process.env.NODE_ENV = 'production';
+    process.env.NODE_ENV = 'test';
     const messages = [{ role: 'user', content: 'test' }];
     const rateLimitResponse = {
       ok: false,
