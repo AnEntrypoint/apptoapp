@@ -131,8 +131,8 @@ describe('GroqProvider', () => {
 describe('OpenRouterProvider', () => {
   let provider;
   const mockApiKey = 'test-api-key';
-  const mockSiteUrl = 'https://test.com';
-  const mockSiteName = 'Test Site';
+  const mockSiteUrl = 'https://github.com/anEntrypoint/apptoapp';
+  const mockSiteName = 'apptoapp';
 
   beforeEach(() => {
     provider = new OpenRouterProvider(mockApiKey, mockSiteUrl, mockSiteName);
