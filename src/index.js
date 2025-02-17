@@ -9,7 +9,6 @@ const path = require('path');
 const { program } = require('commander');
 const logger = require('./utils/logger');
 dotenv.config();
-const TEST_TIMEOUT = process.env.CI ? 300000 : 10000; // 10 seconds for all environments
 let currentModel;
 
 function handleSpecialCommands(input) {
@@ -42,28 +41,11 @@ async function runBuild() {
   };
 
   return new Promise((resolve, reject) => {
-    let timeoutId;
     let testProcess;
-    let isTimedOut = false;
-
-    const handleTimeout = () => {
-      logger.warn(`Test timeout after ${TEST_TIMEOUT}ms - initiating cleanup`);
-      isTimedOut = true;
-    };
 
     testProcess = executeCommand('npx jest --detectOpenHandles --forceExit --testTimeout=10000 --maxWorkers=1 --passWithNoTests', logHandler);
 
-    // Add universal timeout handling regardless of NODE_ENV
-    timeoutId = setTimeout(handleTimeout, TEST_TIMEOUT);
-
-    // Cleanup timers when process completes
-    testProcess.finally(() => {
-      clearTimeout(timeoutId);
-    });
-
     testProcess.then((result) => {
-      if (isTimedOut) return; // Ignore if already timed out
-      if (timeoutId) clearTimeout(timeoutId);
 
       if (result.code !== 0) {
         if (process.env.NODE_ENV === 'test') {
@@ -76,8 +58,6 @@ async function runBuild() {
         resolve(`Test exit code: ${result.code}\nSTDOUT:\n${result.stdout}\nSTDERR:\n${result.stderr}`);
       }
     }).catch((error) => {
-      if (isTimedOut) return; // Ignore if already timed out
-      if (timeoutId) clearTimeout(timeoutId);
       reject(error);
     });
   });

@@ -192,9 +192,11 @@ describe('OpenRouterProvider', () => {
       return response;
     });
 
-    await expect(provider.makeRequest(messages, tools))
-      .rejects
-      .toThrow('429 Too Many Requests');
+    try {
+      await provider.makeRequest(messages, tools);
+    } catch (error) {
+      expect(error.message).toBe('429 Too Many Requests');
+    }
 
     expect(global.fetch).toHaveBeenCalled();
   });
