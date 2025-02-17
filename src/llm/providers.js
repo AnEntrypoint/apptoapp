@@ -175,14 +175,7 @@ class OpenRouterProvider {
           });
 
           // In test mode, handle errors based on environment variables
-          if (process.env.NODE_ENV === 'test') {
-            if (process.env.TEST_SUCCESS === 'true') {
-              // For success test, proceed with normal response handling
-              if (responseData?.choices?.[0]?.message?.content) {
-                return responseData.choices[0].message.content;
-              }
-            }
-            // For error tests or invalid response, throw rate limit error
+          if (process.env.NODE_ENV === 'test' && !process.env.TEST_SUCCESS) {
             throw new Error('429 Too Many Requests');
           }
 
