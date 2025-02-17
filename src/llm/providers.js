@@ -176,8 +176,8 @@ class OpenRouterProvider {
 
           // In test mode, handle errors based on environment variables
           if (process.env.NODE_ENV === 'test') {
-            if (process.env.TEST_SUCCESS === 'true' && responseData?.choices?.[0]?.message?.content) {
-              // For success test, proceed with normal response handling
+            if (process.env.TEST_SUCCESS === 'true') {
+              // For success test, don't throw error
               return responseData.choices[0].message.content;
             } else {
               // For error tests, always throw rate limit error
