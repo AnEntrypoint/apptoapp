@@ -164,7 +164,9 @@ class OpenRouterProvider {
         let responseData;
         try {
           responseData = await response.json();
+          console.log('Response data after json():', responseData);
         } catch (e) {
+          console.error('Error parsing response:', e);
           responseData = null;
         }
 
