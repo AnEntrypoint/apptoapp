@@ -11,15 +11,15 @@
     "release": "git commit -a -m ranrelease && npm version patch  && npm publish --tag latest"
   },
   "dependencies": {
+    "abort-controller": "^3.0.0",
     "commander": "^13.1.0",
     "crypto": "^1.0.1",
     "dotenv": "^16.4.7",
     "fast-glob": "^3.3.3",
     "ignore": "^7.0.3",
-    "jsdom": "^26.0.0",
+    "jsdom": "^22.1.0",
     "node-fetch": "^2.7.0",
     "node-localstorage": "^3.0.5",
-    "text-encoding": "^0.7.0",
     "util": "^0.12.5"
   },
   "devDependencies": {

@@ -3,17 +3,20 @@
 
 const { JSDOM } = require('jsdom');
 const fetch = require('node-fetch');
-const { TextDecoder, TextEncoder } = require('text-encoding'); // Changed to different polyfill
-const { localStorage } = require('node-localstorage'); // Add localStorage polyfill
+const { TextDecoder, TextEncoder } = require('util'); // Use Node's built-in utilities
+const { LocalStorage } = require('node-localstorage'); // Note the capitalization
 
-// Create virtual DOM with enhanced polyfills
+// Create virtual DOM with proper text encoding polyfills
 const dom = new JSDOM(`<!DOCTYPE html><html><head></head><body></body></html>`, {
     url: 'http://localhost',
     runScripts: 'dangerously',
     resources: 'usable',
     pretendToBeVisual: true,
     beforeParse(window) {
-        window.ArrayBuffer = ArrayBuffer; // Polyfill ArrayBuffer
+        // Add encoding polyfills directly to window
+        window.TextDecoder = TextDecoder;
+        window.TextEncoder = TextEncoder;
+        window.ArrayBuffer = ArrayBuffer;
         window.crypto = {
             getRandomValues: require('crypto').webcrypto.getRandomValues
         };
@@ -26,9 +29,9 @@ global.window = window;
 global.document = window.document;
 global.navigator = window.navigator;
 global.fetch = fetch;
-global.TextDecoder = TextDecoder;
-global.TextEncoder = TextEncoder;
-global.localStorage = new localStorage('./scratch'); // Configure localStorage
+global.TextDecoder = TextDecoder; // Assign to global scope
+global.TextEncoder = TextEncoder; // Assign to global scope
+global.localStorage = new LocalStorage('./scratch'); // Use uppercase constructor
 global.crypto = window.crypto; // Polyfill crypto
 
 // Add abort controller polyfill
@@ -43,6 +46,81 @@ dom.window.document.write = function(html) {
     const parsed = range.createContextualFragment(html);
     document.body.appendChild(parsed);
 };
+
+// Enhanced fetch polyfill configuration
+global.fetch = fetch; // Polyfill for Node.js global
+window.fetch = fetch; // Polyfill for JSDOM window
+
+// Add Request/Response classes if needed
+if (!window.Request) {
+    window.Request = fetch.Request;
+    window.Response = fetch.Response;
+}
+
+// Modified authentication configuration
+async function configurePuterAuth() {
+    // Get these from Puter Developer Portal (https://developer.puter.com)
+    const config = {
+        appID: 'YOUR_APP_ID', // Replace with actual ID
+        authToken: 'YOUR_AUTH_TOKEN', // Replace with actual token
+        apiVersion: 'v1' // Verify latest version
+    };
+
+    window.puter.ai.APIOrigin = `https://api.puter.com/${config.apiVersion}`;
+    window.puter.ai.appID = config.appID;
+    window.puter.ai.authToken = config.authToken;
+
+    // Verify authentication
+    try {
+        console.log('Creating relay token...');
+        const relayToken = await window.puter.ai.createRelayToken();
+        console.log('Authentication successful. Relay token:', relayToken.slice(0, 8) + '...');
+        return true;
+    } catch (authError) {
+        console.error('Authentication Failed:', {
+            code: authError?.response?.status || 401,
+            message: authError?.message || 'Invalid credentials'
+        });
+        return false;
+    }
+}
+
+// Modified Claude query function
+async function claudeQuery(prompt) {
+    try {
+        console.log('Initializing API session...');
+        
+        // Configure auth with retries
+        let authAttempts = 0;
+        while (authAttempts < 3) {
+            if (await configurePuterAuth()) break;
+            authAttempts++;
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+
+        if (authAttempts >= 3) throw new Error('Authentication failed after 3 attempts');
+
+        console.log('Sending query:', prompt);
+        const response = await window.puter.ai.chat(prompt, {
+            model: 'claude-3-5-sonnet',
+            stream: false,
+            timeout: 30000
+        });
+
+        // Handle response format
+        if (response?.message?.content?.[0]?.text) {
+            return response.message.content[0].text;
+        }
+        throw new Error('Unexpected response format');
+
+    } catch (error) {
+        console.error('API Operation Failed:', {
+            error: error.message,
+            stack: error.stack?.split('\n')[0]
+        });
+        return null;
+    }
+}
 
 // Load Puter.js dynamically
 (async () => {
@@ -89,23 +167,6 @@ dom.window.document.write = function(html) {
         // Cleanup
         window.document.body.removeChild(script);
         dom.window.close();
-
-        // Claude 3.5 Sonnet API implementation
-        async function claudeQuery(prompt) {
-            console.log(`Sending query to Claude 3.5: "${prompt}"`);
-            try {
-                console.log('Accessing Puter.ai:', window.puter.ai);
-                const response = await window.puter.ai.chat(prompt, { 
-                    model: 'claude-3-5-sonnet',
-                    stream: false
-                });
-                console.log('Received response from Claude 3.5:', response);
-                return response.message.content[0].text;
-            } catch (error) {
-                console.error('API Error:', error);
-                return null;
-            }
-        }
 
         // Example usage
         const response = await claudeQuery("Explain quantum entanglement in simple terms");
