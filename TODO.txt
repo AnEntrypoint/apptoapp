@@ -1,3 +1,0 @@
-
-- [ ] Write unit tests for logger functions
-- [ ] Run tests to ensure logger functions are working correctly

@@ -31,23 +31,11 @@ describe('makeApiRequest', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     createLLMProvider.mockReturnValue(mockProvider);
-    delete process.env.COPILOT_API_KEY;
   });
 
-  test('should use Mistral by default', async () => {
+  test('should use Mistral exclusively', async () => {
     await makeApiRequest([{ content: 'test' }], [], 'test-key', 'test-endpoint');
-    expect(createLLMProvider).toHaveBeenCalledWith('mistral', 'test-key');
-  });
-
-  test('should use Copilot-Claude when <upgradeModel> is present and API key available', async () => {
-    process.env.COPILOT_API_KEY = 'test-copilot-key';
-    await makeApiRequest([{ content: 'test with <upgradeModel>' }], [], 'test-key', 'test-endpoint');
-    expect(createLLMProvider).toHaveBeenCalledWith('copilot-claude', 'test-copilot-key');
-  });
-
-  test('should fallback to Mistral when <upgradeModel> is present but no Copilot API key', async () => {
-    await makeApiRequest([{ content: 'test with <upgradeModel>' }], [], 'test-key', 'test-endpoint');
-    expect(createLLMProvider).toHaveBeenCalledWith('mistral', 'test-key');
+    expect(createLLMProvider).toHaveBeenCalledWith('test-key');
   });
 
   test('should handle API errors', async () => {

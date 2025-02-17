@@ -5,4 +5,3 @@ it is a command line tool that uses llm to edit files in the local directory, an
 write unit tests to discover and fix any problem you're dealing with, dont fix anything without unit testing
 
 when you are sure that there are files that you can confirm to be old left-behind unused code, they can be deleted using the cli
-

@@ -135,7 +135,6 @@ async function runBuild() {
 let attempts = 0;
 const summaryBuffer = [];
 const cliBuffer = [];
-let currentModel = 'mistral'; // Default model
 
 async function main(instruction, errors, model = 'mistral') {
   console.log('Using model:', model); // Add logging to track model selection
@@ -251,10 +250,12 @@ async function main(instruction, errors, model = 'mistral') {
           role: 'system',
           content: 'You are a senior programmer with over 20 years of experience, you make expert and mature software development choices, your main goal is to complete the user instruction\n'
             + '\n// Task Management\n'
-            + `Track progress using <attempts>, <todo>, <logs>, TODO.txt, CHANGELOG.txt and <attemptDiff> tags\n`
-            + `ULTRA IMPORTANT - Avoid repeating steps - if issues persist, try alternative approaches\n`
+            + `Always track progress using <attempts>, <todo>, <logs>, TODO.txt, CHANGELOG.txt and <attemptDiff> tags\n`
+            + `Always pay special attention to <attemptDiff> tags, they are the most important part of the task, they are the difference between the current and the previous attempts, used to track progress\n`
+            + `Always remove completed tasks from TODO.txt and move them to CHANGELOG.txt\n`
+            + `Always avoid repeating steps - if issues persist that are already listed fixed in CHANGELOG.txt or if previous attempts appear in <attemptDiff> tags, try a alternative approach and record what failed and why and how it failed in NOTES.txt for future iterations\n`
             + `Follow user requirements precisely and plan step-by-step, the users instructions are in <userinstruction>, thery are your primary goal, everything else is secondary\n`
-            + `Maintain detailed documentation in TODO.txt and CHANGELOG.txt\n`
+            + `Always output your reasoning in <text> tags, as past tense\n`
             
             + '\n// Code Quality\n'
             + `Write clean, DRY, maintainable code following SOLID principles\n`
@@ -262,8 +263,9 @@ async function main(instruction, errors, model = 'mistral') {
             + `Use functional/declarative patterns and avoid classes\n`
             + `For TypeScript: Maintain strong type safety\n`
             + `For JavaScript: Use latest language features\n`
-            + `Refactor files >100 lines into smaller modules\n`
+            + `Always refactor files with over 100 lines into smaller modules\n`
             + `Minimize interdependencies between functions\n`
+            + `Maximise code reuse and generalization\n`
             
             + '\n// Testing & Debugging\n'
             + `Write comprehensive unit and integration tests\n`
@@ -271,7 +273,7 @@ async function main(instruction, errors, model = 'mistral') {
             + `Handle edge cases and ensure full test coverage\n`
             + `Always try to fix all known errors at once\n`
             + `Analyze logs carefully to avoid repetitive loops\n`
-            + `Look at the logs and history, if the history indicates you are having trouble fixing the errors repeatedly, respond with <upgradeModel>copilot-claude</upgradeModel>\n`
+            + `Look at the logs and history, if the history indicates you are having trouble fixing the errors repeatedly, pick a different approach\n`
             + `Never run tests using the cli commands, they run automatically at the end of the process\n`
 
             + '\n// File Management\n'
@@ -287,13 +289,13 @@ async function main(instruction, errors, model = 'mistral') {
             + '\n// Documentation\n'
             + `Maintain clear JSDoc comments\n`
             + `Document user-facing text for i18n support\n`
-            + `Explain changes in <text> tags with motivations and CLI commands\n`
+            + `Explain changes in <text> tags with motivations and CLI commands, in past tense\n`
             
             + '\n// Output Formatting\n'
-            + `ULTRA IMPORTANT - Only output in XML format:\n`
-            + `Files: <file path="path/to/file.js">...</file>\n`
-            + `Commands: <cli>command</cli>\n`
-            + `Always provide complete file contents\n`
+            + `ULTRA IMPORTANT - Only respond in XML tags\n`
+            + `Write files with the following format: <file path="path/to/file.js">...</file>\n`
+            + `Perform CLI commands with the following format: <cli>command</cli>\n`
+            + `Always provide the complete changed files, no partial files\n`
             
             + '\n// Performance & Security\n'
             + `Optimize performance while handling edge cases\n`
@@ -318,13 +320,10 @@ async function main(instruction, errors, model = 'mistral') {
           const response = await makeApiRequest(
             messages,
             [],
-            process.env.MISTRAL_API_KEY,  // Always pass Mistral API key first
-            model === 'copilot-claude' 
-              ? 'https://api.individual.githubcopilot.com/github/chat/threads'
-              : 'https://codestral.mistral.ai/v1/chat/completions',
+            process.env.MISTRAL_API_KEY,
+            process.env.MISTRAL_CHAT_ENDPOINT, // Use Mistral endpoint directly
             model
           );
-
           return response.choices[0].message.content;
         } catch (error) {
           logger.error(`API request failed (attempt ${retryCount + 1}/${MAX_RETRIES}):`, error);
@@ -346,10 +345,6 @@ async function main(instruction, errors, model = 'mistral') {
       }
       throw new Error('Invalid response from LLM');
     }
-
-    // Check for upgradeModel tag
-    const upgradeModelMatch = brainstormedTasks.match(/<upgradeModel>(.*?)<\/upgradeModel>/i);
-    const nextModel = upgradeModelMatch ? upgradeModelMatch[1].toLowerCase() : currentModel;
 
     logger.debug(`${JSON.stringify(brainstormedTasks).length} B of reasoning output`);
     //logger.debug(brainstormedTasks);
@@ -449,7 +444,7 @@ async function main(instruction, errors, model = 'mistral') {
           logger.error('Error reading TODO.txt:', err);
         }
         logger.info(`Retrying main function (attempt ${attempts}/${MAX_ATTEMPTS})...`);
-        await main(process.argv[2], error.message, nextModel);
+        await main(process.argv[2], error.message, model);
       } else {
         throw new Error('Max attempts reached');
       }
@@ -471,7 +466,6 @@ async function main(instruction, errors, model = 'mistral') {
 // Parse command line arguments
 program
   .argument('[instruction]', 'Instruction to execute')
-  .option('-m, --model <model>', 'LLM model to use (mistral or copilot-claude)', 'mistral')
   .action((instruction, options) => {
     if (options && options.model) {
       console.log('Model specified in options:', options.model);

@@ -89,33 +89,13 @@ async function loadNoContentsPatterns(ignoreFile = '.nocontents') {
 }
 
 async function makeApiRequest(messages, tools, apiKey, endpoint, model = 'mistral') {
-  // Check if any non-system message contains <upgradeModel>
-  const shouldUpgrade = messages.some(msg => 
-    msg.content && 
-    msg.role !== 'system' && 
-    msg.content.includes('<upgradeModel>')
-  );
+  console.log(`Using ${model} model`);
+  console.log(`Provider selection: Using Mistral with key ${apiKey?.slice(0, 5)}...`);
   
-  // Start with Mistral as the default, using the passed in apiKey
-  let providerType = model;  // Use the model parameter as the default provider type
-  let providerKey = apiKey;  // Always use the passed in apiKey for Mistral
-
-  // Only switch to Copilot-Claude if explicitly requested via <upgradeModel> in non-system messages
-  if (shouldUpgrade && process.env.COPILOT_API_KEY) {
-    providerType = 'copilot-claude';
-    providerKey = process.env.COPILOT_API_KEY;
-    console.log('Upgrade requested and Copilot API key available, switching to Copilot-Claude');
-  } else if (shouldUpgrade) {
-    console.log('Upgrade requested but no Copilot API key available, staying with current model');
-  } else {
-    console.log(`Using ${model} model as specified`);
-  }
-
+  const provider = createLLMProvider(apiKey);
+  logger.info(`Using Mistral provider for API request...`);
+  
   try {
-    console.log(`Provider selection: Using ${providerType}${shouldUpgrade ? ' (upgrade requested)' : ''} with key ${providerKey?.slice(0, 5)}...`);
-    const provider = createLLMProvider(providerType, providerKey);
-    logger.info(`Using ${providerType} provider for API request...`);
-    
     const response = await provider.makeRequest(messages, tools);
     
     try {
@@ -127,7 +107,7 @@ async function makeApiRequest(messages, tools, apiKey, endpoint, model = 'mistra
     
     return response;
   } catch (error) {
-    logger.error(`API Error with ${providerType}:`, error);
+    logger.error(`API Error with Mistral:`, error);
     throw error;
   }
 }
@@ -171,7 +151,7 @@ async function loadCursorRules() {
     const rulesContent = await fsp.readFile('.cursor/rules', 'utf8');
     return rulesContent;
   } catch (error) {
-    //console.error('Error reading .cursor/rules:', error);
+    console.error('Error reading .cursor/rules:', error);
     return '';
   }
 }
