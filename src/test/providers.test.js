@@ -151,18 +151,14 @@ describe('OpenRouterProvider', () => {
     process.env.NODE_ENV = 'test';
     const messages = [{ role: 'user', content: 'test' }];
     const tools = [];
-    const mockResponse = {
-      model: 'deepseek-r1',
-      choices: [{ message: { content: 'test response' } }]
-    };
     
-    // Mock successful response
-    const response = {
-      ok: false,
-      status: 401,
-      statusText: 'Unauthorized',
-      json: () => Promise.resolve(mockResponse),
-      text: () => Promise.resolve(JSON.stringify(mockResponse))
+    const mockResponse = {
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({
+        model: 'deepseek-r1',
+        choices: [{ message: { content: 'test response' } }]
+      })
     };
 
     const expectedBody = {
@@ -185,20 +181,15 @@ describe('OpenRouterProvider', () => {
       body: JSON.stringify(expectedBody)
     };
 
-    // Mock fetch to return error and verify call
-    global.fetch = jest.fn().mockImplementation(async (url, options) => {
-      expect(url).toBe('https://openrouter.ai/api/v1/chat/completions');
-      expect(options).toEqual(expectedOptions);
-      return response;
-    });
+    global.fetch = jest.fn().mockResolvedValue(mockResponse);
 
-    try {
-      await provider.makeRequest(messages, tools);
-      fail('Expected an error to be thrown');
-    } catch (error) {
-      expect(error.message).toBe('429 Too Many Requests');
-      expect(global.fetch).toHaveBeenCalled();
-    }
+    const result = await provider.makeRequest(messages, tools);
+    
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://openrouter.ai/api/v1/chat/completions',
+      expectedOptions
+    );
+    expect(result).toBe('test response');
   });
 
   it('handles API errors gracefully in test mode', async () => {
