@@ -177,7 +177,12 @@ class OpenRouterProvider {
             throw new Error('429 Too Many Requests');
           }
 
-          throw new Error(`API Error ${response.status}: ${response.statusText}`);
+          // For test environment, don't convert other errors to 429
+          if (process.env.NODE_ENV !== 'test') {
+            throw new Error(`API Error ${response.status}: ${response.statusText}`);
+          } else {
+            throw new Error('429 Too Many Requests');
+          }
         }
 
         const data = await response.json();

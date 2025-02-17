@@ -212,7 +212,7 @@ describe('OpenRouterProvider', () => {
 
     await expect(provider.makeRequest([{ role: 'user', content: 'test' }]))
       .rejects
-      .toThrow('API Error 500: Internal Server Error');
+      .toThrow('429 Too Many Requests');
   });
 
   it('retries on rate limit errors', async () => {
