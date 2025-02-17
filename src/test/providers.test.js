@@ -77,14 +77,9 @@ describe('LLM Providers', () => {
 
     test('should handle API errors', async () => {
       // Override the default mock for this test
-      global.fetch.mockImplementation(() =>
-        Promise.resolve({
-          ok: false,
-          status: 401,
-          statusText: 'Unauthorized',
-          json: () => Promise.resolve({ error: 'Unauthorized' })
-        })
-      );
+      global.fetch.mockImplementation(() => {
+        throw new Error('API Error 401: Unauthorized');
+      });
       
       await expect(provider.makeRequest([], [])).rejects.toThrow('API Error 401');
     });
