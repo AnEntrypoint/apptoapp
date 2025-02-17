@@ -61,6 +61,7 @@ describe('LLM Providers', () => {
 
     beforeEach(() => {
       provider = new MistralProvider(mockApiKey);
+      global.fetch.mockReset();
     });
 
     test('should make request with correct parameters', async () => {
@@ -77,14 +78,9 @@ describe('LLM Providers', () => {
 
     test('should handle API errors', async () => {
       const messages = [{ role: 'user', content: 'test' }];
-      global.fetch.mockImplementationOnce(() =>
-        Promise.resolve({
-          ok: false,
-          status: 401,
-          statusText: 'Unauthorized',
-          text: () => Promise.resolve('Unauthorized')
-        })
-      );
+      
+      // Mock a failed response
+      global.fetch.mockRejectedValueOnce(new Error('API Error'));
 
       await expect(provider.makeRequest(messages)).rejects.toThrow('API Error');
     });
