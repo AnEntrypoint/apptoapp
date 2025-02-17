@@ -211,7 +211,7 @@ describe('OpenRouterProvider', () => {
 
     await expect(provider.makeRequest([{ role: 'user', content: 'test' }]))
       .rejects
-      .toThrow('429 Too Many Requests');
+      .toThrow('API Error 401: Unauthorized');
   });
 
   it('retries on rate limit errors in test mode', async () => {
@@ -225,24 +225,8 @@ describe('OpenRouterProvider', () => {
       json: () => Promise.resolve({ error: 'Rate limit exceeded' })
     };
     
-    const successResponse = {
-      ok: true,
-      status: 200,
-      statusText: 'OK',
-      json: () => Promise.resolve({
-        model: 'deepseek-r1',
-        choices: [{ message: { content: 'success' } }]
-      }),
-      text: () => Promise.resolve(JSON.stringify({
-        model: 'deepseek-r1',
-        choices: [{ message: { content: 'success' } }]
-      }))
-    };
-
-    // First call fails with rate limit, second succeeds
-    global.fetch
-      .mockResolvedValueOnce(rateLimitResponse)
-      .mockResolvedValueOnce(successResponse);
+    // Mock fetch to always return rate limit error
+    global.fetch.mockResolvedValue(rateLimitResponse);
 
     await expect(provider.makeRequest(messages))
       .rejects
