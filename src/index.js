@@ -218,6 +218,7 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
         + `Look at the logs and history, if the history indicates you are having trouble fixing the errors repeatedly, pick a different approach\n`
         + `Never run tests using the cli commands, they run automatically at the end of the process\n`
         + `always make 100% sure that none of the tests will get stuck, apply strategies to avoid that\n`
+        + `never start the application with npm start, or npm run dev, because it wont close by itself\n`
 
         + '\n// File Management\n'
         + `Use consistent file structure\n`

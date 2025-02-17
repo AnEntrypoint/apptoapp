@@ -21,6 +21,15 @@ jest.mock('../utils/logger', () => ({
   warn: jest.fn()
 }));
 
+// Mock retryWithBackoff to execute immediately in tests
+jest.mock('../llm/providers', () => {
+  const originalModule = jest.requireActual('../llm/providers');
+  return {
+    ...originalModule,
+    retryWithBackoff: async (operation) => operation()
+  };
+});
+
 describe('createLLMProvider', () => {
   it('should create MistralProvider', () => {
     const provider = createLLMProvider('mistral', 'test-key');
@@ -129,12 +138,10 @@ describe('OpenRouterProvider', () => {
     provider = new OpenRouterProvider(mockApiKey, mockSiteUrl, mockSiteName);
     global.fetch = jest.fn();
     process.env.NODE_ENV = 'test'; // Ensure we're in test mode
-    jest.useFakeTimers();
   });
 
   afterEach(() => {
     jest.resetAllMocks();
-    jest.useRealTimers();
     delete process.env.NODE_ENV;
   });
 
@@ -186,7 +193,7 @@ describe('OpenRouterProvider', () => {
         body: JSON.stringify(expectedBody)
       }
     );
-  }, 30000); // 30 second timeout
+  });
 
   it('handles API errors gracefully', async () => {
     const errorResponse = {
@@ -201,7 +208,7 @@ describe('OpenRouterProvider', () => {
     await expect(provider.makeRequest([{ role: 'user', content: 'test' }]))
       .rejects
       .toThrow('429 Too Many Requests');
-  }, 30000); // 30 second timeout
+  });
 
   it('retries on rate limit errors', async () => {
     const messages = [{ role: 'user', content: 'test' }];
@@ -231,13 +238,8 @@ describe('OpenRouterProvider', () => {
       .mockResolvedValueOnce(rateLimitResponse)
       .mockResolvedValueOnce(successResponse);
 
-    const responsePromise = provider.makeRequest(messages);
-    
-    // Fast-forward through all timers
-    jest.runAllTimers();
-
-    const response = await responsePromise;
+    const response = await provider.makeRequest(messages);
     expect(response.choices[0].message.content).toBe('success');
     expect(global.fetch).toHaveBeenCalledTimes(2);
-  }, 30000); // 30 second timeout
+  });
 }); 
