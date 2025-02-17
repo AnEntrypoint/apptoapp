@@ -1,4 +1,4 @@
-const { main, currentModel } = require('../index');
+const { main, currentModel, brainstormTaskWithLLM } = require('../index');
 const { loadIgnorePatterns } = require('../utils');
 const fsp = require('fs').promises;
 const { clearDiffBuffer } = require('../files');
@@ -29,12 +29,8 @@ jest.mock('os', () => ({
 }));
 
 jest.mock('../utils', () => ({
-  makeApiRequest: jest.fn().mockResolvedValue({
-    choices: [{ message: { content: 'test response' } }]
-  }),
-  loadCursorRules: jest.fn().mockResolvedValue('test rules'),
-  executeCommand: jest.fn().mockResolvedValue({ code: 0, stdout: '', stderr: '' }),
-  cmdhistory: []
+  ...jest.requireActual('../utils'),
+  makeApiRequest: jest.fn()
 }));
 
 jest.mock('../index', () => {
