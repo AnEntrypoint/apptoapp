@@ -169,6 +169,7 @@ describe('OpenRouterProvider', () => {
     const mockResponse = {
       ok: true,
       status: 200,
+      statusText: 'OK',
       json: () => Promise.resolve(mockResponseData)
     };
 
