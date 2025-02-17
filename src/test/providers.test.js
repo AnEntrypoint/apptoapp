@@ -128,10 +128,12 @@ describe('OpenRouterProvider', () => {
   beforeEach(() => {
     provider = new OpenRouterProvider(mockApiKey, mockSiteUrl, mockSiteName);
     global.fetch = jest.fn();
+    jest.useFakeTimers();
   });
 
   afterEach(() => {
     jest.resetAllMocks();
+    jest.useRealTimers();
   });
 
   it('initializes with API key and site info', () => {
@@ -193,5 +195,30 @@ describe('OpenRouterProvider', () => {
     await expect(provider.makeRequest([{ role: 'user', content: 'test' }]))
       .rejects
       .toThrow('API Error 401');
+  });
+
+  it('retries on rate limit errors', async () => {
+    const rateLimitResponse = {
+      ok: false,
+      status: 429,
+      statusText: 'Too Many Requests',
+      text: () => Promise.resolve('Rate limit exceeded')
+    };
+
+    const successResponse = {
+      ok: true,
+      json: () => Promise.resolve({
+        model: 'deepseek-r1',
+        choices: [{ message: { content: 'success' } }]
+      })
+    };
+
+    global.fetch
+      .mockResolvedValueOnce(rateLimitResponse)
+      .mockResolvedValueOnce(successResponse);
+
+    const response = await provider.makeRequest([{ role: 'user', content: 'test' }]);
+    expect(response.choices[0].message.content).toBe('success');
+    expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 }); 
