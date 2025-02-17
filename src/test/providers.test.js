@@ -128,10 +128,12 @@ describe('OpenRouterProvider', () => {
   beforeEach(() => {
     provider = new OpenRouterProvider(mockApiKey, mockSiteUrl, mockSiteName);
     global.fetch = jest.fn();
+    process.env.NODE_ENV = 'test'; // Ensure we're in test mode
   });
 
   afterEach(() => {
     jest.resetAllMocks();
+    delete process.env.NODE_ENV;
   });
 
   it('initializes with API key and site info', () => {
@@ -151,6 +153,8 @@ describe('OpenRouterProvider', () => {
     
     global.fetch.mockImplementationOnce(() => Promise.resolve({
       ok: true,
+      status: 200,
+      statusText: 'OK',
       json: () => Promise.resolve(mockResponse)
     }));
 
@@ -205,6 +209,8 @@ describe('OpenRouterProvider', () => {
 
     const successResponse = {
       ok: true,
+      status: 200,
+      statusText: 'OK',
       json: () => Promise.resolve({
         model: 'deepseek-r1',
         choices: [{ message: { content: 'success' } }]
@@ -215,7 +221,6 @@ describe('OpenRouterProvider', () => {
       .mockImplementationOnce(() => Promise.resolve(rateLimitResponse))
       .mockImplementationOnce(() => Promise.resolve(successResponse));
 
-    process.env.NODE_ENV = 'test'; // Skip actual delay in tests
     const response = await provider.makeRequest([{ role: 'user', content: 'test' }]);
     expect(response.choices[0].message.content).toBe('success');
     expect(global.fetch).toHaveBeenCalledTimes(2);
