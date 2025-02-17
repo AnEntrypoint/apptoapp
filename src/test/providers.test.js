@@ -12,6 +12,16 @@ jest.mock('../utils/logger', () => ({
   warn: jest.fn()
 }));
 
+// Add this mock at the top
+jest.mock('node-fetch', () => jest.fn(() =>
+  Promise.resolve({
+    ok: true,
+    json: () => Promise.resolve({
+      choices: [{ message: { content: 'Mock response' } }]
+    })
+  })
+));
+
 describe('LLM Providers', () => {
   beforeEach(() => {
     // Clear all mocks before each test
@@ -73,4 +83,12 @@ describe('LLM Providers', () => {
       expect(() => createLLMProvider('unsupported', 'test-key')).toThrow('Unsupported LLM provider');
     });
   });
-}); 
+});
+
+// Add error case mock in your test setup
+const mockErrorResponse = {
+  ok: false,
+  status: 401,
+  statusText: 'Unauthorized',
+  json: () => Promise.resolve({ message: 'Unauthorized' })
+}; 

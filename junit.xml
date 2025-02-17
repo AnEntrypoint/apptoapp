@@ -1,36 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="jest tests" tests="26" failures="5" errors="0" time="16.642">
-  <testsuite name="Puppeteer Tests" errors="0" failures="1" skipped="0" timestamp="2025-02-17T17:40:20" time="11.604" tests="1">
-    <testcase classname="Puppeteer Tests should execute chat flow" name="Puppeteer Tests should execute chat flow" time="10.011">
-      <failure>Error: thrown: &quot;Exceeded timeout of 10000 ms for a test.
-Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout.&quot;
-    at test (C:\dev\apptoapp\test.js:25:3)
-    at _dispatchDescribe (C:\dev\apptoapp\node_modules\jest-circus\build\index.js:91:26)
-    at describe (C:\dev\apptoapp\node_modules\jest-circus\build\index.js:55:5)
-    at Object.describe (C:\dev\apptoapp\test.js:7:1)
-    at Runtime._execModule (C:\dev\apptoapp\node_modules\jest-runtime\build\index.js:1439:24)
-    at Runtime._loadModule (C:\dev\apptoapp\node_modules\jest-runtime\build\index.js:1022:12)
-    at Runtime.requireModule (C:\dev\apptoapp\node_modules\jest-runtime\build\index.js:882:12)
-    at jestAdapter (C:\dev\apptoapp\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:77:13)
-    at runTestInternal (C:\dev\apptoapp\node_modules\jest-runner\build\runTest.js:367:16)
-    at runTest (C:\dev\apptoapp\node_modules\jest-runner\build\runTest.js:444:34)</failure>
+<testsuites name="jest tests" tests="25" failures="4" errors="0" time="4.882">
+  <testsuite name="diff" errors="0" failures="1" skipped="0" timestamp="2025-02-17T17:40:49" time="1.884" tests="5">
+    <testcase classname="diff should return the difference between two numbers" name="diff should return the difference between two numbers" time="0.002">
+    </testcase>
+    <testcase classname="diff should handle negative numbers" name="diff should handle negative numbers" time="0">
+    </testcase>
+    <testcase classname="diff should handle zero" name="diff should handle zero" time="0">
+    </testcase>
+    <testcase classname="diff functionality should generate and store diffs" name="diff functionality should generate and store diffs" time="0.755">
+      <failure>Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: &quot;&lt;diff count=\&quot;1\&quot;&gt;&quot;
+Received string:    &quot;&lt;diff attempt=\&quot;1\&quot;&gt;diff --git a/test.txt b/test.txt
+index cbc4e2e..268af4e 100644
+--- a/test.txt
++++ b/test.txt
+@@ -1 +1 @@
+-initial content
+\\ No newline at end of file
++modified content
+\\ No newline at end of file
+&lt;/diff&gt;
+&quot;
+    at Object.toContain (C:\dev\apptoapp\src\test\files.test.js:79:17)</failure>
+    </testcase>
+    <testcase classname="diff functionality should clear diff buffer" name="diff functionality should clear diff buffer" time="0.717">
     </testcase>
   </testsuite>
-  <testsuite name="main" errors="0" failures="0" skipped="0" timestamp="2025-02-17T17:40:31" time="2.148" tests="2">
-    <testcase classname="main should handle test instruction" name="main should handle test instruction" time="1.09">
-    </testcase>
-    <testcase classname="main should collect diffs after each attempt" name="main should collect diffs after each attempt" time="0.603">
-    </testcase>
-  </testsuite>
-  <testsuite name="LLM Providers" errors="0" failures="3" skipped="0" timestamp="2025-02-17T17:40:34" time="0.986" tests="4">
-    <testcase classname="LLM Providers MistralProvider should make request with correct parameters" name="LLM Providers MistralProvider should make request with correct parameters" time="0.575">
+  <testsuite name="LLM Providers" errors="0" failures="3" skipped="0" timestamp="2025-02-17T17:40:51" time="0.958" tests="4">
+    <testcase classname="LLM Providers MistralProvider should make request with correct parameters" name="LLM Providers MistralProvider should make request with correct parameters" time="0.478">
       <failure>Error: API Error 401: Unauthorized
     at C:\dev\apptoapp\src\llm\providers.js:67:17
     at processTicksAndRejections (node:internal/process/task_queues:95:5)
     at retryWithBackoff (C:\dev\apptoapp\src\llm\providers.js:9:14)
     at Object.&lt;anonymous&gt; (C:\dev\apptoapp\src\test\providers.test.js:35:24)</failure>
     </testcase>
-    <testcase classname="LLM Providers MistralProvider should handle API errors" name="LLM Providers MistralProvider should handle API errors" time="0.306">
+    <testcase classname="LLM Providers MistralProvider should handle API errors" name="LLM Providers MistralProvider should handle API errors" time="0.398">
       <failure>Error: expect(received).rejects.toThrow(expected)
 
 Expected substring: &quot;Mistral API error: Unauthorized&quot;
@@ -64,9 +69,9 @@ Received message:   &quot;API Error 401: Unauthorized&quot;
     at runTestInternal (C:\dev\apptoapp\node_modules\jest-runner\build\runTest.js:367:16)
     at runTest (C:\dev\apptoapp\node_modules\jest-runner\build\runTest.js:444:34)</failure>
     </testcase>
-    <testcase classname="LLM Providers createLLMProvider should create MistralProvider" name="LLM Providers createLLMProvider should create MistralProvider" time="0.001">
+    <testcase classname="LLM Providers createLLMProvider should create MistralProvider" name="LLM Providers createLLMProvider should create MistralProvider" time="0">
     </testcase>
-    <testcase classname="LLM Providers createLLMProvider should throw error for unsupported provider" name="LLM Providers createLLMProvider should throw error for unsupported provider" time="0">
+    <testcase classname="LLM Providers createLLMProvider should throw error for unsupported provider" name="LLM Providers createLLMProvider should throw error for unsupported provider" time="0.001">
       <failure>Error: expect(received).toThrow(expected)
 
 Expected substring: &quot;Unsupported LLM provider&quot;
@@ -89,53 +94,32 @@ Received function did not throw
     at runTest (C:\dev\apptoapp\node_modules\jest-runner\build\runTest.js:444:34)</failure>
     </testcase>
   </testsuite>
-  <testsuite name="diff" errors="0" failures="1" skipped="0" timestamp="2025-02-17T17:40:35" time="1.43" tests="5">
-    <testcase classname="diff should return the difference between two numbers" name="diff should return the difference between two numbers" time="0.001">
+  <testsuite name="main" errors="0" failures="0" skipped="0" timestamp="2025-02-17T17:40:52" time="1.644" tests="2">
+    <testcase classname="main should handle test instruction" name="main should handle test instruction" time="0.926">
     </testcase>
-    <testcase classname="diff should handle negative numbers" name="diff should handle negative numbers" time="0">
-    </testcase>
-    <testcase classname="diff should handle zero" name="diff should handle zero" time="0.001">
-    </testcase>
-    <testcase classname="diff functionality should generate and store diffs" name="diff functionality should generate and store diffs" time="0.665">
-      <failure>Error: expect(received).toContain(expected) // indexOf
-
-Expected substring: &quot;&lt;diff count=\&quot;1\&quot;&gt;&quot;
-Received string:    &quot;&lt;diff attempt=\&quot;1\&quot;&gt;diff --git a/test.txt b/test.txt
-index cbc4e2e..268af4e 100644
---- a/test.txt
-+++ b/test.txt
-@@ -1 +1 @@
--initial content
-\\ No newline at end of file
-+modified content
-\\ No newline at end of file
-&lt;/diff&gt;
-&quot;
-    at Object.toContain (C:\dev\apptoapp\src\test\files.test.js:79:17)</failure>
-    </testcase>
-    <testcase classname="diff functionality should clear diff buffer" name="diff functionality should clear diff buffer" time="0.634">
+    <testcase classname="main should collect diffs after each attempt" name="main should collect diffs after each attempt" time="0.613">
     </testcase>
   </testsuite>
-  <testsuite name="utils" errors="0" failures="0" skipped="0" timestamp="2025-02-17T17:40:36" time="0.088" tests="4">
-    <testcase classname="utils should return the sum of two numbers" name="utils should return the sum of two numbers" time="0.005">
-    </testcase>
-    <testcase classname="utils should return the product of two numbers" name="utils should return the product of two numbers" time="0">
-    </testcase>
-    <testcase classname="makeApiRequest should use Mistral exclusively" name="makeApiRequest should use Mistral exclusively" time="0.007">
-    </testcase>
-    <testcase classname="makeApiRequest should handle API errors" name="makeApiRequest should handle API errors" time="0.004">
-    </testcase>
-  </testsuite>
-  <testsuite name="tools" errors="0" failures="0" skipped="0" timestamp="2025-02-17T17:40:36" time="0.13" tests="2">
+  <testsuite name="tools" errors="0" failures="0" skipped="0" timestamp="2025-02-17T17:40:54" time="0.097" tests="2">
     <testcase classname="tools should execute a command and return the output" name="tools should execute a command and return the output" time="0.017">
     </testcase>
-    <testcase classname="tools should handle errors when executing a command" name="tools should handle errors when executing a command" time="0.017">
+    <testcase classname="tools should handle errors when executing a command" name="tools should handle errors when executing a command" time="0.016">
     </testcase>
   </testsuite>
-  <testsuite name="Logger" errors="0" failures="0" skipped="0" timestamp="2025-02-17T17:40:36" time="0.079" tests="8">
-    <testcase classname="Logger should truncate long strings" name="Logger should truncate long strings" time="0.001">
+  <testsuite name="utils" errors="0" failures="0" skipped="0" timestamp="2025-02-17T17:40:54" time="0.08" tests="4">
+    <testcase classname="utils should return the sum of two numbers" name="utils should return the sum of two numbers" time="0.001">
     </testcase>
-    <testcase classname="Logger should not truncate short strings" name="Logger should not truncate short strings" time="0">
+    <testcase classname="utils should return the product of two numbers" name="utils should return the product of two numbers" time="0.001">
+    </testcase>
+    <testcase classname="makeApiRequest should use Mistral exclusively" name="makeApiRequest should use Mistral exclusively" time="0.01">
+    </testcase>
+    <testcase classname="makeApiRequest should handle API errors" name="makeApiRequest should handle API errors" time="0.003">
+    </testcase>
+  </testsuite>
+  <testsuite name="Logger" errors="0" failures="0" skipped="0" timestamp="2025-02-17T17:40:54" time="0.063" tests="8">
+    <testcase classname="Logger should truncate long strings" name="Logger should truncate long strings" time="0.006">
+    </testcase>
+    <testcase classname="Logger should not truncate short strings" name="Logger should not truncate short strings" time="0.001">
     </testcase>
     <testcase classname="Logger should handle non-string inputs" name="Logger should handle non-string inputs" time="0.001">
     </testcase>
@@ -143,11 +127,11 @@ index cbc4e2e..268af4e 100644
     </testcase>
     <testcase classname="Logger should handle null input" name="Logger should handle null input" time="0">
     </testcase>
-    <testcase classname="Logger should handle circular references" name="Logger should handle circular references" time="0">
+    <testcase classname="Logger should handle circular references" name="Logger should handle circular references" time="0.001">
     </testcase>
     <testcase classname="Logger should format values correctly" name="Logger should format values correctly" time="0.001">
     </testcase>
-    <testcase classname="Logger logging functions should not throw" name="Logger logging functions should not throw" time="0.002">
+    <testcase classname="Logger logging functions should not throw" name="Logger logging functions should not throw" time="0.001">
     </testcase>
   </testsuite>
 </testsuites>

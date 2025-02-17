@@ -76,7 +76,7 @@ describe('diff functionality', () => {
     await generateDiff();
     const xml = getDiffBufferStatus();
 
-    expect(xml).toContain('<diff count="1">');
+    expect(xml).toContain('<diff attempt="1">');
     expect(xml).toContain('diff --git');
     expect(xml).toContain('modified content');
   });

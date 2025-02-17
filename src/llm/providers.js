@@ -82,7 +82,10 @@ class MistralProvider {
   }
 }
 
-function createLLMProvider(apiKey) {
+function createLLMProvider(providerType, apiKey) {
+  if (!['mistral', 'copilot'].includes(providerType)) {
+    throw new Error(`Unsupported LLM provider: ${providerType}`);
+  }
   console.log('Initializing Mistral provider');
   return new MistralProvider(apiKey || process.env.MISTRAL_API_KEY);
 }
