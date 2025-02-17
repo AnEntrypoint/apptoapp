@@ -111,7 +111,7 @@ describe('GroqProvider', () => {
       stream: false,
       stop: null
     });
-
+ 
     expect(response).toEqual(mockResponse);
   });
 
