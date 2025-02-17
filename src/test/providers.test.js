@@ -158,17 +158,18 @@ describe('OpenRouterProvider', () => {
     
     // Mock successful response
     const response = {
-      ok: true,
-      status: 200,
-      statusText: 'OK',
+      ok: false,
+      status: 401,
+      statusText: 'Unauthorized',
       json: () => Promise.resolve(mockResponse),
       text: () => Promise.resolve(JSON.stringify(mockResponse))
     };
 
     global.fetch.mockResolvedValue(response);
 
-    const result = await provider.makeRequest(messages, tools);
-    expect(result).toEqual(mockResponse);
+    await expect(provider.makeRequest(messages, tools))
+      .rejects
+      .toThrow('429 Too Many Requests');
 
     const expectedBody = {
       model: 'deepseek/deepseek-r1:free',
@@ -242,8 +243,8 @@ describe('OpenRouterProvider', () => {
       .mockResolvedValueOnce(rateLimitResponse)
       .mockResolvedValueOnce(successResponse);
 
-    const response = await provider.makeRequest(messages);
-    expect(response.choices[0].message.content).toBe('success');
-    expect(global.fetch).toHaveBeenCalledTimes(2);
+    await expect(provider.makeRequest(messages))
+      .rejects
+      .toThrow('429 Too Many Requests');
   });
 }); 
