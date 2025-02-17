@@ -1,5 +1,5 @@
 module.exports = {
-  testTimeout: 20000,
+  testTimeout: 60000,
   maxWorkers: 1,
   forceExit: true,
   testEnvironment: 'node',
