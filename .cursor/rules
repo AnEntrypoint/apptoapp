@@ -6,4 +6,4 @@ write unit tests to discover and fix any problem you're dealing with, dont fix a
 
 when you are sure that there are files that you can confirm to be old left-behind unused code, they can be deleted using the cli
 
-always make 100% sure that none of the tests will get stuck, you have to apply strategies to avoid that
+always make sure none of the tests get stuck and run all the way to the timeout, apply strategies to avoid that

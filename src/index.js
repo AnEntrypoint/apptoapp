@@ -141,18 +141,27 @@ const summaryBuffer = [];
 const cliBuffer = [];
 
 async function main(instruction, errors, model = 'mistral') {
-  console.log('Using model:', model); // Add logging to track model selection
+  console.log('Using model:', model);
   let retryCount = 0;
   const MAX_RETRIES = 3;
   const MAX_ATTEMPTS = 20;
 
   try {
-    // Only clear diff buffer if explicitly requested
-    // clearDiffBuffer(); - removing this line to allow diffs to accumulate
-
     if (!instruction || instruction.trim() === '') {
       logger.info('No specific instruction provided. Running default test mode.');
       instruction = 'Run project tests and verify setup';
+    }
+
+    // Validate model selection
+    if (!['mistral', 'groq'].includes(model)) {
+      logger.warn(`Unsupported model ${model}, falling back to mistral`);
+      model = 'mistral';
+    }
+
+    // Validate API keys
+    const apiKey = model === 'groq' ? process.env.GROQ_API_KEY : process.env.MISTRAL_API_KEY;
+    if (!apiKey) {
+      throw new Error(`No API key found for ${model} provider`);
     }
 
     const files = await getFiles();
@@ -186,14 +195,14 @@ async function main(instruction, errors, model = 'mistral') {
               content: Array.isArray(content) ? content.join('\n') : content
             }],
             [],
-            process.env.MISTRAL_API_KEY,  // Always pass Mistral API key
-            'https://codestral.mistral.ai/v1/chat/completions',
-            'mistral'  // Always use Mistral for deduplication
+            model === 'groq' ? process.env.GROQ_API_KEY : process.env.MISTRAL_API_KEY,
+            model === 'groq' ? undefined : process.env.MISTRAL_CHAT_ENDPOINT,
+            model
           );
           const cleaned = response.choices[0].message.content;
           return cleaned.split('\n').filter(l => l.trim());
         } catch (error) {
-          logger.error('Deduplication failed:', error.message);
+          logger.error(`Deduplication failed with ${model}:`, error.message);
           logger.debug('Falling back to original content');
           return Array.isArray(content) ? content : [content];
         }

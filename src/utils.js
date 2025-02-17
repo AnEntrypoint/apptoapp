@@ -90,10 +90,9 @@ async function loadNoContentsPatterns(ignoreFile = '.nocontents') {
 
 async function makeApiRequest(messages, tools, apiKey, endpoint, model = 'mistral') {
   console.log(`Using ${model} model`);
-  console.log(`Provider selection: Using Mistral with key ${apiKey?.slice(0, 5)}...`);
   
-  const provider = createLLMProvider(apiKey);
-  logger.info(`Using Mistral provider for API request...`);
+  const provider = createLLMProvider(model, apiKey);
+  logger.info(`Using ${model} provider for API request...`);
   
   try {
     const response = await provider.makeRequest(messages, tools);
@@ -107,7 +106,7 @@ async function makeApiRequest(messages, tools, apiKey, endpoint, model = 'mistra
     
     return response;
   } catch (error) {
-    logger.error(`API Error with Mistral:`, error);
+    logger.error(`API Error with ${model}:`, error);
     throw error;
   }
 }
