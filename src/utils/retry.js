@@ -19,9 +19,10 @@ async function retryWithBackoff(operation, maxRetries = 5, initialDelay = 2000) 
         logger.warn(`Rate limit hit, attempt ${attempt}/${maxRetries}. Retrying in ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
         delay *= process.env.NODE_ENV === 'test' ? 1.5 : 3;
-      } else {
-        throw error;
+        continue;
       }
+      
+      throw error;
     }
   }
   
