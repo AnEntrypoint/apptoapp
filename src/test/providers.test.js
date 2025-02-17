@@ -148,7 +148,7 @@ describe('OpenRouterProvider', () => {
   });
 
   it('makeRequest sends correct request format', async () => {
-    process.env.NODE_ENV = 'test';
+    process.env.NODE_ENV = 'production'; // Use production mode for request format test
     const messages = [{ role: 'user', content: 'test' }];
     const tools = [];
     const mockResponse = {
@@ -194,7 +194,7 @@ describe('OpenRouterProvider', () => {
     );
   });
 
-  it('handles API errors gracefully', async () => {
+  it('handles API errors gracefully in test mode', async () => {
     process.env.NODE_ENV = 'test';
     const errorResponse = {
       ok: false,
@@ -212,7 +212,7 @@ describe('OpenRouterProvider', () => {
       .toThrow('429 Too Many Requests');
   });
 
-  it('retries on rate limit errors', async () => {
+  it('retries on rate limit errors in test mode', async () => {
     process.env.NODE_ENV = 'test';
     const messages = [{ role: 'user', content: 'test' }];
     const rateLimitResponse = {
