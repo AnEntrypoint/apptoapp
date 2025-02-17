@@ -219,7 +219,7 @@ async function main(instruction, errors, model = 'mistral') {
   let retryCount = 0;
   const MAX_RETRIES = 3;
   const MAX_ATTEMPTS = 20;
-  let currentModel = model;
+  currentModel = model;
 
   try {
     if (!instruction || instruction.trim() === '') {
