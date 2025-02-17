@@ -4,7 +4,7 @@
   "description": "Application with Copilot integration",
   "main": "src/index.js",
   "scripts": {
-    "test": "jest --detectOpenHandles --forceExit --testTimeout=120000 --maxWorkers=1 --no-cache",
+    "test": "jest --forceExit --testTimeout=10000 --maxWorkers=1",
     "lint": "eslint .",
     "build": "webpack --mode production",
     "dev": "webpack --mode development --watch",

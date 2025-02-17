@@ -4,18 +4,25 @@ const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 // Add the stealth plugin
 puppeteer.use(StealthPlugin());
 
-(async () => {
-  // Launch browser with visible UI and stealth configuration
-  const browser = await puppeteer.launch({
-    headless: false,
-    args: [
-      '--window-size=800,600',
-      '--no-sandbox',
-      '--disable-web-security'
-    ]
+describe('Puppeteer Tests', () => {
+  let browser;
+  
+  beforeAll(async () => {
+    browser = await puppeteer.launch({
+      headless: false,
+      args: [
+        '--window-size=800,600',
+        '--no-sandbox',
+        '--disable-web-security'
+      ]
+    });
   });
 
-  try {
+  afterAll(async () => {
+    await browser.close();
+  });
+
+  test('should execute chat flow', async () => {
     const page = await browser.newPage();
     
     // Set exact Chrome headers to match the example
@@ -83,11 +90,5 @@ puppeteer.use(StealthPlugin());
     logs.forEach(log => console.log(` - ${log}`));
     
     console.log('\n✅ AI Response:', await response.jsonValue());
-
-  } catch (err) {
-    console.error('❌ Error:', err);
-  } finally {
-    await browser.close();
-    console.log('🛑 Browser closed');
-  }
-})();
+  });
+});
