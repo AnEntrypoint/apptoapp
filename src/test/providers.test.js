@@ -155,7 +155,8 @@ describe('OpenRouterProvider', () => {
       ok: true,
       status: 200,
       statusText: 'OK',
-      json: () => Promise.resolve(mockResponse)
+      json: () => Promise.resolve(mockResponse),
+      text: () => Promise.resolve(JSON.stringify(mockResponse))
     }));
 
     const response = await provider.makeRequest(messages, tools);
@@ -200,11 +201,13 @@ describe('OpenRouterProvider', () => {
   });
 
   it('retries on rate limit errors', async () => {
+    const messages = [{ role: 'user', content: 'test' }];
     const rateLimitResponse = {
       ok: false,
       status: 429,
       statusText: 'Too Many Requests',
-      text: () => Promise.resolve('Rate limit exceeded')
+      text: () => Promise.resolve('Rate limit exceeded'),
+      json: () => Promise.resolve({ error: 'Rate limit exceeded' })
     };
 
     const successResponse = {
@@ -214,14 +217,18 @@ describe('OpenRouterProvider', () => {
       json: () => Promise.resolve({
         model: 'deepseek-r1',
         choices: [{ message: { content: 'success' } }]
-      })
+      }),
+      text: () => Promise.resolve(JSON.stringify({
+        model: 'deepseek-r1',
+        choices: [{ message: { content: 'success' } }]
+      }))
     };
 
     global.fetch
       .mockImplementationOnce(() => Promise.resolve(rateLimitResponse))
       .mockImplementationOnce(() => Promise.resolve(successResponse));
 
-    const response = await provider.makeRequest([{ role: 'user', content: 'test' }]);
+    const response = await provider.makeRequest(messages);
     expect(response.choices[0].message.content).toBe('success');
     expect(global.fetch).toHaveBeenCalledTimes(2);
   });
