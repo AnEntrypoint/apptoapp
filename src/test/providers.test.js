@@ -153,6 +153,7 @@ describe('OpenRouterProvider', () => {
   });
 
   it('makeRequest sends correct request format', async () => {
+    process.env.NODE_ENV = 'production'; // Temporarily disable test mode
     const messages = [{ role: 'user', content: 'test' }];
     const tools = [];
     const mockResponse = {
@@ -194,6 +195,7 @@ describe('OpenRouterProvider', () => {
         body: JSON.stringify(expectedBody)
       }
     );
+    process.env.NODE_ENV = 'test'; // Restore test mode
   });
 
   it('handles API errors gracefully', async () => {
@@ -216,6 +218,7 @@ describe('OpenRouterProvider', () => {
   });
 
   it('retries on rate limit errors', async () => {
+    process.env.NODE_ENV = 'production'; // Temporarily disable test mode
     const messages = [{ role: 'user', content: 'test' }];
     const rateLimitResponse = {
       ok: false,
@@ -247,5 +250,6 @@ describe('OpenRouterProvider', () => {
     const response = await provider.makeRequest(messages);
     expect(response.choices[0].message.content).toBe('success');
     expect(global.fetch).toHaveBeenCalledTimes(2);
+    process.env.NODE_ENV = 'test'; // Restore test mode
   });
 }); 
