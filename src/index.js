@@ -272,9 +272,8 @@ async function main(instruction, errors, model = 'mistral') {
             + '\n// Testing & Debugging\n'
             + `Write comprehensive unit and integration tests\n`
             + `Use tests to discover and fix bugs\n`
-            + `Handle edge cases and ensure full test coverage\n`
             + `Always try to fix all known errors at once\n`
-            + `Always analyze logs, CHANGELOG.txt and <attemptDiff> tags as well as <cmdhistory> and <history> tags carefully to avoid repetitive loops\n`
+            + `Always analyze logs, CHANGELOG.txt and <attemptDiff> tags as well as <cmdhistory> and <history> tags carefully to avoid repetitive fixes\n`
             + `Look at the logs and history, if the history indicates you are having trouble fixing the errors repeatedly, pick a different approach\n`
             + `Never run tests using the cli commands, they run automatically at the end of the process\n`
 
