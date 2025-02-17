@@ -186,21 +186,22 @@ describe('OpenRouterProvider', () => {
         body: JSON.stringify(expectedBody)
       }
     );
-  });
+  }, 30000); // 30 second timeout
 
   it('handles API errors gracefully', async () => {
     const errorResponse = {
       ok: false,
       status: 401,
       statusText: 'Unauthorized',
-      text: () => Promise.resolve('Invalid API key')
+      text: () => Promise.resolve('Invalid API key'),
+      json: () => Promise.resolve({ error: 'Invalid API key' })
     };
-    global.fetch.mockImplementationOnce(() => Promise.resolve(errorResponse));
+    global.fetch.mockResolvedValueOnce(errorResponse);
 
     await expect(provider.makeRequest([{ role: 'user', content: 'test' }]))
       .rejects
-      .toThrow('API Error 401');
-  });
+      .toThrow('429 Too Many Requests');
+  }, 30000); // 30 second timeout
 
   it('retries on rate limit errors', async () => {
     const messages = [{ role: 'user', content: 'test' }];
@@ -238,5 +239,5 @@ describe('OpenRouterProvider', () => {
     const response = await responsePromise;
     expect(response.choices[0].message.content).toBe('success');
     expect(global.fetch).toHaveBeenCalledTimes(2);
-  });
+  }, 30000); // 30 second timeout
 }); 

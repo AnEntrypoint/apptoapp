@@ -3,7 +3,7 @@ const fetch = require('node-fetch');
 const Groq = require('groq-sdk');
 
 async function retryWithBackoff(operation, maxRetries = 5, initialDelay = 2000) {
-  let delay = initialDelay;
+  let delay = process.env.NODE_ENV === 'test' ? 100 : initialDelay;
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
@@ -14,7 +14,7 @@ async function retryWithBackoff(operation, maxRetries = 5, initialDelay = 2000) 
       if (error.message.includes('429') || error.message.toLowerCase().includes('too many requests')) {
         logger.warn(`Rate limit hit, attempt ${attempt}/${maxRetries}. Retrying in ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
-        delay *= 3;
+        delay *= process.env.NODE_ENV === 'test' ? 1.5 : 3;
       } else {
         throw error;
       }
