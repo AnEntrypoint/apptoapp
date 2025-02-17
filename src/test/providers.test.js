@@ -153,6 +153,7 @@ describe('OpenRouterProvider', () => {
   });
 
   it('makeRequest sends correct request format', async () => {
+    process.env.NODE_ENV = 'test';
     process.env.TEST_SUCCESS = 'true';
     const messages = [{ role: 'user', content: 'test' }];
     const tools = [];
