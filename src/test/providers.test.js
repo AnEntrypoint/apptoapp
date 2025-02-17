@@ -204,7 +204,11 @@ describe('OpenRouterProvider', () => {
       text: () => Promise.resolve('Server Error'),
       json: () => Promise.resolve({ error: 'Server Error' })
     };
-    global.fetch.mockResolvedValueOnce(errorResponse);
+    
+    // Mock fetch to always return error
+    for (let i = 0; i < 5; i++) {
+      global.fetch.mockResolvedValueOnce(errorResponse);
+    }
 
     await expect(provider.makeRequest([{ role: 'user', content: 'test' }]))
       .rejects
@@ -213,6 +217,14 @@ describe('OpenRouterProvider', () => {
 
   it('retries on rate limit errors', async () => {
     const messages = [{ role: 'user', content: 'test' }];
+    const rateLimitResponse = {
+      ok: false,
+      status: 429,
+      statusText: 'Too Many Requests',
+      text: () => Promise.resolve('Rate limit exceeded'),
+      json: () => Promise.resolve({ error: 'Rate limit exceeded' })
+    };
+    
     const successResponse = {
       ok: true,
       status: 200,
@@ -227,11 +239,13 @@ describe('OpenRouterProvider', () => {
       }))
     };
 
+    // First call fails with rate limit, second succeeds
     global.fetch
+      .mockResolvedValueOnce(rateLimitResponse)
       .mockResolvedValueOnce(successResponse);
 
     const response = await provider.makeRequest(messages);
     expect(response.choices[0].message.content).toBe('success');
-    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 }); 
