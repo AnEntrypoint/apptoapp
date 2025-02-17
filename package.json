@@ -19,6 +19,7 @@
     "crypto": "^1.0.1",
     "dotenv": "^16.4.7",
     "fast-glob": "^3.3.3",
+    "groq-sdk": "^0.15.0",
     "ignore": "^7.0.3",
     "jest-light-runner": "^0.6.0",
     "jsdom": "^22.1.0",

@@ -1,5 +1,6 @@
 const logger = require('../utils/logger');
 const fetch = require('node-fetch');
+const Groq = require('groq-sdk');
 
 async function retryWithBackoff(operation, maxRetries = 5, initialDelay = 2000) {
   let delay = initialDelay;
@@ -82,15 +83,67 @@ class MistralProvider {
   }
 }
 
+class GroqProvider {
+  constructor(apiKey) {
+    this.apiKey = apiKey;
+    this.groq = new Groq({
+      apiKey: this.apiKey
+    });
+    console.log('Initialized Groq provider');
+  }
+
+  async makeRequest(messages, tools = []) {
+    return retryWithBackoff(async () => {
+      console.log('Making Groq API request');
+      
+      try {
+        const requestBody = {
+          messages,
+          model: process.env.GROQ_MODEL || 'deepseek-r1-distill-llama-70b',
+          temperature: 0.6,
+          max_completion_tokens: 131072,
+          top_p: 0.95,
+          stream: false,
+          stop: null
+        };
+
+        console.log('Sending request to Groq:', {
+          model: requestBody.model,
+          messageCount: messages.length
+        });
+
+        const chatCompletion = await this.groq.chat.completions.create(requestBody);
+
+        console.log('Groq API Response:', {
+          model: chatCompletion.model,
+          contentLength: chatCompletion.choices[0]?.message?.content?.length || 0
+        });
+
+        return chatCompletion;
+      } catch (error) {
+        console.error('Groq request failed:', error.message);
+        throw error;
+      }
+    });
+  }
+}
+
 function createLLMProvider(providerType, apiKey) {
-  if (!['mistral', 'copilot'].includes(providerType)) {
+  if (!['mistral', 'copilot', 'groq'].includes(providerType)) {
     throw new Error(`Unsupported LLM provider: ${providerType}`);
   }
+  
+  if (providerType === 'groq') {
+    console.log('Initializing Groq provider');
+    return new GroqProvider(apiKey || process.env.GROQ_API_KEY);
+  }
+  
   console.log('Initializing Mistral provider');
   return new MistralProvider(apiKey || process.env.MISTRAL_API_KEY);
 }
 
 module.exports = {
   createLLMProvider,
-  MistralProvider
+  MistralProvider,
+  GroqProvider
 };

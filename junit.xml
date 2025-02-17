@@ -1,62 +1,62 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="jest tests" tests="25" failures="1" errors="0" time="4.165">
-  <testsuite name="LLM Providers" errors="0" failures="1" skipped="0" timestamp="2025-02-17T18:14:05" time="0.458" tests="4">
-    <testcase classname="LLM Providers MistralProvider should make request with correct parameters" name="LLM Providers MistralProvider should make request with correct parameters" time="0.005">
+<testsuites name="jest tests" tests="25" failures="1" errors="0" time="4.669">
+  <testsuite name="LLM Providers" errors="0" failures="1" skipped="0" timestamp="2025-02-17T18:14:12" time="0.312" tests="4">
+    <testcase classname="LLM Providers MistralProvider should make request with correct parameters" name="LLM Providers MistralProvider should make request with correct parameters" time="0.009">
     </testcase>
-    <testcase classname="LLM Providers MistralProvider should handle API errors" name="LLM Providers MistralProvider should handle API errors" time="0.002">
+    <testcase classname="LLM Providers MistralProvider should handle API errors" name="LLM Providers MistralProvider should handle API errors" time="0.003">
       <failure>Error: expect(received).toContain(expected) // indexOf
 
 Expected substring: &quot;API Error 401&quot;
 Received string:    &quot;fail is not defined&quot;
     at Object.toContain (C:\dev\apptoapp\src\test\providers.test.js:94:31)</failure>
     </testcase>
-    <testcase classname="LLM Providers createLLMProvider should create MistralProvider" name="LLM Providers createLLMProvider should create MistralProvider" time="0.001">
+    <testcase classname="LLM Providers createLLMProvider should create MistralProvider" name="LLM Providers createLLMProvider should create MistralProvider" time="0.002">
     </testcase>
     <testcase classname="LLM Providers createLLMProvider should throw error for unsupported provider" name="LLM Providers createLLMProvider should throw error for unsupported provider" time="0.005">
     </testcase>
   </testsuite>
-  <testsuite name="main" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:14:06" time="1.817" tests="2">
-    <testcase classname="main should handle test instruction" name="main should handle test instruction" time="1.06">
+  <testsuite name="main" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:14:12" time="1.821" tests="2">
+    <testcase classname="main should handle test instruction" name="main should handle test instruction" time="1.028">
     </testcase>
-    <testcase classname="main should collect diffs after each attempt" name="main should collect diffs after each attempt" time="0.612">
+    <testcase classname="main should collect diffs after each attempt" name="main should collect diffs after each attempt" time="0.629">
     </testcase>
   </testsuite>
-  <testsuite name="diff" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:14:07" time="1.495" tests="5">
+  <testsuite name="diff" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:14:14" time="2.143" tests="5">
     <testcase classname="diff should return the difference between two numbers" name="diff should return the difference between two numbers" time="0.001">
     </testcase>
     <testcase classname="diff should handle negative numbers" name="diff should handle negative numbers" time="0.001">
     </testcase>
-    <testcase classname="diff should handle zero" name="diff should handle zero" time="0">
+    <testcase classname="diff should handle zero" name="diff should handle zero" time="0.006">
     </testcase>
-    <testcase classname="diff functionality should generate and store diffs" name="diff functionality should generate and store diffs" time="0.72">
+    <testcase classname="diff functionality should generate and store diffs" name="diff functionality should generate and store diffs" time="0.78">
     </testcase>
-    <testcase classname="diff functionality should clear diff buffer" name="diff functionality should clear diff buffer" time="0.696">
-    </testcase>
-  </testsuite>
-  <testsuite name="tools" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:14:09" time="0.096" tests="2">
-    <testcase classname="tools should execute a command and return the output" name="tools should execute a command and return the output" time="0.017">
-    </testcase>
-    <testcase classname="tools should handle errors when executing a command" name="tools should handle errors when executing a command" time="0.019">
+    <testcase classname="diff functionality should clear diff buffer" name="diff functionality should clear diff buffer" time="1.28">
     </testcase>
   </testsuite>
-  <testsuite name="utils" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:14:09" time="0.073" tests="4">
+  <testsuite name="tools" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:14:16" time="0.1" tests="2">
+    <testcase classname="tools should execute a command and return the output" name="tools should execute a command and return the output" time="0.021">
+    </testcase>
+    <testcase classname="tools should handle errors when executing a command" name="tools should handle errors when executing a command" time="0.02">
+    </testcase>
+  </testsuite>
+  <testsuite name="utils" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:14:16" time="0.073" tests="4">
     <testcase classname="utils should return the sum of two numbers" name="utils should return the sum of two numbers" time="0.001">
     </testcase>
     <testcase classname="utils should return the product of two numbers" name="utils should return the product of two numbers" time="0.001">
     </testcase>
-    <testcase classname="makeApiRequest should use Mistral exclusively" name="makeApiRequest should use Mistral exclusively" time="0.005">
+    <testcase classname="makeApiRequest should use Mistral exclusively" name="makeApiRequest should use Mistral exclusively" time="0.009">
     </testcase>
     <testcase classname="makeApiRequest should handle API errors" name="makeApiRequest should handle API errors" time="0.004">
     </testcase>
   </testsuite>
-  <testsuite name="Logger" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:14:09" time="0.064" tests="8">
-    <testcase classname="Logger should truncate long strings" name="Logger should truncate long strings" time="0.002">
+  <testsuite name="Logger" errors="0" failures="0" skipped="0" timestamp="2025-02-17T18:14:16" time="0.056" tests="8">
+    <testcase classname="Logger should truncate long strings" name="Logger should truncate long strings" time="0.001">
     </testcase>
     <testcase classname="Logger should not truncate short strings" name="Logger should not truncate short strings" time="0.001">
     </testcase>
     <testcase classname="Logger should handle non-string inputs" name="Logger should handle non-string inputs" time="0.001">
     </testcase>
-    <testcase classname="Logger should handle undefined input" name="Logger should handle undefined input" time="0.002">
+    <testcase classname="Logger should handle undefined input" name="Logger should handle undefined input" time="0.001">
     </testcase>
     <testcase classname="Logger should handle null input" name="Logger should handle null input" time="0.001">
     </testcase>
@@ -64,7 +64,7 @@ Received string:    &quot;fail is not defined&quot;
     </testcase>
     <testcase classname="Logger should format values correctly" name="Logger should format values correctly" time="0.002">
     </testcase>
-    <testcase classname="Logger logging functions should not throw" name="Logger logging functions should not throw" time="0.002">
+    <testcase classname="Logger logging functions should not throw" name="Logger logging functions should not throw" time="0.001">
     </testcase>
   </testsuite>
 </testsuites>
