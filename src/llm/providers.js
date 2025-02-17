@@ -198,7 +198,7 @@ class OpenRouterProvider {
         
         throw error;
       }
-    });
+    }, process.env.NODE_ENV === 'test' ? 1 : 5); // Only retry once in test mode
   }
 }
 

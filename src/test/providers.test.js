@@ -194,11 +194,11 @@ describe('OpenRouterProvider', () => {
 
     try {
       await provider.makeRequest(messages, tools);
+      fail('Expected an error to be thrown');
     } catch (error) {
       expect(error.message).toBe('429 Too Many Requests');
+      expect(global.fetch).toHaveBeenCalled();
     }
-
-    expect(global.fetch).toHaveBeenCalled();
   });
 
   it('handles API errors gracefully in test mode', async () => {
