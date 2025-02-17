@@ -130,7 +130,6 @@ async function generateDiff(attemptCount = 0) {
 
 // Function to get all stored diffs in XML format
 function getDiffBufferStatus() {
-  logger.debug(`\n\n------ DIFF BUFFER STATUS ------`);
   logger.debug(`Buffer size: ${diffBuffer.length}`);
   logger.debug(`Buffer contents: ${JSON.stringify(diffBuffer.map(d => ({ count: d.count, lines: d.diff.split('\n').length })))}`);
   
@@ -149,14 +148,13 @@ function getDiffBufferStatus() {
 
   // Process each diff
   let xml = '';
+  let attemptCount = 0;
   for (const { diff, count } of diffBuffer) {
-    const lines = diff.split('\n').length;
-    logger.debug(`Processing diff ${count} with ${lines} lines`);
-    xml += `<diff count="${count}">${diff}</diff>\n`;
+    xml += `<diff attempt="${count}">${diff}</diff>\n`;
+    ++attemptCount;
   }
 
   logger.debug(`Generated XML with ${diffBuffer.length} diff tags`);
-  logger.debug(`------ END DIFF BUFFER STATUS ------\n\n`);
   return xml;
 }
 

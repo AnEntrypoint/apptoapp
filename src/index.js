@@ -223,27 +223,27 @@ async function main(instruction, errors, model = 'mistral') {
       const diffsXML = getDiffBufferStatus();
 
       const artifacts = [
-        `\n\n<userinstruction>${instruction}</userinstruction>\n`,
-        files ? `\n\n${files}\n\n` : ``,
-        summaryBuffer.length > 0 ? `\n\n${summaryBuffer.map((s, i) => `<attemptSummary number="${i}">${s}</attemptSummary>\n`).join('\n')}\n` : ``,
-        `\n\n<nodeEnv>${process.env.NODE_ENV || 'development'}</nodeEnv>\n`,
-        `\n\n<attempts>This is attempt number ${attempts} of ${MAX_ATTEMPTS} to complete the user instruction: ${instruction} and fix the errors in the logs and tests</attempts>\n`,
-        `\n\n<nodeVersion>${process.version}</nodeVersion>\n`,
-        `\n\n<npmVersion>${safeExecSync('npm -v')}</npmVersion>\n`,
-        `\n\n<installedDependencies>\n${safeExecSync('npm ls --depth=0')}\n</installedDependencies>\n`,
-        `\n\n<gitStatus>\n${safeExecSync('git status --short 2>&1 || echo "Not a git repository"')}\n</gitStatus>\n`,
-        `\n\n<gitBranch>${safeExecSync('git branch --show-current 2>&1 || echo "No branch"')}</gitBranch>\n`,
-        `\n\n<systemMemory>${Math.round(process.memoryUsage().rss / 1024 / 1024)}MB RSS</systemMemory>\n`,
-        `\n\n<platform>${process.platform} ${process.arch}</platform>\n`,
-        `\n\n<environmentKeys>${Object.keys(process.env).filter(k => k.startsWith('NODE_') || k.startsWith('npm_')).join(', ')}</environmentKeys>\n`,
-        `\n\n<systemDate>${new Date().toISOString()}</systemDate>\n`,
-        `\n\n<timestamp>${new Date().toISOString()}</timestamp>\n`,
+        `\n<userinstruction>${instruction}</userinstruction>\n`,
+        files ? `\n${files}\n` : ``,
+        summaryBuffer.length > 0 ? `\n${summaryBuffer.filter(s => s.trim() !== '').map((s, i) => `<attemptSummary number="${i}">${s}</attemptSummary>\n`).join('\n')}\n` : ``,
+        `\n<nodeEnv>${process.env.NODE_ENV || 'development'}</nodeEnv>\n`,
+        `\n<attempts>This is attempt number ${attempts} of ${MAX_ATTEMPTS} to complete the user instruction: ${instruction} and fix the errors in the logs and tests</attempts>\n`,
+        `\n<nodeVersion>${process.version}</nodeVersion>\n`,
+        `\n<npmVersion>${safeExecSync('npm -v')}</npmVersion>\n`,
+        `\n<installedDependencies>\n${safeExecSync('npm ls --depth=0')}\n</installedDependencies>\n`,
+        `\n<gitStatus>\n${safeExecSync('git status --short 2>&1 || echo "Not a git repository"')}\n</gitStatus>\n`,
+        `\n<gitBranch>${safeExecSync('git branch --show-current 2>&1 || echo "No branch"')}</gitBranch>\n`,
+        `\n<systemMemory>${Math.round(process.memoryUsage().rss / 1024 / 1024)}MB RSS</systemMemory>\n`,
+        `\n<platform>${process.platform} ${process.arch}</platform>\n`,
+        `\n<environmentKeys>${Object.keys(process.env).filter(k => k.startsWith('NODE_') || k.startsWith('npm_')).join(', ')}</environmentKeys>\n`,
+        `\n<systemDate>${new Date().toISOString()}</systemDate>\n`,
+        `\n<timestamp>${new Date().toISOString()}</timestamp>\n`,
         errors ? `\n\n<errors>${errors}</errors>\n` : ``,
-        `\n\n<currentWorkingDirectory>${process.cwd()}</currentWorkingDirectory>\n`,
-        `\n\n<terminalType>${process.env.TERM || process.platform === 'win32' ? 'cmd/powershell' : 'bash'}</terminalType>\n`,
+        `\n<currentWorkingDirectory>${process.cwd()}</currentWorkingDirectory>\n`,
+        `\n<terminalType>${process.env.TERM || process.platform === 'win32' ? 'cmd/powershell' : 'bash'}</terminalType>\n`,
         cliBuffer.length > 0 ? `\n\n<bashhistory>${cliBuffer.map(c => c.replace(/<cli>/g, '').replace(/<\/cli>/g, '')).join('\n')}</bashhistory>\n` : ``,
-        `\n\n<rules>Rules:\n${cursorRules}</rules>\n`,
-        `\n\n${diffsXML}\n\n`,
+        `\n<rules>Rules:\n${cursorRules}</rules>\n`,
+        `\n${diffsXML}\n\n`,
       ]
       const messages = [
         {
@@ -253,8 +253,9 @@ async function main(instruction, errors, model = 'mistral') {
             + `Always look at your progress using <attempts>, <attemptSummary>, <cmdhistory>, TODO.txt, CHANGELOG.txt and <attemptDiff> tags\n`
             + `Always pay special attention to <attemptDiff> tags, they are the most important part of the task, they are the difference between the current and the previous attempts, used to track progress\n`
             + `Always remove completed tasks from TODO.txt and move them to CHANGELOG.txt\n`
+            + `Never repeat steps that are already listed in <attemptSummary> tags\n`
             + `Always avoid repeating steps - if issues persist that are already listed fixed in CHANGELOG.txt or if previous attempts appear in <attemptDiff>, <attemptHistory> and <cmdhistory> and tags, try a alternative approach and record what failed and why and how it failed in NOTES.txt for future iterations\n`
-            + `If you cant make progress on an issue, record what failed and why and how it failed in TODO.txt for future iterations, and add an <upgradeModel></upgradeModel> tag to the end of your response\n`
+            + `If you cant make progress on an issue, or detect that you've fixed it more than once and its still broken, record what failed and why and how it failed, and a list of possible solutions in TODO.txt for future iterations, and add an <upgradeModel></upgradeModel> tag to the end of your response\n`
             + `Follow user requirements precisely and plan step-by-step, the users instructions are in <userinstruction>, thery are your primary goal, everything else is secondary\n`
             + `Always output your reasoning in <text> tags, as past tense as if the tasks have been completed\n`
 
@@ -355,7 +356,7 @@ async function main(instruction, errors, model = 'mistral') {
     const summaries = brainstormedTasks.match(/<text>([\s\S]*?)<\/text>/g) || [];
 
     if (summaries && summaries.length > 0) {
-      summaryBuffer.unshift(...summaries.map(s => s.replace(/<text>/g, '').replace(/<\/text>/g, '')));
+      summaryBuffer.push(...summaries.map(s => s.replace(/<text>/g, '').replace(/<\/text>/g, '')));
     }
 
     if (cliCommands && cliCommands.length > 0) {
@@ -435,7 +436,9 @@ async function main(instruction, errors, model = 'mistral') {
           logger.error('Error reading TODO.txt:', err);
         }
         logger.info(`Retrying main function (attempt ${attempts}/${MAX_ATTEMPTS})...`);
-        await main(process.argv[2], error.message, model);
+        setTimeout(() => {
+          main(process.argv[2], error.message, model);
+        }, 1000);
       } else {
         throw new Error('Max attempts reached');
       }
