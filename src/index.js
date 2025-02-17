@@ -136,7 +136,7 @@ let attempts = 0;
 const summaryBuffer = [];
 const cliBuffer = [];
 
-async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS) {
+async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS, errors) {
   const cursorRules = await loadCursorRules();
   if (cmdhistory.length > 0) {
     const newcmdhistory = cmdhistory.join('\n').split('\n').slice(cmdhistory.length - 1000, cmdhistory.length).join('\n');
@@ -323,7 +323,7 @@ async function main(instruction, errors, model = 'groq') {
       return;
     }
 
-    const brainstormedTasks = await brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS);
+    const brainstormedTasks = await brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS, errors);
     if (!brainstormedTasks || typeof brainstormedTasks !== 'string') {
       if (process.env.NODE_ENV === 'test') {
         return; // In test environment, just return
