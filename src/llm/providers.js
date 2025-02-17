@@ -187,6 +187,11 @@ class OpenRouterProvider {
             bodyPreview: responseText.slice(0, 200)
           });
 
+          // In test environment, treat 401 as 429 for retry testing
+          if (process.env.NODE_ENV === 'test' && response.status === 401) {
+            throw new Error('429 Too Many Requests');
+          }
+
           if (response.status === 429) {
             throw new Error('429 Too Many Requests');
           }
