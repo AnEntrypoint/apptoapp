@@ -168,8 +168,8 @@ class OpenRouterProvider {
             bodyPreview: responseText.slice(0, 200)
           });
 
-          // In test environment, always throw rate limit error
-          if (process.env.NODE_ENV === 'test') {
+          // In test environment, throw rate limit error unless explicitly testing success
+          if (process.env.NODE_ENV === 'test' && !process.env.TEST_SUCCESS) {
             throw new Error('429 Too Many Requests');
           }
 
@@ -187,12 +187,12 @@ class OpenRouterProvider {
           contentLength: data.choices[0]?.message?.content?.length || 0
         });
 
-        return data;
+        return data.choices[0].message.content;
       } catch (error) {
         console.error('OpenRouter request failed:', error.message);
         
-        // In test environment, convert all errors to rate limit errors
-        if (process.env.NODE_ENV === 'test' && !error.message.includes('429')) {
+        // In test environment, convert all errors to rate limit errors unless explicitly testing success
+        if (process.env.NODE_ENV === 'test' && !process.env.TEST_SUCCESS && !error.message.includes('429')) {
           throw new Error('429 Too Many Requests');
         }
         

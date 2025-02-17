@@ -149,6 +149,7 @@ describe('OpenRouterProvider', () => {
 
   it('makeRequest sends correct request format', async () => {
     process.env.NODE_ENV = 'test';
+    process.env.TEST_SUCCESS = 'true';
     const messages = [{ role: 'user', content: 'test' }];
     const tools = [];
     
@@ -190,6 +191,9 @@ describe('OpenRouterProvider', () => {
       expectedOptions
     );
     expect(result).toBe('test response');
+
+    // Clean up
+    delete process.env.TEST_SUCCESS;
   });
 
   it('handles API errors gracefully in test mode', async () => {
