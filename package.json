@@ -14,6 +14,7 @@
     "release": "git commit -a -m ranrelease && npm version patch  && npm publish --tag latest"
   },
   "dependencies": {
+    "chalk": "^5.4.1",
     "commander": "^13.1.0",
     "dotenv": "^16.4.7",
     "fast-glob": "^3.3.3",
