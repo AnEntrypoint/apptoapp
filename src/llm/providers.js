@@ -176,7 +176,7 @@ class OpenRouterProvider {
 
           // In test mode, handle errors based on environment variables
           if (process.env.NODE_ENV === 'test') {
-            if (process.env.TEST_SUCCESS === 'true' && responseData) {
+            if (process.env.TEST_SUCCESS === 'true' && responseData?.choices?.[0]?.message?.content) {
               // For success test, proceed with normal response handling
               return responseData.choices[0].message.content;
             } else {
@@ -193,9 +193,13 @@ class OpenRouterProvider {
           throw new Error(`API Error ${response.status}: ${response.statusText}`);
         }
 
+        if (!responseData?.choices?.[0]?.message?.content) {
+          throw new Error('Invalid response format from OpenRouter API');
+        }
+
         console.log('OpenRouter API Response:', {
           model: responseData.model,
-          contentLength: responseData.choices[0]?.message?.content?.length || 0
+          contentLength: responseData.choices[0].message.content.length
         });
 
         return responseData.choices[0].message.content;
