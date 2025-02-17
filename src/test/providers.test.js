@@ -1,5 +1,9 @@
 const { createLLMProvider, MistralProvider, GroqProvider, OpenRouterProvider, TogetherProvider } = require('../llm/providers');
 
+// Mock node-fetch
+jest.mock('node-fetch', () => jest.fn());
+const fetch = require('node-fetch');
+
 // Mock console methods to reduce noise in tests
 const originalConsole = { ...console };
 beforeAll(() => {
@@ -53,21 +57,17 @@ describe('createLLMProvider', () => {
 describe('MistralProvider', () => {
   let provider;
   const mockApiKey = 'test-api-key';
-  const mockFetch = jest.fn();
 
   beforeEach(() => {
     provider = new MistralProvider(mockApiKey);
-    // Reset and re-mock fetch for each test
-    jest.resetModules();
-    jest.mock('node-fetch', () => mockFetch);
-    mockFetch.mockReset();
+    fetch.mockReset();
   });
 
   test('should handle API errors gracefully', async () => {
     const messages = [{ role: 'user', content: 'test' }];
     
     // Mock a failed response
-    mockFetch.mockResolvedValue({
+    fetch.mockResolvedValue({
       ok: false,
       status: 401,
       text: async () => JSON.stringify({
@@ -139,7 +139,7 @@ describe('OpenRouterProvider', () => {
     originalEnv = process.env.NODE_ENV;
     originalTestSuccess = process.env.TEST_SUCCESS;
     provider = new OpenRouterProvider(mockApiKey, mockSiteUrl, mockSiteName);
-    global.fetch = jest.fn();
+    fetch.mockReset();
     process.env.NODE_ENV = 'test';
     delete process.env.TEST_SUCCESS;
   });
@@ -147,7 +147,6 @@ describe('OpenRouterProvider', () => {
   afterEach(() => {
     process.env.NODE_ENV = originalEnv;
     process.env.TEST_SUCCESS = originalTestSuccess;
-    jest.resetAllMocks();
   });
 
   it('initializes with API key and site info', () => {
@@ -201,18 +200,15 @@ describe('OpenRouterProvider', () => {
       body: JSON.stringify(expectedBody)
     };
 
-    // Mock fetch using spyOn
-    const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue(mockResponse);
+    fetch.mockResolvedValue(mockResponse);
 
     const result = await provider.makeRequest(messages, tools);
     
-    expect(fetchSpy).toHaveBeenCalledWith(
+    expect(fetch).toHaveBeenCalledWith(
       'https://openrouter.ai/api/v1/chat/completions',
       expectedOptions
     );
     expect(result).toEqual(mockResponseData);
-
-    fetchSpy.mockRestore();
   });
 
   it('handles rate limit errors gracefully in test mode', async () => {
@@ -225,7 +221,7 @@ describe('OpenRouterProvider', () => {
       json: () => Promise.resolve({ error: 'Rate limit exceeded' })
     };
     
-    global.fetch.mockResolvedValue(rateLimitResponse);
+    fetch.mockResolvedValue(rateLimitResponse);
 
     const result = await provider.makeRequest(messages);
     expect(result).toEqual({
@@ -247,7 +243,7 @@ describe('OpenRouterProvider', () => {
       json: () => Promise.resolve({ error: 'Unauthorized' })
     };
     
-    global.fetch.mockResolvedValue(errorResponse);
+    fetch.mockResolvedValue(errorResponse);
 
     const result = await provider.makeRequest([{ role: 'user', content: 'test' }]);
     expect(result).toEqual({
@@ -271,7 +267,7 @@ describe('TogetherProvider', () => {
     originalEnv = process.env.NODE_ENV;
     originalTestSuccess = process.env.TEST_SUCCESS;
     provider = new TogetherProvider(mockApiKey);
-    global.fetch = jest.fn();
+    fetch.mockReset();
     process.env.NODE_ENV = 'test';
     delete process.env.TEST_SUCCESS;
   });
@@ -279,7 +275,6 @@ describe('TogetherProvider', () => {
   afterEach(() => {
     process.env.NODE_ENV = originalEnv;
     process.env.TEST_SUCCESS = originalTestSuccess;
-    jest.resetAllMocks();
   });
 
   it('initializes with API key', () => {
@@ -329,18 +324,15 @@ describe('TogetherProvider', () => {
       body: JSON.stringify(expectedBody)
     };
 
-    // Mock fetch using spyOn
-    const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue(mockResponse);
+    fetch.mockResolvedValue(mockResponse);
 
     const result = await provider.makeRequest(messages, tools);
     
-    expect(fetchSpy).toHaveBeenCalledWith(
+    expect(fetch).toHaveBeenCalledWith(
       'https://api.together.xyz/v1/chat/completions',
       expectedOptions
     );
     expect(result).toEqual(mockResponseData);
-
-    fetchSpy.mockRestore();
   });
 
   it('handles rate limit errors gracefully in test mode', async () => {
@@ -353,7 +345,7 @@ describe('TogetherProvider', () => {
       json: () => Promise.resolve({ error: 'Rate limit exceeded' })
     };
     
-    global.fetch.mockResolvedValue(rateLimitResponse);
+    fetch.mockResolvedValue(rateLimitResponse);
 
     const result = await provider.makeRequest(messages);
     expect(result).toEqual({
@@ -375,7 +367,7 @@ describe('TogetherProvider', () => {
       json: () => Promise.resolve({ error: 'Unauthorized' })
     };
     
-    global.fetch.mockResolvedValue(errorResponse);
+    fetch.mockResolvedValue(errorResponse);
 
     const result = await provider.makeRequest([{ role: 'user', content: 'test' }]);
     expect(result).toEqual({
