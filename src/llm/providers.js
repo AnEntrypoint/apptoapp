@@ -177,8 +177,9 @@ class OpenRouterProvider {
           // In test mode, handle errors based on environment variables
           if (process.env.NODE_ENV === 'test') {
             if (process.env.TEST_SUCCESS === 'true') {
-              // For success test, don't throw error
+              // For success test, proceed with normal response handling
               if (!responseData?.choices?.[0]?.message?.content) {
+                console.error('Invalid response data:', responseData);
                 throw new Error('Invalid response format from OpenRouter API');
               }
               return responseData.choices[0].message.content;

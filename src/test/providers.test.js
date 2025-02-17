@@ -155,19 +155,21 @@ describe('OpenRouterProvider', () => {
     const messages = [{ role: 'user', content: 'test' }];
     const tools = [];
     
+    const mockResponseData = {
+      id: 'test-id',
+      model: 'deepseek-r1',
+      choices: [{
+        message: {
+          role: 'assistant',
+          content: 'test response'
+        }
+      }]
+    };
+
     const mockResponse = {
       ok: true,
       status: 200,
-      json: () => Promise.resolve({
-        id: 'test-id',
-        model: 'deepseek-r1',
-        choices: [{
-          message: {
-            role: 'assistant',
-            content: 'test response'
-          }
-        }]
-      })
+      json: () => Promise.resolve(mockResponseData)
     };
 
     const expectedBody = {

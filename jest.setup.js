@@ -88,14 +88,15 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
-// Prevent actual process.exit in tests
+// Mock process.exit to prevent tests from exiting
 const originalExit = process.exit;
 process.exit = (code) => {
-  console.warn(`Process exit called with code ${code}, but prevented in test environment`);
+  // Don't log warnings in tests
+  process.exitCode = code;
   return undefined;
 };
 
-// Restore original process.exit after tests
+// Restore original process.exit after all tests
 afterAll(() => {
   process.exit = originalExit;
 });
