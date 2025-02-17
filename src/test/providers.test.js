@@ -165,12 +165,6 @@ describe('OpenRouterProvider', () => {
       text: () => Promise.resolve(JSON.stringify(mockResponse))
     };
 
-    global.fetch.mockResolvedValue(response);
-
-    await expect(provider.makeRequest(messages, tools))
-      .rejects
-      .toThrow('429 Too Many Requests');
-
     const expectedBody = {
       model: 'deepseek/deepseek-r1:free',
       messages,
@@ -180,9 +174,9 @@ describe('OpenRouterProvider', () => {
       stream: false
     };
 
-    expect(global.fetch).toHaveBeenCalledWith(
-      'https://openrouter.ai/api/v1/chat/completions',
-      {
+    global.fetch.mockImplementation(async (url, options) => {
+      expect(url).toBe('https://openrouter.ai/api/v1/chat/completions');
+      expect(options).toEqual({
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${mockApiKey}`,
@@ -191,8 +185,15 @@ describe('OpenRouterProvider', () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(expectedBody)
-      }
-    );
+      });
+      return response;
+    });
+
+    await expect(provider.makeRequest(messages, tools))
+      .rejects
+      .toThrow('429 Too Many Requests');
+
+    expect(global.fetch).toHaveBeenCalled();
   });
 
   it('handles API errors gracefully in test mode', async () => {
