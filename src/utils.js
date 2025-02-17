@@ -88,10 +88,23 @@ async function loadNoContentsPatterns(ignoreFile = '.nocontents') {
   return ig;
 }
 
-async function makeApiRequest(messages, tools, apiKey, endpoint, model = 'mistral') {
+async function makeApiRequest(messages, tools, apiKey, endpoint, model = 'groq') {
   console.log(`Using ${model} model`);
   
-  const provider = createLLMProvider(model, apiKey);
+  let provider;
+  try {
+    provider = createLLMProvider(model, apiKey);
+  } catch (error) {
+    // If Groq fails, try falling back to Mistral
+    if (model === 'groq') {
+      logger.warn('Failed to initialize Groq provider, falling back to Mistral');
+      model = 'mistral';
+      provider = createLLMProvider(model, process.env.MISTRAL_API_KEY);
+    } else {
+      throw error;
+    }
+  }
+  
   logger.info(`Using ${model} provider for API request...`);
   
   try {

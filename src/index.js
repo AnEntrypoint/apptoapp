@@ -140,7 +140,7 @@ let attempts = 0;
 const summaryBuffer = [];
 const cliBuffer = [];
 
-async function main(instruction, errors, model = 'mistral') {
+async function main(instruction, errors, model = 'groq') {
   console.log('Using model:', model);
   let retryCount = 0;
   const MAX_RETRIES = 3;
@@ -152,16 +152,17 @@ async function main(instruction, errors, model = 'mistral') {
       instruction = 'Run project tests and verify setup';
     }
 
-    // Validate model selection
-    if (!['mistral', 'groq'].includes(model)) {
-      logger.warn(`Unsupported model ${model}, falling back to mistral`);
+    // Try Groq first, fall back to Mistral if needed
+    let apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey && model === 'groq') {
+      logger.warn('No Groq API key found, falling back to Mistral');
       model = 'mistral';
+      apiKey = process.env.MISTRAL_API_KEY;
     }
 
-    // Validate API keys
-    const apiKey = model === 'groq' ? process.env.GROQ_API_KEY : process.env.MISTRAL_API_KEY;
+    // Final validation
     if (!apiKey) {
-      throw new Error(`No API key found for ${model} provider`);
+      throw new Error('No API key found for any provider');
     }
 
     const files = await getFiles();
@@ -182,47 +183,15 @@ async function main(instruction, errors, model = 'mistral') {
         cmdhistory.unshift(newcmdhistory);
       }
 
-      // Add deduplication function
-      async function deduplicateContentWithLLM(content) {
-        try {
-          logger.debug('Deduplicating summary buffer (length:', content.length, ')');
-          const response = await makeApiRequest(
-            [{
-              role: "system",
-              content: "Remove duplicate lines from this content while maintaining order. Only respond with the deduplicated text."
-            }, {
-              role: "user",
-              content: Array.isArray(content) ? content.join('\n') : content
-            }],
-            [],
-            model === 'groq' ? process.env.GROQ_API_KEY : process.env.MISTRAL_API_KEY,
-            model === 'groq' ? undefined : process.env.MISTRAL_CHAT_ENDPOINT,
-            model
-          );
-          const cleaned = response.choices[0].message.content;
-          return cleaned.split('\n').filter(l => l.trim());
-        } catch (error) {
-          logger.error(`Deduplication failed with ${model}:`, error.message);
-          logger.debug('Falling back to original content');
-          return Array.isArray(content) ? content : [content];
-        }
-      }
-
-      // Process summary buffer before using
-      /*let processedHistory = [];
+      // Process summary buffer before using - simplified without deduplication
       if (summaryBuffer.length > 0) {
-        logger.debug('Pre-processing summary buffer (original length:', summaryBuffer.join('\n').length, ')');
-        try {
-          if (!process.env.MISTRAL_API_KEY) throw new Error('No API key for deduplication');
-          processedHistory = await deduplicateContentWithLLM([...new Set(summaryBuffer)]);
-          summaryBuffer.length = 0;
-          summaryBuffer.push(...processedHistory);
-          logger.debug('Deduplicated summary buffer (new length:', processedHistory.length, ')');
-        } catch (error) {
-          logger.error('Summary processing error:', error.message);
-          processedHistory = summaryBuffer;
-        }
-      }*/
+        logger.debug('Processing summary buffer (length:', summaryBuffer.length, ')');
+        // Keep only unique entries while maintaining order
+        const uniqueEntries = [...new Set(summaryBuffer)];
+        summaryBuffer.length = 0;
+        summaryBuffer.push(...uniqueEntries);
+        logger.debug('Processed summary buffer (new length:', summaryBuffer.length, ')');
+      }
 
       function safeExecSync(command) {
         try {
@@ -477,8 +446,8 @@ program
     if (options && options.model) {
       currentModel = options.model;
     } else {
-      console.log('Using default Mistral model');
-      currentModel = 'mistral';
+      console.log('Using default Groq model');
+      currentModel = 'groq';
     }
     main(instruction).catch((error) => {
       console.error(error)
