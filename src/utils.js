@@ -88,7 +88,7 @@ async function loadNoContentsPatterns(ignoreFile = '.nocontents') {
   return ig;
 }
 
-async function makeApiRequest(messages, tools, apiKey, endpoint, model = 'groq') {
+async function makeApiRequest(messages, tools, apiKey, endpoint, model = 'groq', onModelChange = null) {
   console.log(`Using ${model} model at endpoint: ${endpoint || 'default'}`);
   
   let provider;
@@ -102,12 +102,40 @@ async function makeApiRequest(messages, tools, apiKey, endpoint, model = 'groq')
     } catch (error) {
       logger.error('Error writing to lastresponse.txt:', error);
     }
+
+    // Check for upgradeModel tag in response
+    if (response?.choices?.[0]?.message?.content) {
+      const content = response.choices[0].message.content;
+      const upgradeMatch = content.match(/<upgradeModel provider="([^"]+)">/);
+      if (upgradeMatch) {
+        const newProvider = upgradeMatch[1];
+        logger.info(`Upgrading model to ${newProvider}`);
+        
+        // Check if we have the API key for the new provider
+        const newApiKey = process.env[`${newProvider.toUpperCase()}_API_KEY`];
+        if (newApiKey) {
+          // Update the current model via callback before making the new request
+          if (onModelChange) {
+            await onModelChange(newProvider);
+          }
+          provider = createLLMProvider(newProvider, newApiKey, endpoint);
+          const newResponse = await provider.makeRequest(messages, tools);
+          return newResponse;
+        } else {
+          logger.warn(`No API key found for ${newProvider}, continuing with current provider`);
+        }
+      }
+    }
     
     return response;
   } catch (error) {
     // If Groq fails, try falling back to Mistral
     if (model === 'groq') {
       logger.warn('Failed with Groq provider, falling back to Mistral');
+      // Update the current model via callback before making the new request
+      if (onModelChange) {
+        await onModelChange('mistral');
+      }
       model = 'mistral';
       try {
         provider = createLLMProvider(model, process.env.MISTRAL_API_KEY, endpoint);

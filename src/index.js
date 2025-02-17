@@ -9,7 +9,16 @@ const path = require('path');
 const { program } = require('commander');
 const logger = require('./utils/logger');
 dotenv.config();
-let currentModel;
+let currentModel = 'mistral';
+
+function setCurrentModel(model) {
+  console.log('Setting current model to:', model);
+  currentModel = model;
+}
+
+function getCurrentModel() {
+  return currentModel;
+}
 
 function handleSpecialCommands(input) {
   // Function implementation
@@ -198,8 +207,24 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
         [],
         model === 'mistral' ? process.env.MISTRAL_API_KEY : process.env.GROQ_API_KEY,
         model === 'mistral' ? process.env.MISTRAL_CHAT_ENDPOINT : process.env.GROQ_CHAT_ENDPOINT,
-        model
+        getCurrentModel(),
+        (newModel) => {
+          logger.info(`Updating model from ${getCurrentModel()} to ${newModel}`);
+          setCurrentModel(newModel);
+        }
       );
+
+      // Check if the response indicates a model upgrade
+      if (response?.choices?.[0]?.message?.content) {
+        const content = response.choices[0].message.content;
+        const upgradeMatch = content.match(/<upgradeModel provider="([^"]+)">/);
+        if (upgradeMatch) {
+          const newModel = upgradeMatch[1];
+          logger.info(`Model upgrade requested to ${newModel}`);
+          setCurrentModel(newModel);
+        }
+      }
+
       return response.choices[0].message.content;
     } catch (error) {
       logger.error(`API request failed (attempt ${retryCount + 1}/${MAX_RETRIES}):`, error);
@@ -219,7 +244,7 @@ async function main(instruction, errors, model = 'mistral') {
   let retryCount = 0;
   const MAX_RETRIES = 3;
   const MAX_ATTEMPTS = 20;
-  let currentModel = model;
+  setCurrentModel(model);
 
   try {
     if (!instruction || instruction.trim() === '') {
@@ -237,11 +262,11 @@ async function main(instruction, errors, model = 'mistral') {
         const openrouterKey = process.env.OPENROUTER_API_KEY;
         if (openrouterKey) {
           logger.info('Found OpenRouter API key, using OpenRouter');
-          model = 'openrouter';
+          setCurrentModel('openrouter');
           apiKey = openrouterKey;
         } else if (mistralKey) {
           logger.info('Found Mistral API key, falling back to Mistral');
-          model = 'mistral';
+          setCurrentModel('mistral');
           apiKey = mistralKey;
         }
       }
@@ -253,7 +278,7 @@ async function main(instruction, errors, model = 'mistral') {
  
     // Final validation
     if (!apiKey) {
-      throw new Error(`No API key found for ${model} provider`);
+      throw new Error(`No API key found for ${getCurrentModel()} provider`);
     }
 
     const files = await getFiles();
@@ -266,7 +291,7 @@ async function main(instruction, errors, model = 'mistral') {
       return;
     }
 
-    const brainstormedTasks = await brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS, errors);
+    const brainstormedTasks = await brainstormTaskWithLLM(instruction, getCurrentModel(), attempts, MAX_ATTEMPTS, errors);
     if (!brainstormedTasks || typeof brainstormedTasks !== 'string') {
       if (process.env.NODE_ENV === 'test') {
         return; // In test environment, just return
@@ -297,7 +322,7 @@ async function main(instruction, errors, model = 'mistral') {
     const upgradeModelTag = brainstormedTasks.match(/<upgradeModel>/);
     if (upgradeModelTag) {
       logger.warn('Upgrade model tag found, switching to Groq');
-      currentModel = 'groq';
+      setCurrentModel('groq');
       apiKey = process.env.GROQ_API_KEY;
     }
 
@@ -366,7 +391,7 @@ async function main(instruction, errors, model = 'mistral') {
         logger.info(`Retrying main function (attempt ${attempts}/${MAX_ATTEMPTS})...`);
         setTimeout(() => {
           main(process.argv[2], error.message, currentModel);
-        }, 1000);
+        }, 0);
       } else {
         throw new Error('Max attempts reached');
       }
@@ -404,5 +429,6 @@ program.parse();
 
 module.exports = {
   main,
-  getCurrentModel
+  getCurrentModel: () => currentModel,
+  setCurrentModel
 };
