@@ -210,7 +210,7 @@ class OpenRouterProvider {
       } catch (error) {
         console.error('OpenRouter request failed:', error.message);
         
-        // In test mode, handle errors based on environment variables
+        // In test mode without TEST_SUCCESS, always throw rate limit error
         if (process.env.NODE_ENV === 'test' && !process.env.TEST_SUCCESS) {
           throw new Error('429 Too Many Requests');
         }
