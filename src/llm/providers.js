@@ -171,6 +171,7 @@ class OpenRouterProvider {
         // In test mode with TEST_SUCCESS, bypass response.ok check
         if (process.env.NODE_ENV === 'test' && process.env.TEST_SUCCESS === 'true') {
           if (!responseData?.choices?.[0]?.message?.content) {
+            console.error('Invalid response data:', responseData);
             throw new Error('Invalid response format from OpenRouter API');
           }
           return responseData.choices[0].message.content;
@@ -196,6 +197,7 @@ class OpenRouterProvider {
         }
 
         if (!responseData?.choices?.[0]?.message?.content) {
+          console.error('Invalid response data:', responseData);
           throw new Error('Invalid response format from OpenRouter API');
         }
 

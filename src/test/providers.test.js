@@ -195,7 +195,10 @@ describe('OpenRouterProvider', () => {
       body: JSON.stringify(expectedBody)
     };
 
-    global.fetch = jest.fn().mockResolvedValue(mockResponse);
+    // Mock fetch to return the mock response
+    global.fetch = jest.fn().mockImplementation(async () => {
+      return Promise.resolve(mockResponse);
+    });
 
     const result = await provider.makeRequest(messages, tools);
     
