@@ -459,5 +459,7 @@ program
 program.parse();
 
 module.exports = {
-  main
+  main,
+  currentModel: () => currentModel,
+  brainstormTaskWithLLM
 };

@@ -1,4 +1,4 @@
-const { main } = require('../index.js');
+const { main, currentModel, brainstormTaskWithLLM } = require('../index');
 const { loadIgnorePatterns } = require('../utils');
 const fsp = require('fs').promises;
 const { clearDiffBuffer } = require('../files');
@@ -95,11 +95,12 @@ describe('main', () => {
   });
 
   it('should handle upgradeModel tag with fallback chain', async () => {
-    // Mock the brainstormTaskWithLLM function to return an upgradeModel tag
-    const mockBrainstormTaskWithLLM = jest.fn().mockResolvedValue(`
-      <upgradeModel></upgradeModel>
-      <text>Testing upgrade model tag</text>
-    `);
+    // Mock brainstormTaskWithLLM to return an upgradeModel tag
+    const mockBrainstorm = jest.spyOn(brainstormTaskWithLLM, 'mockImplementation')
+      .mockResolvedValue(`
+        <upgradeModel></upgradeModel>
+        <text>Testing upgrade model tag</text>
+      `);
 
     // Save original environment variables
     const originalEnv = {
@@ -114,17 +115,17 @@ describe('main', () => {
     process.env.GROQ_API_KEY = 'test-groq-key';
 
     const result1 = await main('test instruction', null, 'mistral');
-    expect(currentModel).toBe('together');
+    expect(currentModel()).toBe('together');
 
     // Test case 2: Together.ai fails, OpenRouter succeeds
     delete process.env.TOGETHER_API_KEY;
     const result2 = await main('test instruction', null, 'mistral');
-    expect(currentModel).toBe('openrouter');
+    expect(currentModel()).toBe('openrouter');
 
     // Test case 3: Together.ai and OpenRouter fail, Groq succeeds
     delete process.env.OPENROUTER_API_KEY;
     const result3 = await main('test instruction', null, 'mistral');
-    expect(currentModel).toBe('groq');
+    expect(currentModel()).toBe('groq');
 
     // Test case 4: All providers fail
     delete process.env.GROQ_API_KEY;
@@ -136,5 +137,7 @@ describe('main', () => {
     process.env.TOGETHER_API_KEY = originalEnv.TOGETHER_API_KEY;
     process.env.OPENROUTER_API_KEY = originalEnv.OPENROUTER_API_KEY;
     process.env.GROQ_API_KEY = originalEnv.GROQ_API_KEY;
+
+    mockBrainstorm.mockRestore();
   });
 });
