@@ -107,9 +107,15 @@ class GroqProvider {
           stop: null
         };
 
+        if (tools.length > 0) {
+          requestBody.tools = tools;
+          requestBody.tool_choice = 'auto';
+        }
+
         console.log('Sending request to Groq:', {
           model: requestBody.model,
-          messageCount: messages.length
+          messageCount: messages.length,
+          toolCount: tools.length
         });
 
         const chatCompletion = await this.groq.chat.completions.create(requestBody);
