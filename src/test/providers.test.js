@@ -76,7 +76,8 @@ describe('LLM Providers', () => {
     });
 
     test('should handle API errors', async () => {
-      global.fetch.mockImplementationOnce(() =>
+      // Override the default mock for this test
+      global.fetch.mockImplementation(() =>
         Promise.resolve({
           ok: false,
           status: 401,

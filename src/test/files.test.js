@@ -73,13 +73,16 @@ describe('diff functionality', () => {
     // Make a change
     fs.writeFileSync('test.txt', 'modified content');
 
-    // Create and commit a file change
+    // Stage the changes
     execSync('git add test.txt');
-    execSync('git commit -m "test change"');
 
-    await generateDiff();
+    // Generate the diff
+    const diffResult = await generateDiff();
+    expect(diffResult).toBeTruthy();
+
+    // Get the XML buffer
     const xml = getDiffBufferStatus();
-
+    expect(xml).toBeTruthy();
     expect(xml).toContain('<diff attempt="1">');
     expect(xml).toContain('diff --git');
     expect(xml).toContain('modified content');
@@ -88,6 +91,7 @@ describe('diff functionality', () => {
   test('should clear diff buffer', async () => {
     // Make a change and generate diff
     fs.writeFileSync('test.txt', 'modified content');
+    execSync('git add test.txt');
     await generateDiff();
 
     // Clear buffer
