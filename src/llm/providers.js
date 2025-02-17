@@ -150,57 +150,64 @@ class OpenRouterProvider {
   }
 
   async makeRequest(messages, tools = []) {
-    return retryWithBackoff(async () => {
-      console.log('Making OpenRouter API request');
-      
-      try {
-        const requestBody = {
-          model: process.env.OPENROUTER_MODEL || 'deepseek/deepseek-r1:free',
-          messages,
-          temperature: 0.6,
-          max_tokens: 32768,
-          top_p: 0.95,
-          stream: false
-        };
+    console.log('Making OpenRouter API request');
+    
+    try {
+      const requestBody = {
+        model: process.env.OPENROUTER_MODEL || 'deepseek/deepseek-r1:free',
+        messages,
+        temperature: 0.6,
+        max_tokens: 32768,
+        top_p: 0.95,
+        stream: false
+      };
 
-        if (tools.length > 0) {
-          requestBody.tools = tools;
-          requestBody.tool_choice = 'auto';
-        }
-
-        console.log('Sending request to OpenRouter:', {
-          model: requestBody.model,
-          messageCount: messages.length,
-          toolCount: tools.length
-        });
-
-        const response = await fetch(this.endpoint, {
-          method: 'POST',
-          headers: this.headers,
-          body: JSON.stringify(requestBody)
-        });
-
-        if (!response.ok) {
-          const responseText = await response.text();
-          console.error('OpenRouter API Error:', {
-            status: response.status,
-            bodyPreview: responseText.slice(0, 200)
-          });
-          throw new Error(`API Error ${response.status}: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        console.log('OpenRouter API Response:', {
-          model: data.model,
-          contentLength: data.choices[0]?.message?.content?.length || 0
-        });
-
-        return data;
-      } catch (error) {
-        console.error('OpenRouter request failed:', error.message);
-        throw error;
+      if (tools.length > 0) {
+        requestBody.tools = tools;
+        requestBody.tool_choice = 'auto';
       }
-    });
+
+      console.log('Sending request to OpenRouter:', {
+        model: requestBody.model,
+        messageCount: messages.length,
+        toolCount: tools.length
+      });
+
+      const response = await fetch(this.endpoint, {
+        method: 'POST',
+        headers: this.headers,
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        const responseText = await response.text();
+        console.error('OpenRouter API Error:', {
+          status: response.status,
+          bodyPreview: responseText.slice(0, 200)
+        });
+
+        if (response.status === 429) {
+          // Handle rate limit error
+          if (process.env.NODE_ENV !== 'test') {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          }
+          return this.makeRequest(messages, tools);
+        }
+
+        throw new Error(`API Error ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log('OpenRouter API Response:', {
+        model: data.model,
+        contentLength: data.choices[0]?.message?.content?.length || 0
+      });
+
+      return data;
+    } catch (error) {
+      console.error('OpenRouter request failed:', error.message);
+      throw error;
+    }
   }
 }
 
