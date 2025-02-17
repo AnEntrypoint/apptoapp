@@ -125,12 +125,14 @@ describe('GroqProvider', () => {
 describe('OpenRouterProvider', () => {
   let provider;
   let originalEnv;
+  let originalTestSuccess;
   const mockApiKey = 'test-api-key';
   const mockSiteUrl = 'https://github.com/anEntrypoint/apptoapp';
   const mockSiteName = 'apptoapp';
 
   beforeEach(() => {
     originalEnv = process.env.NODE_ENV;
+    originalTestSuccess = process.env.TEST_SUCCESS;
     provider = new OpenRouterProvider(mockApiKey, mockSiteUrl, mockSiteName);
     global.fetch = jest.fn();
     process.env.NODE_ENV = 'test';
@@ -139,7 +141,7 @@ describe('OpenRouterProvider', () => {
 
   afterEach(() => {
     process.env.NODE_ENV = originalEnv;
-    delete process.env.TEST_SUCCESS;
+    process.env.TEST_SUCCESS = originalTestSuccess;
     jest.resetAllMocks();
   });
 
