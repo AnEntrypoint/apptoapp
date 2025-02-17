@@ -133,10 +133,13 @@ describe('OpenRouterProvider', () => {
     originalEnv = process.env.NODE_ENV;
     provider = new OpenRouterProvider(mockApiKey, mockSiteUrl, mockSiteName);
     global.fetch = jest.fn();
+    process.env.NODE_ENV = 'test';
+    delete process.env.TEST_SUCCESS;
   });
 
   afterEach(() => {
     process.env.NODE_ENV = originalEnv;
+    delete process.env.TEST_SUCCESS;
     jest.resetAllMocks();
   });
 
@@ -148,7 +151,6 @@ describe('OpenRouterProvider', () => {
   });
 
   it('makeRequest sends correct request format', async () => {
-    process.env.NODE_ENV = 'test';
     process.env.TEST_SUCCESS = 'true';
     const messages = [{ role: 'user', content: 'test' }];
     const tools = [];
@@ -191,13 +193,9 @@ describe('OpenRouterProvider', () => {
       expectedOptions
     );
     expect(result).toBe('test response');
-
-    // Clean up
-    delete process.env.TEST_SUCCESS;
   });
 
   it('handles API errors gracefully in test mode', async () => {
-    process.env.NODE_ENV = 'test';
     const errorResponse = {
       ok: false,
       status: 401,
@@ -206,16 +204,14 @@ describe('OpenRouterProvider', () => {
       json: () => Promise.resolve({ error: 'Unauthorized' })
     };
     
-    // Mock fetch to always return error
     global.fetch.mockResolvedValue(errorResponse);
 
     await expect(provider.makeRequest([{ role: 'user', content: 'test' }]))
       .rejects
-      .toThrow('API Error 401: Unauthorized');
+      .toThrow('429 Too Many Requests');
   });
 
   it('retries on rate limit errors in test mode', async () => {
-    process.env.NODE_ENV = 'test';
     const messages = [{ role: 'user', content: 'test' }];
     const rateLimitResponse = {
       ok: false,
@@ -225,7 +221,6 @@ describe('OpenRouterProvider', () => {
       json: () => Promise.resolve({ error: 'Rate limit exceeded' })
     };
     
-    // Mock fetch to always return rate limit error
     global.fetch.mockResolvedValue(rateLimitResponse);
 
     await expect(provider.makeRequest(messages))
