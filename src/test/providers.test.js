@@ -21,7 +21,8 @@ jest.mock('node-fetch', () => jest.fn(() =>
         message: {
           content: 'Test response',
           role: 'assistant'
-        }
+        },
+        finish_reason: 'stop'
       }],
       object: 'chat.completion',
       model: 'codestral-latest',
@@ -35,6 +36,23 @@ describe('LLM Providers', () => {
     jest.clearAllMocks();
     // Reset fetch mock
     global.fetch.mockReset();
+    // Set default successful response
+    global.fetch.mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({
+          choices: [{
+            message: {
+              content: 'Test response',
+              role: 'assistant'
+            },
+            finish_reason: 'stop'
+          }],
+          object: 'chat.completion',
+          model: 'codestral-latest',
+        })
+      })
+    );
   });
 
   describe('MistralProvider', () => {
@@ -58,10 +76,11 @@ describe('LLM Providers', () => {
     });
 
     test('should handle API errors', async () => {
-      fetch.mockImplementationOnce(() =>
+      global.fetch.mockImplementationOnce(() =>
         Promise.resolve({
           ok: false,
           status: 401,
+          statusText: 'Unauthorized',
           json: () => Promise.resolve({ error: 'Unauthorized' })
         })
       );
