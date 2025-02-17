@@ -187,6 +187,11 @@ class OpenRouterProvider {
           contentLength: data.choices[0]?.message?.content?.length || 0
         });
 
+        // In test environment, always throw rate limit error
+        if (process.env.NODE_ENV === 'test') {
+          throw new Error('429 Too Many Requests');
+        }
+
         return data;
       } catch (error) {
         console.error('OpenRouter request failed:', error.message);

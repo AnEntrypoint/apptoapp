@@ -10,11 +10,6 @@ async function retryWithBackoff(operation, maxRetries = 5, initialDelay = 2000) 
     } catch (error) {
       lastError = error;
       
-      // In test mode, always throw on first attempt
-      if (process.env.NODE_ENV === 'test') {
-        throw new Error('429 Too Many Requests');
-      }
-      
       if (attempt === maxRetries) throw error;
       
       if (error.message.includes('429') || 
