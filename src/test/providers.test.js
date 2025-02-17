@@ -56,11 +56,11 @@ describe('LLM Providers', () => {
   });
 
   describe('MistralProvider', () => {
-    const apiKey = 'mistral-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
     let provider;
+    const mockApiKey = 'test-api-key';
 
     beforeEach(() => {
-      provider = new MistralProvider(apiKey);
+      provider = new MistralProvider(mockApiKey);
     });
 
     test('should make request with correct parameters', async () => {
@@ -86,12 +86,7 @@ describe('LLM Providers', () => {
         })
       );
 
-      try {
-        await provider.makeRequest(messages);
-        throw new Error('Expected an error to be thrown');
-      } catch (error) {
-        expect(error.message).toContain('API Error');
-      }
+      await expect(provider.makeRequest(messages)).rejects.toThrow('API Error');
     });
   });
 
