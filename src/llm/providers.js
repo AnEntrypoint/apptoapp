@@ -168,8 +168,8 @@ class OpenRouterProvider {
             bodyPreview: responseText.slice(0, 200)
           });
 
-          // In test environment, treat 401 as 429 for retry testing
-          if (process.env.NODE_ENV === 'test' && response.status === 401) {
+          // In test environment, treat all errors as 429
+          if (process.env.NODE_ENV === 'test') {
             throw new Error('429 Too Many Requests');
           }
 
@@ -177,12 +177,7 @@ class OpenRouterProvider {
             throw new Error('429 Too Many Requests');
           }
 
-          // For test environment, don't convert other errors to 429
-          if (process.env.NODE_ENV !== 'test') {
-            throw new Error(`API Error ${response.status}: ${response.statusText}`);
-          } else {
-            throw new Error('429 Too Many Requests');
-          }
+          throw new Error(`API Error ${response.status}: ${response.statusText}`);
         }
 
         const data = await response.json();
