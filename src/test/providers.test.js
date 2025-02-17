@@ -185,18 +185,18 @@ describe('OpenRouterProvider', () => {
       body: JSON.stringify(expectedBody)
     };
 
-    global.fetch.mockImplementation(async (url, options) => {
+    // Mock fetch to return error and verify call
+    global.fetch = jest.fn().mockImplementation(async (url, options) => {
       expect(url).toBe('https://openrouter.ai/api/v1/chat/completions');
       expect(options).toEqual(expectedOptions);
       return response;
     });
 
-    try {
-      await provider.makeRequest(messages, tools);
-    } catch (error) {
-      expect(error.message).toBe('429 Too Many Requests');
-      expect(global.fetch).toHaveBeenCalled();
-    }
+    await expect(provider.makeRequest(messages, tools))
+      .rejects
+      .toThrow('429 Too Many Requests');
+
+    expect(global.fetch).toHaveBeenCalled();
   });
 
   it('handles API errors gracefully in test mode', async () => {

@@ -74,7 +74,7 @@ async function runBuild() {
         const cleanupTimer = setTimeout(() => {
           logger.warn('Final force exit');
           process.exit(1);
-        }, 30000); // 30 second cleanup window
+        }, 3000); // 30 second cleanup window
 
         killWithRetry(pid).finally(() => {
           clearTimeout(cleanupTimer);
@@ -88,26 +88,9 @@ async function runBuild() {
     // Add universal timeout handling regardless of NODE_ENV
     timeoutId = setTimeout(handleTimeout, TEST_TIMEOUT);
 
-    // Add forced process termination for all environments
-    const forceKill = () => {
-      logger.warn('Initiating forced process termination');
-      if (testProcess?.childProcess) {
-        testProcess.childProcess.kill('SIGKILL');
-      }
-      // Add final cleanup for child processes
-      setTimeout(() => process.exit(0), 60000);
-    };
-
-    // Add secondary timeout for guaranteed exit
-    const finalExitTimer = setTimeout(() => {
-      logger.error('FINAL FORCED EXIT - PROCESS HUNG');
-      forceKill();
-    }, TEST_TIMEOUT + 5000); // Add 5 second buffer to initial timeout
-
     // Cleanup timers when process completes
     testProcess.finally(() => {
       clearTimeout(timeoutId);
-      clearTimeout(finalExitTimer);
     });
 
     testProcess.then((result) => {
