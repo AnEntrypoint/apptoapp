@@ -172,7 +172,7 @@ describe('OpenRouterProvider', () => {
       ok: true,
       status: 200,
       statusText: 'OK',
-      json: () => Promise.resolve(mockResponseData)
+      json: jest.fn().mockResolvedValue(mockResponseData)
     };
 
     const expectedBody = {
@@ -195,7 +195,7 @@ describe('OpenRouterProvider', () => {
       body: JSON.stringify(expectedBody)
     };
 
-    global.fetch = jest.fn(() => Promise.resolve(mockResponse));
+    global.fetch = jest.fn().mockResolvedValue(mockResponse);
 
     const result = await provider.makeRequest(messages, tools);
     

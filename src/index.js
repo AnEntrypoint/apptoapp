@@ -379,9 +379,11 @@ async function main(instruction, errors, model = 'mistral') {
     process.exitCode = 1;
   } finally {
     // Clean up any remaining handles
-    setTimeout(() => {
-      process.exit(process.exitCode || 0);
-    }, 100);
+    if (process.env.NODE_ENV !== 'test') {
+      setTimeout(() => {
+        process.exit(process.exitCode || 0);
+      }, 100);
+    }
   }
 }
 
