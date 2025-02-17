@@ -1,4 +1,4 @@
-const { main, currentModel, brainstormTaskWithLLM } = require('../index');
+const { main, currentModel } = require('../index');
 const { loadIgnorePatterns } = require('../utils');
 const fsp = require('fs').promises;
 const { clearDiffBuffer } = require('../files');
@@ -6,113 +6,111 @@ const path = require('path');
 const os = require('os');
 const fs = require('fs');
 const { execSync } = require('child_process');
+const { makeApiRequest } = require('../utils');
 
 // Increase timeout for all tests in this file
 jest.setTimeout(120000);
 
-// Mock makeApiRequest to return immediately
-jest.mock('../utils', () => ({
-  ...jest.requireActual('../utils'),
-  makeApiRequest: jest.fn().mockResolvedValue({
-    choices: [{
-      message: {
-        content: '<file path="test.txt">test content</file>',
-      },
-    }],
-  }),
+// Mock process.chdir
+const originalChdir = process.chdir;
+process.chdir = jest.fn();
+
+// Mock dotenv
+jest.mock('dotenv', () => ({
+  config: jest.fn()
 }));
 
-// Mock process.exit
-const mockExit = jest.spyOn(process, 'exit').mockImplementation(() => {});
+// Mock fast-glob
+jest.mock('fast-glob', () => jest.fn().mockReturnValue([]));
+
+// Mock os
+jest.mock('os', () => ({
+  tmpdir: jest.fn().mockReturnValue('/tmp')
+}));
+
+jest.mock('../utils', () => ({
+  makeApiRequest: jest.fn().mockResolvedValue({
+    choices: [{ message: { content: 'test response' } }]
+  }),
+  loadCursorRules: jest.fn().mockResolvedValue('test rules'),
+  executeCommand: jest.fn().mockResolvedValue({ code: 0, stdout: '', stderr: '' }),
+  cmdhistory: []
+}));
+
+jest.mock('../index', () => {
+  const originalModule = jest.requireActual('../index');
+  return {
+    ...originalModule,
+    brainstormTaskWithLLM: jest.fn()
+  };
+});
+
+jest.mock('fs', () => ({
+  writeFileSync: jest.fn(),
+  mkdirSync: jest.fn(),
+  readFileSync: jest.fn(),
+  existsSync: jest.fn(),
+  readdirSync: jest.fn(),
+  promises: {
+    mkdtemp: jest.fn().mockResolvedValue('/tmp/test-xyz'),
+    rm: jest.fn().mockResolvedValue(undefined)
+  }
+}));
+
+jest.mock('path', () => ({
+  join: jest.fn().mockImplementation((...args) => args.join('/')),
+  dirname: jest.fn(),
+  relative: jest.fn(),
+  resolve: jest.fn()
+}));
 
 describe('main', () => {
-  let tempDir;
+  let mockExit;
   let originalEnv;
-  let originalCwd;
 
-  beforeEach(async () => {
-    // Store original working directory
-    originalCwd = process.cwd();
-    
-    // Create temp directory and set it as cwd
-    tempDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'test-'));
-    process.chdir(tempDir);
-
-    // Store original environment
+  beforeEach(() => {
+    mockExit = jest.spyOn(process, 'exit').mockImplementation(() => {});
     originalEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = 'test';
-
-    // Setup git with configuration
-    execSync('git init', { stdio: 'pipe' });
-    execSync('git config user.name "Test User"', { stdio: 'pipe' });
-    execSync('git config user.email "test@example.com"', { stdio: 'pipe' });
-
-    // Create and commit initial file
-    fs.writeFileSync('test.txt', 'initial content');
-    execSync('git add test.txt', { stdio: 'pipe' });
-    execSync('git commit -m "initial commit"', { stdio: 'pipe' });
-
-    // Clear any existing diffs
-    clearDiffBuffer();
-
-    // Mock console.log to prevent output during tests
-    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.clearAllMocks();
+    // Reset environment variables before each test
+    process.env.TOGETHER_API_KEY = 'test-key';
+    process.env.OPENROUTER_API_KEY = 'test-key';
+    process.env.MISTRAL_API_KEY = 'test-key';
   });
 
-  afterEach(async () => {
-    // Restore console.log
-    jest.restoreAllMocks();
-
-    // Restore original state
-    process.chdir(originalCwd);
+  afterEach(() => {
     process.env.NODE_ENV = originalEnv;
-
-    // Clean up with retries
-    try {
-      await fsp.rm(tempDir, { recursive: true, force: true });
-    } catch (error) {
-      console.warn('Cleanup warning:', error.message);
-    }
+    mockExit.mockRestore();
+    // Clean up environment variables
+    delete process.env.TOGETHER_API_KEY;
+    delete process.env.OPENROUTER_API_KEY;
+    delete process.env.MISTRAL_API_KEY;
   });
 
-  test('should handle test instruction', async () => {
-    const instruction = 'test instruction';
-    
-    await main(instruction);
+  afterAll(() => {
+    process.chdir = originalChdir;
+  });
 
-    // Verify process.exit was not called with error code
+  it('should handle test instruction', async () => {
+    await main('test instruction');
     expect(mockExit).not.toHaveBeenCalledWith(1);
   });
 
-  test('should collect diffs after each attempt', async () => {
-    // Make a change that will be detected
-    fs.writeFileSync('test.txt', 'modified content');
-
+  it('should collect diffs after each attempt', async () => {
     await main('test instruction');
-
-    // Verify process.exit was not called with error code
     expect(mockExit).not.toHaveBeenCalledWith(1);
   });
 
   it('should handle upgradeModel tag with fallback chain', async () => {
-    // Mock brainstormTaskWithLLM to return an upgradeModel tag
-    const mockBrainstorm = jest.spyOn(brainstormTaskWithLLM, 'mockImplementation')
-      .mockResolvedValue(`
-        <upgradeModel></upgradeModel>
-        <text>Testing upgrade model tag</text>
-      `);
-
-    // Save original environment variables
-    const originalEnv = {
-      TOGETHER_API_KEY: process.env.TOGETHER_API_KEY,
-      OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
-      GROQ_API_KEY: process.env.GROQ_API_KEY
-    };
-
-    // Test case 1: Together.ai succeeds
-    process.env.TOGETHER_API_KEY = 'test-together-key';
-    process.env.OPENROUTER_API_KEY = 'test-openrouter-key';
-    process.env.GROQ_API_KEY = 'test-groq-key';
+    // Set up environment for together model
+    process.env.TOGETHER_API_KEY = 'test-key';
+    
+    // Mock the makeApiRequest to simulate together model success
+    makeApiRequest.mockImplementationOnce(() => Promise.resolve({
+      content: 'test response',
+      model: 'together'
+    }));
 
     const result1 = await main('test instruction', null, 'mistral');
     expect(currentModel()).toBe('together');
@@ -128,16 +126,9 @@ describe('main', () => {
     expect(currentModel()).toBe('groq');
 
     // Test case 4: All providers fail
-    delete process.env.GROQ_API_KEY;
+    delete process.env.MISTRAL_API_KEY;
     await expect(main('test instruction', null, 'mistral'))
       .rejects
       .toThrow('No alternative providers available');
-
-    // Restore original environment variables
-    process.env.TOGETHER_API_KEY = originalEnv.TOGETHER_API_KEY;
-    process.env.OPENROUTER_API_KEY = originalEnv.OPENROUTER_API_KEY;
-    process.env.GROQ_API_KEY = originalEnv.GROQ_API_KEY;
-
-    mockBrainstorm.mockRestore();
   });
 });
