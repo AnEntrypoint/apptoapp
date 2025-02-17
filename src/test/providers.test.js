@@ -9,6 +9,22 @@ jest.mock('../utils/logger', () => ({
   warn: jest.fn()
 }));
 
+describe('createLLMProvider', () => {
+  test('should create MistralProvider', () => {
+    const provider = createLLMProvider('mistral', 'test-key');
+    expect(provider).toBeInstanceOf(MistralProvider);
+  });
+
+  test('should create GroqProvider', () => {
+    const provider = createLLMProvider('groq', 'test-key');
+    expect(provider).toBeInstanceOf(GroqProvider);
+  });
+
+  test('should throw error for unsupported provider', () => {
+    expect(() => createLLMProvider('unsupported', 'test-key')).toThrow('Unsupported LLM provider');
+  });
+});
+
 describe('MistralProvider', () => {
   let provider;
   const mockApiKey = 'test-api-key';
