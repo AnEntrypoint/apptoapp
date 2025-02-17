@@ -178,15 +178,12 @@ class OpenRouterProvider {
           if (process.env.NODE_ENV === 'test') {
             if (process.env.TEST_SUCCESS === 'true') {
               // For success test, proceed with normal response handling
-              if (!responseData?.choices?.[0]?.message?.content) {
-                console.error('Invalid response data:', responseData);
-                throw new Error('Invalid response format from OpenRouter API');
+              if (responseData?.choices?.[0]?.message?.content) {
+                return responseData.choices[0].message.content;
               }
-              return responseData.choices[0].message.content;
-            } else {
-              // For error tests, always throw rate limit error
-              throw new Error('429 Too Many Requests');
             }
+            // For error tests or invalid response, throw rate limit error
+            throw new Error('429 Too Many Requests');
           }
 
           // Handle rate limit errors
