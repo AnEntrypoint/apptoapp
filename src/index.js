@@ -24,6 +24,9 @@ function handleSpecialCommands(input) {
   // Function implementation
 }
 
+let testResults = {
+};
+
 async function runBuild() {
   let result;
 
@@ -58,6 +61,22 @@ async function runBuild() {
 
       if (result.code !== 0) {
         if (process.env.NODE_ENV === 'test') {
+
+          // Modify the logHandler to capture test results
+          const logHandler = (data) => {
+            logBuffer.push(data);
+            logger.debug(data);
+
+            // Check for test results in the output
+            if (data.includes('Tests:')) {
+              const results = data.match(/(\d+) passed, (\d+) failed/);
+              if (results) {
+                testResults.passed = parseInt(results[1], 10);
+                testResults.failed = parseInt(results[2], 10);
+                logger.info(`Test Results - Passed: ${testResults.passed}, Failed: ${testResults.failed}`);
+              }
+            }
+          };
           resolve(`Test failed with code ${result.code}`);
         } else {
           logger.error('Failed with exit code:', result.code);
@@ -83,16 +102,6 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
     cmdhistory.unshift(newcmdhistory);
   }
 
-  // Process summary buffer before using - simplified without deduplication
-  if (summaryBuffer.length > 0) {
-    logger.debug('Processing summary buffer (length:', summaryBuffer.length, ')');
-    // Keep only unique entries while maintaining order
-    const uniqueEntries = [...new Set(summaryBuffer)];
-    summaryBuffer.length = 0;
-    summaryBuffer.push(...uniqueEntries);
-    logger.debug('Processed summary buffer (new length:', summaryBuffer.length, ')');
-  }
-
   function safeExecSync(command) {
     try {
       return require('child_process').execSync(command, { stdio: 'pipe' }).toString().trim();
@@ -114,6 +123,8 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
     `\n<attempts>This is attempt number ${attempts} of ${MAX_ATTEMPTS} to complete the user instruction: ${instruction} and fix the errors in the logs and tests</attempts>\n`,
     `\n<nodeVersion>${process.version}</nodeVersion>\n`,
     `\n<npmVersion>${safeExecSync('npm -v')}</npmVersion>\n`,
+    `\n<testResults>Passed ${testResults.passed} tests\nFailed to fix ${testResults.failed} tests</testResults>\n`,
+    `\n<builderror>\n${errors}</buildError>\n`,
     `\n<installedDependencies>\n${safeExecSync('npm ls --depth=0')}\n</installedDependencies>\n`,
     `\n<gitStatus>\n${safeExecSync('git status --short 2>&1 || echo "Not a git repository"')}\n</gitStatus>\n`,
     `\n<gitBranch>${safeExecSync('git branch --show-current 2>&1 || echo "No branch"')}</gitBranch>\n`,
@@ -149,6 +160,8 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
         + `Maximise code reuse and generalization\n`
 
         + '\n// Testing & Debugging\n'
+        + `The last build error is in <builderror>\n`
+        + `The last test results are in <testResults>\n`
         + `Write comprehensive unit and integration tests\n`
         + `Use tests to discover and fix bugs\n`
         + `Always try to fix all known errors at once\n`
@@ -324,10 +337,6 @@ async function main(instruction, errors, model = 'mistral') {
     const cliCommands = brainstormedTasks.match(/<cli>([\s\S]*?)<\/cli>/g) || [];
     const summaries = brainstormedTasks.match(/<text>([\s\S]*?)<\/text>/g) || [];
 
-    if (summaries && summaries.length > 0) {
-      summaryBuffer.push(...summaries.map(s => s.replace(/<text>/g, '').replace(/<\/text>/g, '')));
-    }
-
     if (cliCommands && cliCommands.length > 0) {
       cliBuffer.unshift(...cliCommands);
     }
@@ -441,26 +450,16 @@ async function main(instruction, errors, model = 'mistral') {
       if (summaries && summaries.length > 0) {
         console.log(summaryBuffer);
       }
-      await runBuild();
       logger.success('Build successful', cmdhistory);
 
     } catch (error) {
       logger.error('Failed:', error, cmdhistory);
       if (attempts < MAX_ATTEMPTS) {
         attempts++;
-        let todoContent;
-        try {
-          const todoPath = path.join(process.cwd(), 'TODO.txt');
-          if (fs.existsSync(todoPath)) {
-            todoContent = fs.readFileSync(todoPath, 'utf8');
-            logger.info('TODO.txt contents:\n', todoContent);
-            summaryBuffer.push(`${todoContent}`);
-          } else {
-            logger.warn('TODO.txt not found in current directory');
-          }
-        } catch (err) {
-          logger.error('Error reading TODO.txt:', err);
+        if (summaries && summaries.length > 0) {
+          summaryBuffer.push(...summaries.map(s => s.replace(/<text>/g, '').replace(/<\/text>/g, '')));
         }
+        summaryBuffer.push(`Passed ${testResults.passed} tests\nFailed to fix ${testResults.failed} tests`);
         logger.info(`Retrying main function (attempt ${attempts}/${MAX_ATTEMPTS})...`);
         setTimeout(() => {
           main(process.argv[2], error.message, currentModel);
