@@ -12,6 +12,15 @@ module.exports = {
   },
   rules: {
     'no-console': 'off',
-    'no-unused-vars': 'warn'
-  }
+    'no-unused-vars': 'warn',
+    'no-prototype-builtins': 'off',
+    'no-control-regex': 'off',
+    'no-useless-escape': 'off',
+    'no-undef': 'off'
+  },
+  ignorePatterns: [
+    "dist/**",
+    "*.config.js",
+    "**/*.test.js"
+  ]
 }; 

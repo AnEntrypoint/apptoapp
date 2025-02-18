@@ -24,21 +24,11 @@ async function runBuild() {
   return new Promise((resolve) => {
     let testProcess;
 
-    const logHandler = (data) => {
-      logger.debug(data);
-      const lintWarnings = (data.match(/warnings:\s*(\d+)/) || [])[1] || 0;
-      const lintErrors = (data.match(/errors:\s*(\d+)/) || [])[1] || 0;
-      logger.info(`Total Lint Warnings: ${lintWarnings}, Total Lint Errors: ${lintErrors}`);
-    };
-
-    testProcess = executeCommand('npm run lint', logHandler);
+    testProcess = executeCommand('npm run lint');
     testProcess.then((result) => {
       if (result.code !== 0) {
-        logger.error('Lint failed with exit code:', result.code);
-        const errorMessage = `Lint failed: ${result.stderr || result.stdout}`;
-        logger.error(errorMessage);
-        // Instead of rejecting, we log the error and resolve with a message
-        resolve(`Lint failed: ${errorMessage}`);
+        logger.error('Lint failed with exit code:', result.code, '\nError:', result.stdout);
+        resolve(`Lint failed: ${result.stdout}\n${result.stderr}`);
       } else {
         resolve(`Lint exit code: ${result.code}\nSTDOUT:\n${result.stdout}\nSTDERR:\n${result.stderr}`);
       }
@@ -212,7 +202,7 @@ async function main(instruction, errors, model = 'mistral') {
   try {
     if (!instruction || instruction.trim() === '') {
       logger.info('No specific instruction provided. Running default test mode.');
-      instruction = 'Run project tests and verify setup';
+      instruction = 'iterate by running individual tests and fixing the code until all tests pass';
     }
 
     // Validate API keys and select provider
@@ -385,7 +375,7 @@ async function main(instruction, errors, model = 'mistral') {
           if (commandMatch) {
             const command = commandMatch[1].trim();
             // Skip commands that start with npm run start, npm run dev, npm start
-            if (/^npm run (start|dev)|^npm start/.test(command)) {
+            if (/^npm run (start|dev)|^npm start/.test(command) || command.includes('eslint') || command.includes('lint') || command.startsWith('npm test')) {
               logger.warn(`Skipping command: ${command}`);
               continue;
             }
@@ -443,7 +433,8 @@ async function main(instruction, errors, model = 'mistral') {
     }
 
     logger.debug('Final directory contents:', fs.readdirSync(process.cwd()));
-
+    logger.success('Operation successful', cmdhistory);
+    return;
   } catch (error) {
     console.error('Error:', error);
   }

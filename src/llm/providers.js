@@ -6,7 +6,7 @@ const { retryWithBackoff } = require('../utils/retry');
 class MistralProvider {
   constructor(apiKey, endpoint) {
     if (!apiKey) {
-      console.error('[MistralProvider] No API key provided');
+      logger.error('[MistralProvider] No API key provided');
       throw new Error('Mistral API key is required');
     }
     this.apiKey = apiKey;
@@ -20,8 +20,8 @@ class MistralProvider {
 
   async makeRequest(messages, tools = []) {
     return retryWithBackoff(async () => {
-      console.log('[MistralProvider] Retry attempt start');
-      console.log('[MistralProvider] Making request to:', this.endpoint);
+      logger.info('[MistralProvider] Retry attempt start');
+      logger.info('[MistralProvider] Making request to:', this.endpoint);
 
       const requestBody = {
         model: process.env.MISTRAL_MODEL || 'codestral-latest',
@@ -32,12 +32,12 @@ class MistralProvider {
       };
 
       try {
-        console.log('[MistralProvider] Request headers:', {
+        logger.info('[MistralProvider] Request headers:', {
           ...this.headers,
           'Authorization': 'Bearer *****' + this.apiKey.slice(-4)
         });
 
-        console.log('[MistralProvider] Request body:', {
+        logger.info('[MistralProvider] Request body:', {
           model: requestBody.model,
           messageCount: messages.length,
           toolCount: tools.length,
@@ -46,7 +46,6 @@ class MistralProvider {
           totalContentLength: messages.reduce((acc, m) => acc + (m.content?.length || 0), 0)
         });
 
-        console.log('[MistralProvider] Initiating fetch request');
         const response = await Promise.race([
           fetch(this.endpoint, {
             method: 'POST',
@@ -55,105 +54,65 @@ class MistralProvider {
           }),
           new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out after 10 minutes')), 10 * 60 * 1000))
         ]);
-        console.log('[MistralProvider] Response status:', response.status);
+        logger.info('[MistralProvider] Response status:', response.status);
 
-        let responseText;
+        let responseData;
         try {
-          responseText = await response.text();
-          console.log('[MistralProvider] Response text length:', responseText.length);
-          console.log('[MistralProvider] Response text preview:', responseText.slice(0, 200) + '...');
+          responseData = await response.json();
         } catch (e) {
-          console.error('[MistralProvider] Error reading response text:', e);
-          console.error('[MistralProvider] Error stack:', e.stack);
-          throw new Error('Failed to read response text: ' + e.message);
+          logger.error('[MistralProvider] Error reading response data:', e);
+          throw new Error('Failed to read response data: ' + e.message);
         }
 
         if (!response.ok) {
-          console.error('[MistralProvider] API Error:', {
+          logger.error('[MistralProvider] API Error:', {
             status: response.status,
             statusText: response.statusText,
-            bodyPreview: responseText.slice(0, 200),
-            headers: Object.fromEntries([...response.headers.entries()])
+            body: responseData
           });
 
-          // Handle specific error cases
           if (response.status === 401) {
-            console.error('[MistralProvider] Authentication error');
+            logger.error('[MistralProvider] Authentication error');
             throw new Error('Invalid API key');
           }
           if (response.status === 429) {
-            console.error('[MistralProvider] Rate limit error');
+            logger.error('[MistralProvider] Rate limit error');
             throw new Error('Mistral API rate limit exceeded');
           }
           if (response.status === 400) {
-            console.error('[MistralProvider] Bad request error');
-            throw new Error('Invalid request to Mistral API: ' + responseText);
+            logger.error('[MistralProvider] Bad request error');
+            throw new Error('Invalid request to Mistral API: ' + JSON.stringify(responseData));
           }
           if (response.status === 500) {
-            console.error('[MistralProvider] Server error');
-            throw new Error('Mistral API server error: ' + responseText);
+            logger.error('[MistralProvider] Server error');
+            throw new Error('Mistral API server error: ' + JSON.stringify(responseData));
           }
           if (response.status === 503) {
-            console.error('[MistralProvider] Service unavailable');
-            throw new Error('Mistral API service unavailable: ' + responseText);
+            logger.error('[MistralProvider] Service unavailable');
+            throw new Error('Mistral API service unavailable: ' + JSON.stringify(responseData));
           }
-          
-          console.error('[MistralProvider] Unhandled API error');
-          throw new Error(`Mistral API Error ${response.status}: ${response.statusText}\nResponse: ${responseText}`);
+
+          throw new Error(`Mistral API Error ${response.status}: ${response.statusText}`);
         }
 
-        let data;
-        try {
-          data = JSON.parse(responseText);
-        } catch (e) {
-          console.error('[MistralProvider] JSON parse error:', e);
-          console.error('[MistralProvider] Failed JSON:', responseText);
-          throw new Error('Invalid JSON response from Mistral API: ' + responseText);
-        }
-
-        if (!data?.choices?.[0]?.message?.content) {
-          console.error('[MistralProvider] Invalid response format:', data);
+        if (!responseData?.choices?.[0]?.message?.content) {
+          logger.error('[MistralProvider] Invalid response format:', responseData);
           throw new Error('Invalid response format from Mistral API');
         }
 
-        console.log('[MistralProvider] Response validation:', {
-          hasId: !!data.id,
-          hasChoices: !!data.choices,
-          choicesLength: data.choices?.length,
-          hasMessage: !!data.choices?.[0]?.message,
-          hasContent: !!data.choices?.[0]?.message?.content,
-          contentLength: data.choices?.[0]?.message?.content?.length
-        });
-
-        console.log('[MistralProvider] Request successful');
-        return data;
+        logger.info('[MistralProvider] Request successful');
+        return {
+          id: responseData.id,
+          choices: [{
+            message: responseData.choices[0].message
+          }]
+        };
 
       } catch (error) {
-        console.error('[MistralProvider] Request failed:', {
+        logger.error('[MistralProvider] Request failed:', {
           message: error.message,
-          stack: error.stack,
-          cause: error.cause,
-          name: error.name,
-          code: error.code
+          stack: error.stack
         });
-
-        // For network or timeout errors, throw a retryable error
-        if (error.message.includes('ECONNRESET') || 
-            error.message.includes('timeout') ||
-            error.message.includes('network error') ||
-            error.message.includes('ETIMEDOUT') ||
-            error.message.includes('ECONNREFUSED')) {
-          console.warn('[MistralProvider] Network/timeout error, will retry');
-          throw new Error('Temporary network error: ' + error.message);
-        }
-
-        // For response parsing errors
-        if (error.message.includes('JSON')) {
-          console.error('[MistralProvider] JSON parsing error');
-          throw new Error('Failed to parse Mistral API response: ' + error.message);
-        }
-
-        console.error('[MistralProvider] Unhandled error, rethrowing');
         throw error;
       }
     });
@@ -169,15 +128,14 @@ class GroqProvider {
     this.groq = new Groq({
       apiKey: this.apiKey
     });
-    console.log('Initialized Groq provider');
+    logger.info('Initialized Groq provider');
   }
 
   async makeRequest(messages, tools = []) {
     return retryWithBackoff(async () => {
-      console.log('Making Groq API request');
+      logger.info('Making Groq API request');
       
       try {
-        // Truncate messages if they're too long
         const truncatedMessages = messages.map(msg => ({
           ...msg,
           content: msg.content.length > 4000 ? msg.content.slice(0, 4000) + '...' : msg.content
@@ -198,7 +156,7 @@ class GroqProvider {
           requestBody.tool_choice = 'auto';
         }
 
-        console.log('Sending request to Groq:', {
+        logger.info('Sending request to Groq:', {
           model: requestBody.model,
           messageCount: messages.length,
           toolCount: tools.length
@@ -207,11 +165,11 @@ class GroqProvider {
         const chatCompletion = await this.groq.chat.completions.create(requestBody);
 
         if (!chatCompletion?.choices?.[0]?.message?.content) {
-          console.error('Invalid response from Groq:', chatCompletion);
+          logger.error('Invalid response from Groq:', chatCompletion);
           throw new Error('Invalid response format from Groq API');
         }
 
-        console.log('Groq API Response:', {
+        logger.info('Groq API Response:', {
           model: chatCompletion.model,
           contentLength: chatCompletion.choices[0].message.content.length
         });
@@ -223,9 +181,8 @@ class GroqProvider {
           }]
         };
       } catch (error) {
-        console.error('Groq request failed:', error.message);
+        logger.error('Groq request failed:', error.message);
         
-        // Check for specific error types
         if (error.message.includes('401') || error.message.includes('unauthorized')) {
           throw new Error('Invalid Groq API key');
         }
@@ -242,14 +199,6 @@ class GroqProvider {
           throw new Error('Invalid request to Groq API: ' + error.message);
         }
         
-        // For network or timeout errors, throw a retryable error
-        if (error.message.includes('ECONNRESET') || 
-            error.message.includes('timeout') ||
-            error.message.includes('network error')) {
-          throw new Error('Temporary network error: ' + error.message);
-        }
-        
-        // For unknown errors, include more details
         throw new Error('Groq API error: ' + error.message);
       }
     });
@@ -273,19 +222,18 @@ class OpenRouterProvider {
     };
     this.lastRequestTime = 0;
     this.minRequestInterval = 2000; // Minimum 2 seconds between requests
-    console.log('Initialized OpenRouter provider');
+    logger.info('Initialized OpenRouter provider');
   }
 
   async makeRequest(messages, tools = []) {
     return retryWithBackoff(async () => {
-      console.log('Making OpenRouter API request');
+      logger.info('Making OpenRouter API request');
       
-      // Ensure minimum time between requests
       const now = Date.now();
       const timeSinceLastRequest = now - this.lastRequestTime;
       if (timeSinceLastRequest < this.minRequestInterval) {
         const waitTime = this.minRequestInterval - timeSinceLastRequest;
-        console.log(`Waiting ${waitTime}ms to respect rate limits`);
+        logger.info(`Waiting ${waitTime}ms to respect rate limits`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
       }
       this.lastRequestTime = Date.now();
@@ -305,7 +253,7 @@ class OpenRouterProvider {
           requestBody.tool_choice = 'auto';
         }
 
-        console.log('Sending request to OpenRouter:', {
+        logger.info('Sending request to OpenRouter:', {
           model: requestBody.model,
           messageCount: messages.length,
           toolCount: tools.length,
@@ -321,24 +269,23 @@ class OpenRouterProvider {
         let responseData;
         try {
           responseData = await response.json();
-          console.log('OpenRouter raw response:', JSON.stringify(responseData, null, 2));
+          logger.info('OpenRouter raw response:', JSON.stringify(responseData, null, 2));
         } catch (e) {
-          console.error('Error parsing OpenRouter response:', e);
+          logger.error('Error parsing OpenRouter response:', e);
           throw new Error('Failed to parse OpenRouter API response: ' + e.message);
         }
 
         if (!response.ok) {
-          console.error('OpenRouter API Error:', {
+          logger.error('OpenRouter API Error:', {
             status: response.status,
             statusText: response.statusText,
             body: responseData
           });
 
           if (response.status === 429) {
-            // Extract retry-after header if available
             const retryAfter = response.headers.get('retry-after');
             const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : 5000;
-            console.log(`Rate limit exceeded. Waiting ${waitTime}ms before retry`);
+            logger.info(`Rate limit exceeded. Waiting ${waitTime}ms before retry`);
             await new Promise(resolve => setTimeout(resolve, waitTime));
             throw new Error('OpenRouter API rate limit exceeded');
           }
@@ -349,34 +296,21 @@ class OpenRouterProvider {
             throw new Error('Invalid OpenRouter API key');
           }
           if (response.status === 422) {
-            console.error('OpenRouter API request validation failed:', responseData);
+            logger.error('OpenRouter API request validation failed:', responseData);
             throw new Error(`OpenRouter API request validation failed: ${JSON.stringify(responseData.error || responseData)}`);
           }
 
           throw new Error(`OpenRouter API Error ${response.status}: ${response.statusText}`);
         }
 
-        // Log the response structure for debugging
-        console.log('OpenRouter response structure:', {
-          hasId: !!responseData?.id,
-          hasChoices: !!responseData?.choices,
-          choicesLength: responseData?.choices?.length,
-          firstChoice: responseData?.choices?.[0] ? {
-            hasMessage: !!responseData.choices[0].message,
-            messageKeys: responseData.choices[0].message ? Object.keys(responseData.choices[0].message) : [],
-            contentPreview: responseData.choices[0].message?.content?.slice(0, 100) + '...'
-          } : null
-        });
-
-        // Check if we have a valid response with content
         if (!responseData?.choices?.[0]?.message) {
-          console.error('Invalid OpenRouter response format - missing choices or message:', responseData);
+          logger.error('Invalid OpenRouter response format - missing choices or message:', responseData);
           throw new Error('Invalid response format from OpenRouter API - missing message');
         }
 
         const message = responseData.choices[0].message;
         if (typeof message !== 'object' || !message.content) {
-          console.error('Invalid OpenRouter message format:', message);
+          logger.error('Invalid OpenRouter message format:', message);
           throw new Error('Invalid response format from OpenRouter API - invalid message format');
         }
 
@@ -391,10 +325,9 @@ class OpenRouterProvider {
           }]
         };
       } catch (error) {
-        console.error('OpenRouter request failed:', {
+        logger.error('OpenRouter request failed:', {
           message: error.message,
-          stack: error.stack,
-          cause: error.cause
+          stack: error.stack
         });
         throw error;
       }
@@ -411,7 +344,6 @@ class TogetherProvider {
 
   async makeRequest(messages, tools = []) {
     return await retryWithBackoff(async () => {
-      // Create a new abort controller for each attempt
       this.abortController = new AbortController();
       
       const requestBody = {
@@ -424,7 +356,7 @@ class TogetherProvider {
       };
 
       try {
-        console.log('Making Together API request with body:', JSON.stringify(requestBody, null, 2));
+        logger.info('Making Together API request with body:', JSON.stringify(requestBody, null, 2));
 
         const response = await fetch(this.endpoint, {
           method: 'POST',
@@ -439,14 +371,14 @@ class TogetherProvider {
         let responseData;
         try {
           responseData = await response.json();
-          console.log('Together API raw response:', JSON.stringify(responseData, null, 2));
+          logger.info('Together API raw response:', JSON.stringify(responseData, null, 2));
         } catch (e) {
-          console.error('Error parsing Together API response:', e);
+          logger.error('Error parsing Together API response:', e);
           throw new Error('Failed to parse Together API response: ' + e.message);
         }
 
         if (!response.ok) {
-          console.error('Together API Error:', {
+          logger.error('Together API Error:', {
             status: response.status,
             statusText: response.statusText,
             body: responseData
@@ -462,7 +394,7 @@ class TogetherProvider {
             throw new Error('Invalid Together API key');
           }
           if (response.status === 422) {
-            console.error('Together API request validation failed:', responseData);
+            logger.error('Together API request validation failed:', responseData);
             throw new Error(`Together API request validation failed: ${JSON.stringify(responseData.error || responseData)}`);
           }
 
@@ -470,7 +402,7 @@ class TogetherProvider {
         }
 
         if (!responseData?.choices?.[0]?.message?.content) {
-          console.error('Invalid Together API response format:', responseData);
+          logger.error('Invalid Together API response format:', responseData);
           throw new Error('Invalid response format from Together API');
         }
 
@@ -481,7 +413,7 @@ class TogetherProvider {
           }]
         };
       } catch (error) {
-        console.error('Together API request failed:', error);
+        logger.error('Together API request failed:', error);
         throw error;
       }
     });
@@ -498,7 +430,7 @@ function createLLMProvider(providerType, apiKey, endpoint) {
     if (!groqKey) {
       throw new Error('No Groq API key provided');
     }
-    console.log('Initializing Groq provider');
+    logger.info('Initializing Groq provider');
     return new GroqProvider(groqKey);
   }
 
@@ -507,7 +439,7 @@ function createLLMProvider(providerType, apiKey, endpoint) {
     if (!openrouterKey) {
       throw new Error('No OpenRouter API key provided');
     }
-    console.log('Initializing OpenRouter provider');
+    logger.info('Initializing OpenRouter provider');
     return new OpenRouterProvider(
       openrouterKey,
       process.env.OPENROUTER_SITE_URL || 'https://github.com/anEntrypoint/apptoapp',
@@ -527,7 +459,7 @@ function createLLMProvider(providerType, apiKey, endpoint) {
   if (!mistralKey) {
     throw new Error('No Mistral API key provided');
   }
-  console.log('Initializing Mistral provider with endpoint:', endpoint);
+  logger.info('Initializing Mistral provider with endpoint:', endpoint);
   return new MistralProvider(mistralKey, endpoint);
 }
 
