@@ -221,11 +221,13 @@ async function scanDirectory(dir, ig, handler, baseDir = dir) {
 }
 
 async function loadCursorRules() {
+  const rulesPath = path.join(process.cwd(), '.cursor/rules'); // Read from the current directory
   try {
-    const rulesContent = await fsp.readFile('.cursor/rules', 'utf8');
+    const rulesContent = await fsp.readFile(rulesPath, 'utf8');
+    console.log('Successfully loaded cursor rules from:', rulesPath); // Added console log for debugging
     return rulesContent;
   } catch (error) {
-    console.error('Error reading .cursor/rules:', error);
+    console.error('Error reading cursor rules from', rulesPath, ':', error); // Updated error message for clarity
     return '';
   }
 }

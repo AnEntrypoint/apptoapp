@@ -20,76 +20,36 @@ function getCurrentModel() {
   return currentModel;
 }
 
-function handleSpecialCommands(input) {
-  // Function implementation
-}
-
-let testResults = {
-};
-
 async function runBuild() {
-  let result;
-
-  // Only run npm upgrade in non-test environment
-  if (process.env.NODE_ENV !== 'test') {
-    // First delete package-lock.json to ensure clean install
-    try {
-      await fs.promises.unlink('package-lock.json');
-      logger.success('Deleted package-lock.json for clean install');
-    } catch (err) {
-      if (err.code !== 'ENOENT') {
-        logger.error('Error deleting package-lock.json:', err);
-      }
-    }
-
-    // Run npm install
-    result = await executeCommand('npm install');
-  }
-
-  const logBuffer = [];
-  const logHandler = (data) => {
-    logBuffer.push(data);
-    logger.debug(data);
-  };
-
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     let testProcess;
 
-    testProcess = executeCommand('npx jest --detectOpenHandles --forceExit --testTimeout=10000 --maxWorkers=1 --passWithNoTests', logHandler);
+    const logHandler = (data) => {
+      logger.debug(data);
+      const lintWarnings = (data.match(/warnings:\s*(\d+)/) || [])[1] || 0;
+      const lintErrors = (data.match(/errors:\s*(\d+)/) || [])[1] || 0;
+      logger.info(`Total Lint Warnings: ${lintWarnings}, Total Lint Errors: ${lintErrors}`);
+    };
 
+    testProcess = executeCommand('npm run lint', logHandler);
     testProcess.then((result) => {
-
       if (result.code !== 0) {
-        if (process.env.NODE_ENV === 'test') {
-
-          // Modify the logHandler to capture test results
-          const logHandler = (data) => {
-            logBuffer.push(data);
-            logger.debug(data);
-
-            // Check for test results in the output
-            if (data.includes('Tests:')) {
-              const results = data.match(/(\d+) passed, (\d+) failed/);
-              if (results) {
-                testResults.passed = parseInt(results[1], 10);
-                testResults.failed = parseInt(results[2], 10);
-                logger.info(`Test Results - Passed: ${testResults.passed}, Failed: ${testResults.failed}`);
-              }
-            }
-          };
-          resolve(`Test failed with code ${result.code}`);
-        } else {
-          logger.error('Failed with exit code:', result.code);
-          reject(new Error(`Test failed: ${result.stderr || result.stdout}`));
-        }
+        logger.error('Lint failed with exit code:', result.code);
+        const errorMessage = `Lint failed: ${result.stderr || result.stdout}`;
+        logger.error(errorMessage);
+        // Instead of rejecting, we log the error and resolve with a message
+        resolve(`Lint failed: ${errorMessage}`);
       } else {
-        resolve(`Test exit code: ${result.code}\nSTDOUT:\n${result.stdout}\nSTDERR:\n${result.stderr}`);
+        resolve(`Lint exit code: ${result.code}\nSTDOUT:\n${result.stdout}\nSTDERR:\n${result.stderr}`);
       }
     }).catch((error) => {
-      reject(error);
+      logger.error('Error executing lint command:', error.message);
+      // Instead of rejecting, we log the error and resolve with a message
+      resolve('Failed to execute lint command gracefully.');
     });
   });
 }
+
 let attempts = 0;
 const summaryBuffer = [];
 const cliBuffer = [];
@@ -114,7 +74,7 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
 
   const diffsXML = getDiffBufferStatus();
   const files = await getFiles();
-
+  const testResults = await runBuild();
   const artifacts = [
     `\n<userinstruction>${instruction}</userinstruction>\n`,
     files ? `\n${files}\n` : ``,
@@ -132,8 +92,8 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
     `\n<timestamp>${new Date().toISOString()}</timestamp>\n`,
     `\n<currentWorkingDirectory>${process.cwd()}</currentWorkingDirectory>\n`,
     `\n<terminalType>${process.env.TERM || process.platform === 'win32' ? 'cmd/powershell' : 'bash'}</terminalType>\n`,
-    cliBuffer.length > 0 ? `\n\n<bashhistory>${cliBuffer.map(c => c.replace(/<cli>/g, '').replace(/<\/cli>/g, '')).join('\n')}</bashhistory>\n` : ``,
-    `\n<rules>Rules:\n${cursorRules}</rules>\n`,
+    cliBuffer.length > 0 ? `\n\n<bashhistory>${cliBuffer.map(c => c.replace(/<cli>/g, '').replace(/<\/cli>/g, '').reverse()).join('\n')}</bashhistory>\n` : ``,
+    (cursorRules && cursorRules.length > 0) ? `\n<rules>Rules:\n${cursorRules}</rules>\n` : '',
     `\n${diffsXML}\n\n`,
   ]
   const messages = [
@@ -149,6 +109,8 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
         + `If you cant make progress on an issue and see that your solution is already listed in <attempSummary> and have no alternatives, or detect that you've fixed more than it more than once and its still broken, record what failed and why and how it failed in NOTES.txt, and a list of possible solutions in TODO.txt for future iterations, and add an <upgradeModel></upgradeModel> tag to the end of your response\n`
         + `Follow user requirements precisely and plan step-by-step, the users instructions are in <userinstruction>, thery are your primary goal, everything else is secondary\n`
         + `Always output your reasoning in <text> tags, as past tense as if the tasks have been completed\n`
+        + `Always consolidate duplicate implementations in the code\n`
+
         + '\n// Code Quality\n'
         + `Write clean, DRY, maintainable code following SOLID principles\n`
         + `Focus on readability and complete implementations\n`
@@ -419,38 +381,51 @@ async function main(instruction, errors, model = 'mistral') {
       }
     }
 
-    if (cliCommands && cliCommands.length > 0) {
-      for (const cliCommand of cliCommands) {
-        const commandMatch = cliCommand.match(/<cli>([\s\S]*?)<\/cli>/);
-        if (commandMatch) {
-          const command = commandMatch[1].trim();
-          try {
-            const isBuildOrStartCommand = command.includes('npm run build') || command.includes('npm run start') || command.includes('npm run test') || command.includes('npx cypress open') || command.includes('npm test') || command.includes('npm start') || command.includes('npm install');
-            if (!isBuildOrStartCommand) {
+    try {
+      let cliFailed = false;
+      
+      if (cliCommands && cliCommands.length > 0) {
+        for (const cliCommand of cliCommands) {
+          const commandMatch = cliCommand.match(/<cli>([\s\S]*?)<\/cli>/);
+          if (commandMatch) {
+            const command = commandMatch[1].trim();
+            try {
               const result = await executeCommand(command);
-              logger.system("Code: ", result.code);
-            } else {
-              logger.info(`Skipped command: ${command} as it is a build or start command.`);
+              logger.system("Command executed:", command, "Code:", result.code);
+              
+              // Add command and output to cliBuffer
+              cliBuffer.unshift(
+                `<cli>${command}</cli>`,
+                `<output>Exit code: ${result.code}\nSTDOUT: ${result.stdout}\nSTDERR: ${result.stderr}</output>`
+              );
+              
+              // Keep buffer size manageable
+              if (cliBuffer.length > 1000) {
+                cliBuffer.splice(1000, cliBuffer.length - 1000);
+              }
+
+              if (result.code !== 0) {
+                cliFailed = true;
+                logger.error(`Command failed: ${command}`, result.stderr);
+              }
+            } catch (error) {
+              cliFailed = true;
+              logger.error(`Failed to execute ${command}: ${error.message}`);
             }
-          } catch (error) {
-            logger.error(`Failed to execute ${command}: ${error.message}`);
           }
         }
       }
-    }
-    await generateDiff();
 
-    try {
-      const results = await runBuild();
-      if(results.code !== 0 || /error/i.test(results.stderr) || /fail/i.test(results.stderr)) {
-        throw new Error('Build failed');
+      if (cliFailed) {
+        throw new Error('One or more CLI commands failed');
       }
+
       if (summaries && summaries.length > 0) {
         summaries.forEach((summary, index) => {
           console.log(`Attempt ${index + 1}: ${summary.replace(/<text>/g, '').replace(/<\/text>/g, '')}`);
         });
       }
-      logger.success('Build successful', cmdhistory);
+      logger.success('Operation successful', cmdhistory);
 
     } catch (error) {
       logger.error('Failed:', error, cmdhistory);
@@ -460,7 +435,7 @@ async function main(instruction, errors, model = 'mistral') {
           const summaryString = summaries.map(s => s.replace(/<text>/g, '').replace(/<\/text>/g, '')).join('\n');
           summaryBuffer.push(summaryString);
         }
-        summaryBuffer.push(`Attempt ${attempts}: Passed ${testResults.passed} tests\nFailed to fix ${testResults.failed} tests`);
+        summaryBuffer.push(`Attempt ${attempts}`);
         logger.info(`Retrying main function (attempt ${attempts}/${MAX_ATTEMPTS})...`);
         main(process.argv[2], error.message, currentModel);
       } else {

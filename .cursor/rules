@@ -7,3 +7,7 @@ write unit tests to discover and fix any problem you're dealing with, dont fix a
 when you are sure that there are files that you can confirm to be old left-behind unused code, they can be deleted using the cli
 
 always make sure none of the tests get stuck and run all the way to the timeout, apply strategies to avoid that
+
+always consolidate duplicate implementations in the code and get rid of the duplicate code, dont leave any duplicate code behind
+
+this tool is expected to run main a maximum of 20 times, if the unit tests fail, it should call main again... if it exits before that its not doing its job

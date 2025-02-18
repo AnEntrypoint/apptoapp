@@ -1,6 +1,6 @@
 const logger = require('./logger');
 
-async function retryWithBackoff(operation, maxRetries = 2, initialDelay = 1000) {
+async function retryWithBackoff(operation, maxRetries = 3, initialDelay = 2000) {
   let delay = process.env.NODE_ENV === 'test' ? 100 : initialDelay;
   let lastError;
   
@@ -33,6 +33,14 @@ async function retryWithBackoff(operation, maxRetries = 2, initialDelay = 1000) 
         throw error;
       }
 
+      // Handle rate limiting with longer backoff
+      if (error.message.includes('429') || 
+          error.message.toLowerCase().includes('rate limit') ||
+          error.message.toLowerCase().includes('too many requests')) {
+        delay = delay * 3; // Triple the delay for rate limit errors
+        console.log(`[RetryWithBackoff] Rate limit detected, increasing delay to ${delay}ms`);
+      }
+
       // If this is not the last attempt, wait before retrying
       if (attempt < maxRetries) {
         const backoffDelay = delay * Math.pow(2, attempt - 1);
@@ -42,7 +50,7 @@ async function retryWithBackoff(operation, maxRetries = 2, initialDelay = 1000) 
     }
   }
 
-  console.error('[RetryWithBackoff] Unhandled error:', lastError.message);
+  console.error('[RetryWithBackoff] All retries failed:', lastError.message);
   throw lastError;
 }
 

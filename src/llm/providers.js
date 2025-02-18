@@ -79,7 +79,7 @@ class MistralProvider {
           // Handle specific error cases
           if (response.status === 401) {
             console.error('[MistralProvider] Authentication error');
-            throw new Error('Invalid Mistral API key');
+            throw new Error('Invalid API key');
           }
           if (response.status === 429) {
             console.error('[MistralProvider] Rate limit error');
@@ -271,12 +271,24 @@ class OpenRouterProvider {
       'X-Title': this.siteName,
       'Content-Type': 'application/json'
     };
+    this.lastRequestTime = 0;
+    this.minRequestInterval = 2000; // Minimum 2 seconds between requests
     console.log('Initialized OpenRouter provider');
   }
 
   async makeRequest(messages, tools = []) {
     return retryWithBackoff(async () => {
       console.log('Making OpenRouter API request');
+      
+      // Ensure minimum time between requests
+      const now = Date.now();
+      const timeSinceLastRequest = now - this.lastRequestTime;
+      if (timeSinceLastRequest < this.minRequestInterval) {
+        const waitTime = this.minRequestInterval - timeSinceLastRequest;
+        console.log(`Waiting ${waitTime}ms to respect rate limits`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
+      this.lastRequestTime = Date.now();
       
       try {
         const requestBody = {
@@ -323,6 +335,11 @@ class OpenRouterProvider {
           });
 
           if (response.status === 429) {
+            // Extract retry-after header if available
+            const retryAfter = response.headers.get('retry-after');
+            const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : 5000;
+            console.log(`Rate limit exceeded. Waiting ${waitTime}ms before retry`);
+            await new Promise(resolve => setTimeout(resolve, waitTime));
             throw new Error('OpenRouter API rate limit exceeded');
           }
           if (response.status === 413) {
