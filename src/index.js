@@ -21,23 +21,20 @@ function getCurrentModel() {
 }
 
 async function runBuild() {
-  return new Promise((resolve) => {
-    let testProcess;
+  try {
+    await executeCommand('npm install');
+    const result = await executeCommand('npm run lint --fix');
 
-    testProcess = executeCommand('npm run lint');
-    testProcess.then((result) => {
-      if (result.code !== 0) {
-        logger.error('Lint failed with exit code:', result.code, '\nError:', result.stdout);
-        resolve(`Lint failed: ${result.stdout}\n${result.stderr}`);
-      } else {
-        resolve(`Lint exit code: ${result.code}\nSTDOUT:\n${result.stdout}\nSTDERR:\n${result.stderr}`);
-      }
-    }).catch((error) => {
-      logger.error('Error executing lint command:', error.message);
-      // Instead of rejecting, we log the error and resolve with a message
-      resolve('Failed to execute lint command gracefully.');
-    });
-  });
+    if (result.code !== 0) {
+      logger.error('Lint failed with exit code:', result.code, '\nError:', result.stdout);
+      return `Lint failed: ${result.stdout}\n${result.stderr}`;
+    }
+
+    return `Lint exit code: ${result.code}\nSTDOUT:\n${result.stdout}\nSTDERR:\n${result.stderr}`;
+  } catch (error) {
+    logger.error('Error executing lint command:', error.message);
+    return 'Failed to execute lint command gracefully.';
+  }
 }
 
 let attempts = 0;
@@ -199,8 +196,7 @@ async function main(instruction, errors, model = 'mistral') {
 
   try {
     if (!instruction || instruction.trim() === '') {
-      logger.info('No specific instruction provided. Running default test mode.');
-      instruction = 'iterate by running individual tests and fixing the code until all tests pass';
+      throw new Error('No instruction provided');
     }
 
     // Validate API keys and select provider
@@ -368,29 +364,61 @@ async function main(instruction, errors, model = 'mistral') {
 
     try {
       let cliFailed = false;
+      const executedCommands = new Set();  // Track executed commands
       
       if (cliCommands && cliCommands.length > 0) {
+        logger.debug(`Processing ${cliCommands.length} CLI commands`);
+        
         for (const cliCommand of cliCommands) {
           const commandMatch = cliCommand.match(/<cli>([\s\S]*?)<\/cli>/);
           if (commandMatch) {
             const command = commandMatch[1].trim();
-            // Skip commands that start with npm run start, npm run dev, npm start
-            if (/^npm run (start|dev)|^npm start/.test(command) || command.includes('eslint') || command.includes('lint') || command.startsWith('npm test')) {
+            
+            // --- New Validation Checks ---
+            // Check for duplicate commands in this execution batch
+            if (executedCommands.has(command)) {
+              logger.warn(`Skipping duplicate command in current set: ${command}`);
+              continue;
+            }
+            
+            // Check against historical command buffer
+            if (cliBuffer.some(entry => entry.startsWith(command))) {
+              logger.warn(`Skipping historically duplicated command: ${command}`);
+              continue;
+            }
+
+            // Validate basic command structure
+            if (!/^[\w-]+/.test(command)) {
+              logger.error(`Invalid command structure: ${command}`);
+              continue;
+            }
+            // --- End Validation Checks ---
+
+            // Existing skip patterns
+            const skipPatterns = [
+              /^npm run (start|dev)/,
+              /^npm start/,
+              /(eslint|lint)/,
+              /^npm test/
+            ];
+            
+            if (skipPatterns.some(pattern => pattern.test(command))) {
               logger.warn(`Skipping command: ${command}`);
               continue;
             }
+
             try {
+              logger.debug(`🏁 Executing command: ${command}`);
               const result = await executeCommand(command);
-              logger.system("Command executed:", command, "Code:", result.code);
               
-              // Add command and output to cliBuffer
-              cliBuffer.unshift(
-                `${command}\nExit code: ${result.code}\nSTDOUT: ${result.stdout}\nSTDERR: ${result.stderr}`
-              );
-              
-              // Keep buffer size manageable
+              // Store command in execution tracking
+              executedCommands.add(command);
+              cliBuffer.unshift(`${command}\nExit code: ${result.code}`);
+
+              // Keep last 100 commands (was 1000 previously)
               if (cliBuffer.length > 100) {
-                cliBuffer.splice(1000, cliBuffer.length - 100);
+                cliBuffer.length = 100;
+                logger.debug('Trimmed CLI command buffer');
               }
 
               if (result.code !== 0) {
@@ -399,14 +427,14 @@ async function main(instruction, errors, model = 'mistral') {
               }
             } catch (error) {
               cliFailed = true;
-              logger.error(`Failed to execute ${command}: ${error.message}`);
+              logger.error(`Execution error: ${command}`, error.message);
             }
           }
         }
       }
 
       if (cliFailed) {
-        throw new Error('One or more CLI commands failed');
+        throw new Error('CLI execution failures detected');
       }
 
       if (summaries && summaries.length > 0) {
@@ -416,6 +444,7 @@ async function main(instruction, errors, model = 'mistral') {
       }
 
       const testResults = await runBuild();
+      console.log({testResults})
       if (testResults.includes('Lint failed')) {
         logger.error('Lint errors detected in the test results.');
         throw new Error('Lint errors found. Please fix them before proceeding.');

@@ -24,7 +24,8 @@
     "node-fetch": "^2.6.7",
     "p-retry": "^4.6.2",
     "p-timeout": "^4.1.0",
-    "sse.js": "^2.6.0"
+    "sse.js": "^2.6.0",
+    "together-ai": "^0.13.0"
   },
   "devDependencies": {
     "eslint": "^8.40.0",

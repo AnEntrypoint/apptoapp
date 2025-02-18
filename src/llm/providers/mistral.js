@@ -1,5 +1,7 @@
 const logger = require('../../utils/logger');
 const BaseLLMProvider = require('./base');
+const levenshtein = require('fast-levenshtein');
+
 function fixBrokenJSON(input) {
     let original = input;
     let steps = [];
@@ -149,11 +151,25 @@ class MistralProvider extends BaseLLMProvider {
         const decoder = new TextDecoder("utf-8");
         let fullResponse = '';
         let buffer = '';
-        const MAX_REPETITIONS = 3;
+        const MAX_REPETITIONS = 4;
         const MAX_SEQUENCE_LINES = 15;
         const lineBuffer = [];
+        const ERROR_PATTERN = /ReferenceError: document is not defined/g;
+        let repetitionCount = 0;
+        let lastError = '';
 
-        logger.debug('[MistralProvider] Starting stream with simple repetition checks');
+        // Configure repetition detection parameters
+        const REPETITION_CHECK_WINDOW = 8; // Check last 8 lines for duplicates
+        const MIN_REPETITION_LENGTH = 3; // Minimum sequence length to consider
+        const MAX_SIMILARITY_RATIO = 0.9; // 90% similarity threshold
+        
+        console.debug('[RepetitionDetector] Initialized with:', {
+            REPETITION_CHECK_WINDOW,
+            MIN_REPETITION_LENGTH,
+            MAX_SIMILARITY_RATIO
+        });
+
+        logger.debug('[MistralProvider] Starting stream with error pattern detection');
 
         while (true) {
             const { done, value } = await reader.read();
@@ -176,31 +192,84 @@ class MistralProvider extends BaseLLMProvider {
                             fullResponse += content;
                             process.stdout.write(content);
 
+                            // Error pattern detection
+                            const errorMatch = content.match(ERROR_PATTERN);
+                            if (errorMatch) {
+                                const currentError = errorMatch[0];
+                                console.debug('Error pattern detected:', currentError.slice(0, 50));
+                                
+                                if (currentError === lastError) {
+                                    repetitionCount++;
+                                    logger.debug(`Repetition count increased to: ${repetitionCount}`);
+                                } else {
+                                    repetitionCount = 1; // Reset counter for new errors
+                                    lastError = currentError;
+                                }
+
+                                if (repetitionCount >= MAX_REPETITIONS) {
+                                    logger.info(`Stopping stream - error pattern repeated ${MAX_REPETITIONS} times`);
+                                    console.debug('Repeating error:', lastError);
+                                    reader.cancel();
+                                    return fullResponse;
+                                }
+                            } else {
+                                // Reset counter if no error in this chunk
+                                repetitionCount = 0;
+                                lastError = '';
+                            }
+
                             // Update line buffer with new content
                             const newLines = content.split('\n');
                             lineBuffer.push(...newLines.filter(l => l.trim()));
                             
-                            // Keep only last 45 lines (3 repetitions of 15-line sequences)
-                            if (lineBuffer.length > MAX_SEQUENCE_LINES * MAX_REPETITIONS) {
-                                lineBuffer.splice(0, lineBuffer.length - (MAX_SEQUENCE_LINES * MAX_REPETITIONS));
+                            // Enhanced repetition detection
+                            if (lineBuffer.length >= REPETITION_CHECK_WINDOW) {
+                                const recentLines = lineBuffer.slice(-REPETITION_CHECK_WINDOW);
+                                
+                                // Compare chunks using similarity ratio
+                                const similarityCheck = (a, b) => {
+                                    const maxLength = Math.max(a.length, b.length);
+                                    const distance = levenshtein.get(a, b);
+                                    return (maxLength - distance) / maxLength;
+                                };
+
+                                // Check for repeating patterns of increasing lengths
+                                let repetitionDetected = false;
+                                for (let seqLength = MIN_REPETITION_LENGTH; seqLength <= REPETITION_CHECK_WINDOW/2; seqLength++) {
+                                    const sequences = [];
+                                    for (let i = 0; i < REPETITION_CHECK_WINDOW - seqLength; i++) {
+                                        sequences.push(recentLines.slice(i, i + seqLength).join('\n'));
+                                    }
+
+                                    // Find duplicate sequences using similarity threshold
+                                    const seen = new Set();
+                                    for (const [index, seq] of sequences.entries()) {
+                                        // Compare with all previous sequences in this batch
+                                        for (const prevSeq of Array.from(seen)) {
+                                            const similarity = similarityCheck(prevSeq, seq);
+                                            if (similarity >= MAX_SIMILARITY_RATIO) {
+                                                console.debug('[RepetitionDetector] Found repeating sequence:', {
+                                                    similarity: Math.round(similarity * 100),
+                                                    sequence: seq.slice(0, 100)
+                                                });
+                                                repetitionDetected = true;
+                                                break;
+                                            }
+                                        }
+                                        if (repetitionDetected) break;
+                                        seen.add(seq);
+                                    }
+                                    if (repetitionDetected) {
+                                        logger.info(`Stopping stream - ${seqLength}-line sequence repeated`);
+                                        reader.cancel();
+                                        return fullResponse;
+                                    }
+                                }
                             }
 
-                            // Check for repeating sequences
-                            for (let seqLength = 1; seqLength <= MAX_SEQUENCE_LINES; seqLength++) {
-                                if (lineBuffer.length < seqLength * MAX_REPETITIONS) continue;
-                                
-                                const sequences = [
-                                    lineBuffer.slice(-seqLength * 3, -seqLength * 2),
-                                    lineBuffer.slice(-seqLength * 2, -seqLength),
-                                    lineBuffer.slice(-seqLength)
-                                ];
-
-                                if (sequences.every(s => JSON.stringify(s) === JSON.stringify(sequences[0]))) {
-                                    logger.info(`Stopping stream - ${seqLength}-line sequence repeated ${MAX_REPETITIONS} times`);
-                                    console.debug('Repeating sequence:', sequences[0].join('\n'));
-                                    reader.cancel();
-                                    return fullResponse;
-                                }
+                            // Trim buffer to retention window (fixed size)
+                            if (lineBuffer.length > REPETITION_CHECK_WINDOW * 2) {
+                                lineBuffer.splice(0, lineBuffer.length - REPETITION_CHECK_WINDOW);
                             }
                         }
                     } catch (e) {
