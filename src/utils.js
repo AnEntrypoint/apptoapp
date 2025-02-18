@@ -22,6 +22,11 @@ async function executeCommand(command, logHandler = null, options = {}) {
       timeout: options.timeout || 300000, // 5 minute default timeout
       ...options
     }, (error, stdout, stderr) => {
+      cmdhistory.push(command);
+      cmdhistory.push('stdout:');
+      cmdhistory.push(stdout.toString());
+      cmdhistory.push('stderr:');
+      cmdhistory.push(stderr.toString());
       resolve({
         code: error ? error.code : 0,
         stdout: stdout.toString(),
@@ -29,6 +34,8 @@ async function executeCommand(command, logHandler = null, options = {}) {
         kill: () => child.kill()
       });
     });
+
+    
 
     if (logHandler) {
       child.stdout.on('data', logHandler);
@@ -88,68 +95,90 @@ async function loadNoContentsPatterns(ignoreFile = '.nocontents') {
   return ig;
 }
 
-async function makeApiRequest(messages, tools, apiKey, endpoint, model = 'groq', onModelChange = null) {
-  console.log(`Using ${model} model at endpoint: ${endpoint || 'default'}`);
-  
-  let provider;
-  try {
-    provider = createLLMProvider(model, apiKey, endpoint);
-    const response = await provider.makeRequest(messages, tools);
-    
-    try {
-      await fsp.writeFile('../lastresponse.txt', JSON.stringify(response, null, 2), 'utf8');
-      logger.success('API response written to lastresponse.txt');
-    } catch (error) {
-      logger.error('Error writing to lastresponse.txt:', error);
+async function makeApiRequest(messages, tools, apiKey, endpoint, model = 'mistral', onModelChange = null) {
+  console.log('[Provider Chain] Making API request with model:', model);
+
+  const tryProvider = async (providerType, key, ep) => {
+    if (!key) {
+      console.log(`[Provider Chain] Skipping ${providerType} - no API key configured`);
+      return { skipped: true, error: 'No API key' };
     }
 
-    // Check for upgradeModel tag in response
-    if (response?.choices?.[0]?.message?.content) {
-      const content = response.choices[0].message.content;
-      const upgradeMatch = content.match(/<upgradeModel provider="([^"]+)">/);
-      if (upgradeMatch) {
-        const newProvider = upgradeMatch[1];
-        logger.info(`Upgrading model to ${newProvider}`);
-        
-        // Check if we have the API key for the new provider
-        const newApiKey = process.env[`${newProvider.toUpperCase()}_API_KEY`];
-        if (newApiKey) {
-          // Update the current model via callback before making the new request
-          if (onModelChange) {
-            await onModelChange(newProvider);
-          }
-          provider = createLLMProvider(newProvider, newApiKey, endpoint);
-          const newResponse = await provider.makeRequest(messages, tools);
-          return newResponse;
-        } else {
-          logger.warn(`No API key found for ${newProvider}, continuing with current provider`);
-        }
-      }
+    let provider;
+    try {
+      console.log(`[Provider Chain] Initializing ${providerType} provider`);
+      provider = createLLMProvider(providerType, key, ep);
+    } catch (error) {
+      console.error(`[Provider Chain] Failed to initialize ${providerType} provider:`, error.message);
+      return { failed: true, error: error.message };
     }
-    
-    return response;
-  } catch (error) {
-    // If Groq fails, try falling back to Mistral
-    if (model === 'groq') {
-      logger.warn('Failed with Groq provider, falling back to Mistral');
-      // Update the current model via callback before making the new request
-      if (onModelChange) {
-        await onModelChange('mistral');
+
+    try {
+      console.log(`[Provider Chain] Attempting request with ${providerType} provider`);
+      const result = await provider.makeRequest(messages, tools);
+      if (!result?.choices?.[0]?.message?.content) {
+        console.error(`[Provider Chain] ${providerType} provider returned invalid response format`);
+        return { failed: true, error: 'Invalid response format' };
       }
-      model = 'mistral';
-      try {
-        provider = createLLMProvider(model, process.env.MISTRAL_API_KEY, endpoint);
-        const response = await provider.makeRequest(messages, tools);
-        return response;
-      } catch (mistralError) {
-        logger.error(`API Error with Mistral fallback:`, mistralError);
-        throw mistralError;
-      }
-    } else {
-      logger.error(`API Error with ${model}:`, error);
-      throw error;
+      console.log(`[Provider Chain] ${providerType} provider succeeded`);
+      return { success: true, result };
+    } catch (error) {
+      console.error(`[Provider Chain] ${providerType} provider request failed:`, error.message);
+      return { failed: true, error: error.message };
     }
+  };
+
+  // Try Mistral first
+  console.log('[Provider Chain] Starting with Mistral');
+  let response = await tryProvider('mistral', apiKey, endpoint);
+  if (response.success) {
+    console.log('[Provider Chain] Using response from Mistral');
+    return response.result;
   }
+  if (response.failed) {
+    console.log('[Provider Chain] Mistral failed, attempting Together AI');
+  }
+
+  // Try Together if Mistral fails
+  const togetherKey = process.env.TOGETHER_API_KEY;
+  response = await tryProvider('together', togetherKey);
+  if (response.success) {
+    console.log('[Provider Chain] Successfully switched to Together AI');
+    if (onModelChange) onModelChange('together');
+    return response.result;
+  }
+  if (response.failed) {
+    console.log('[Provider Chain] Together AI failed, attempting OpenRouter');
+  }
+
+  // Try OpenRouter if Together fails
+  const openrouterKey = process.env.OPENROUTER_API_KEY;
+  response = await tryProvider('openrouter', openrouterKey);
+  if (response.success) {
+    console.log('[Provider Chain] Successfully switched to OpenRouter');
+    if (onModelChange) onModelChange('openrouter');
+    return response.result;
+  }
+  if (response.failed) {
+    console.log('[Provider Chain] OpenRouter failed, attempting Groq as final fallback');
+  }
+
+  // Try Groq as final fallback
+  const groqKey = process.env.GROQ_API_KEY;
+  response = await tryProvider('groq', groqKey);
+  if (response.success) {
+    console.log('[Provider Chain] Successfully switched to Groq');
+    if (onModelChange) onModelChange('groq');
+    return response.result;
+  }
+
+  // If we get here, all providers have either failed or been skipped
+  const errorMessage = response.failed ? 
+    `All providers failed. Last error: ${response.error}` :
+    'All providers were skipped due to missing API keys';
+  
+  console.error('[Provider Chain]', errorMessage);
+  throw new Error(errorMessage);
 }
 
 async function directoryExists(dir) {
@@ -236,3 +265,4 @@ module.exports = {
   loadCursorRules,
   getCWD
 };
+

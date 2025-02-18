@@ -5,7 +5,6 @@ const { retryWithBackoff } = require('../utils/retry');
 
 class MistralProvider {
   constructor(apiKey, endpoint) {
-    console.log('[MistralProvider] Constructor start');
     if (!apiKey) {
       console.error('[MistralProvider] No API key provided');
       throw new Error('Mistral API key is required');
@@ -17,12 +16,9 @@ class MistralProvider {
       'Authorization': `Bearer ${this.apiKey}`,
       'Accept': 'application/json'
     };
-    console.log('[MistralProvider] Initialized with endpoint:', this.endpoint);
-    console.log('[MistralProvider] Constructor end');
   }
 
   async makeRequest(messages, tools = []) {
-    console.log('[MistralProvider] makeRequest start');
     return retryWithBackoff(async () => {
       console.log('[MistralProvider] Retry attempt start');
       console.log('[MistralProvider] Making request to:', this.endpoint);
@@ -54,16 +50,12 @@ class MistralProvider {
         const response = await fetch(this.endpoint, {
           method: 'POST',
           headers: this.headers,
-          body: JSON.stringify(requestBody),
-          timeout: 120000 // 2 minute timeout
+          body: JSON.stringify(requestBody)
         });
-        console.log('[MistralProvider] Fetch request complete');
         console.log('[MistralProvider] Response status:', response.status);
-        console.log('[MistralProvider] Response headers:', Object.fromEntries([...response.headers.entries()]));
 
         let responseText;
         try {
-          console.log('[MistralProvider] Reading response text');
           responseText = await response.text();
           console.log('[MistralProvider] Response text length:', responseText.length);
           console.log('[MistralProvider] Response text preview:', responseText.slice(0, 200) + '...');
@@ -109,9 +101,7 @@ class MistralProvider {
 
         let data;
         try {
-          console.log('[MistralProvider] Parsing JSON response');
           data = JSON.parse(responseText);
-          console.log('[MistralProvider] JSON parsed successfully');
         } catch (e) {
           console.error('[MistralProvider] JSON parse error:', e);
           console.error('[MistralProvider] Failed JSON:', responseText);

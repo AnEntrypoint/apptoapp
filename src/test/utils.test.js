@@ -16,10 +16,15 @@ describe('utils', () => {
 describe('makeApiRequest', () => {
   beforeEach(() => {
     jest.resetAllMocks();
-    process.env.MISTRAL_API_KEY = 'test-mistral-key';
+    process.env = {
+      MISTRAL_API_KEY: 'test-mistral-key',
+      TOGETHER_API_KEY: 'test-together-key',
+      OPENROUTER_API_KEY: 'test-openrouter-key',
+      GROQ_API_KEY: 'test-groq-key'
+    };
   });
 
-  it('should use Groq by default', async () => {
+  it('should use Mistral by default', async () => {
     const mockProvider = {
       makeRequest: jest.fn().mockResolvedValue({
         choices: [{ message: { content: 'success' } }]
@@ -28,43 +33,70 @@ describe('makeApiRequest', () => {
     createLLMProvider.mockReturnValue(mockProvider);
 
     const result = await makeApiRequest([{ content: 'test' }], [], 'test-key');
-    expect(createLLMProvider).toHaveBeenCalledWith('groq', 'test-key', undefined);
+    expect(createLLMProvider).toHaveBeenCalledWith('mistral', 'test-key', undefined);
     expect(result).toEqual({
       choices: [{ message: { content: 'success' } }]
     });
   });
 
-  it('should fall back to Mistral if Groq fails', async () => {
-    const mockMistralProvider = {
+  it('should follow the fallback chain when providers fail', async () => {
+    const mockSuccessProvider = {
       makeRequest: jest.fn().mockResolvedValue({
         choices: [{ message: { content: 'success' } }]
       })
     };
 
+    // Mock each provider to fail except the last one
     createLLMProvider
-      .mockImplementationOnce(() => {
-        throw new Error('Groq failed');
-      })
-      .mockImplementationOnce(() => mockMistralProvider);
+      .mockImplementationOnce(() => { throw new Error('Mistral failed'); })
+      .mockImplementationOnce(() => { throw new Error('Together failed'); })
+      .mockImplementationOnce(() => { throw new Error('OpenRouter failed'); })
+      .mockReturnValue(mockSuccessProvider); // Groq succeeds
 
     const result = await makeApiRequest([{ content: 'test' }], [], 'test-key');
 
-    expect(createLLMProvider).toHaveBeenCalledTimes(2);
-    expect(createLLMProvider).toHaveBeenNthCalledWith(1, 'groq', 'test-key', undefined);
-    expect(createLLMProvider).toHaveBeenNthCalledWith(2, 'mistral', process.env.MISTRAL_API_KEY, undefined);
+    expect(createLLMProvider).toHaveBeenCalledTimes(4);
+    expect(createLLMProvider).toHaveBeenNthCalledWith(1, 'mistral', 'test-key', undefined);
+    expect(createLLMProvider).toHaveBeenNthCalledWith(2, 'together', 'test-together-key', undefined);
+    expect(createLLMProvider).toHaveBeenNthCalledWith(3, 'openrouter', 'test-openrouter-key', undefined);
+    expect(createLLMProvider).toHaveBeenNthCalledWith(4, 'groq', 'test-groq-key', undefined);
     expect(result).toEqual({
       choices: [{ message: { content: 'success' } }]
     });
   });
 
-  it('should handle API errors', async () => {
-    const mockProvider = {
-      makeRequest: jest.fn().mockRejectedValue(new Error('API Error'))
-    };
-    createLLMProvider.mockReturnValue(mockProvider);
+  it('should throw error when all providers fail', async () => {
+    createLLMProvider.mockImplementation(() => {
+      throw new Error('Provider failed');
+    });
 
     await expect(makeApiRequest([{ content: 'test' }], [], 'test-key'))
       .rejects
-      .toThrow('API Error');
+      .toThrow('Failed to get response from any available provider');
+  });
+
+  it('should skip providers with missing API keys', async () => {
+    process.env = {
+      MISTRAL_API_KEY: undefined,
+      TOGETHER_API_KEY: undefined,
+      OPENROUTER_API_KEY: 'test-openrouter-key',
+      GROQ_API_KEY: undefined
+    };
+
+    const mockSuccessProvider = {
+      makeRequest: jest.fn().mockResolvedValue({
+        choices: [{ message: { content: 'success' } }]
+      })
+    };
+
+    createLLMProvider.mockReturnValue(mockSuccessProvider);
+
+    const result = await makeApiRequest([{ content: 'test' }], [], undefined);
+
+    expect(createLLMProvider).toHaveBeenCalledTimes(1);
+    expect(createLLMProvider).toHaveBeenCalledWith('openrouter', 'test-openrouter-key', undefined);
+    expect(result).toEqual({
+      choices: [{ message: { content: 'success' } }]
+    });
   });
 });

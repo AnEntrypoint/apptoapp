@@ -161,7 +161,7 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
 
         + '\n// Testing & Debugging\n'
         + `The last build error is in <builderror>\n`
-        + `The last test results are in <testResults>\n`
+        + ``
         + `Write comprehensive unit and integration tests\n`
         + `Use tests to discover and fix bugs\n`
         + `Always try to fix all known errors at once\n`
@@ -169,7 +169,7 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
         + `Look at the logs and history, if the history indicates you are having trouble fixing the errors repeatedly, pick a different approach\n`
         + `Never run tests using the cli commands, they run automatically at the end of the process\n`
         + `always make 100% sure that none of the tests will get stuck, apply strategies to avoid that\n`
-        + `never start the application with npm start, or npm run dev, because it wont close by itself\n`
+        + `IMPORTANT - never start the application by calling npm start, or npm run dev\n`
 
         + '\n// File Management\n'
         + `Use consistent file structure\n`
@@ -226,17 +226,6 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
           setCurrentModel(newModel);
         }
       );
-
-      // Check if the response indicates a model upgrade
-      if (response?.choices?.[0]?.message?.content) {
-        const content = response.choices[0].message.content;
-        const upgradeMatch = content.match(/<upgradeModel provider="([^"]+)">/);
-        if (upgradeMatch) {
-          const newModel = upgradeMatch[1];
-          logger.info(`Model upgrade requested to ${newModel}`);
-          setCurrentModel(newModel);
-        }
-      }
 
       return response.choices[0].message.content;
     } catch (error) {
@@ -447,6 +436,10 @@ async function main(instruction, errors, model = 'mistral') {
     await generateDiff();
 
     try {
+      const results = await runBuild();
+      if(results.code !== 0 || /error/i.test(results.stderr) || /fail/i.test(results.stderr)) {
+        throw new Error('Build failed');
+      }
       if (summaries && summaries.length > 0) {
         console.log(summaryBuffer);
       }
@@ -461,9 +454,7 @@ async function main(instruction, errors, model = 'mistral') {
         }
         summaryBuffer.push(`Passed ${testResults.passed} tests\nFailed to fix ${testResults.failed} tests`);
         logger.info(`Retrying main function (attempt ${attempts}/${MAX_ATTEMPTS})...`);
-        setTimeout(() => {
-          main(process.argv[2], error.message, currentModel);
-        }, 0);
+        main(process.argv[2], error.message, currentModel);
       } else {
         throw new Error('Max attempts reached');
       }
@@ -473,7 +464,6 @@ async function main(instruction, errors, model = 'mistral') {
 
   } catch (error) {
     console.error('Error:', error);
-    process.exitCode = 1;
   }
 }
 
@@ -486,7 +476,6 @@ program
     main(instruction, null, currentModel).catch((error) => {
       console.error(error)
       logger.error('Application error:', error, error.message);
-      process.exit(0);
     });
   });
 
