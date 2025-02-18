@@ -130,7 +130,6 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
         + `Always analyze logs, CHANGELOG.txt and <attemptDiff> tags as well as <cmdhistory> and <history> and <attemptSummary> tags carefully to avoid repetitive fixes\n`
         + `Look at the logs and history, if the history indicates you are having trouble fixing the errors repeatedly, pick a different approach\n`
         + `always make 100% sure that none of the tests will get stuck, apply strategies to avoid that\n`
-        + `IMPORTANT - never start the application by calling npm start, or npm run dev\n`
         + `never run npm test or npm run test, instead run the individual test files directly when you need to debug\n`
 
         + '\n// File Management\n'
@@ -288,10 +287,6 @@ async function main(instruction, errors, model = 'mistral') {
     const cliCommands = brainstormedTasks.match(/<cli>([\s\S]*?)<\/cli>/g) || [];
     const summaries = brainstormedTasks.match(/<text>([\s\S]*?)<\/text>/g) || [];
 
-    if (cliCommands && cliCommands.length > 0) {
-      cliBuffer.unshift(...cliCommands);
-    }
-
     if (process.env.NODE_ENV !== 'test' && filesToEdit.length === 0 && cliCommands.length === 0 && summaries.length === 0) {
       logger.debug(brainstormedTasks);
       throw new Error('No files to edit, cli commands or summaries found');
@@ -389,6 +384,11 @@ async function main(instruction, errors, model = 'mistral') {
           const commandMatch = cliCommand.match(/<cli>([\s\S]*?)<\/cli>/);
           if (commandMatch) {
             const command = commandMatch[1].trim();
+            // Skip commands that start with npm run start, npm run dev, npm start
+            if (/^npm run (start|dev)|^npm start/.test(command)) {
+              logger.warn(`Skipping command: ${command}`);
+              continue;
+            }
             try {
               const result = await executeCommand(command);
               logger.system("Command executed:", command, "Code:", result.code);
