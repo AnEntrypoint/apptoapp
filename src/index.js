@@ -425,6 +425,13 @@ async function main(instruction, errors, model = 'mistral') {
         if (commandMatch) {
           const command = commandMatch[1].trim();
           try {
+            const isBuildOrStartCommand = command.includes('npm run build') || command.includes('npm run start');
+            if (!isBuildOrStartCommand) {
+              const result = await executeCommand(command);
+              logger.system("Code: ", result.code);
+            } else {
+              logger.info(`Skipped command: ${command} as it is a build or start command.`);
+            }
             const result = await executeCommand(command);
             logger.system("Code: ", result.code)
           } catch (error) {
