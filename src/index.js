@@ -144,7 +144,7 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
         + '\n// Performance & Security\n'
         + `Optimize performance while handling edge cases\n`
         + `Follow best practices for security and maintainability\n`
-        + `Always Fix all test and linting errors and warnings\n`
+        + `Always Fix all test and linting errors and warnings in the <lint> tags\n`
     },
     {
       role: 'user',
