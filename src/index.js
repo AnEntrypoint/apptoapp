@@ -475,13 +475,6 @@ async function main(instruction, errors, model = 'mistral') {
   } catch (error) {
     console.error('Error:', error);
     process.exitCode = 1;
-  } finally {
-    // Clean up any remaining handles
-    if (process.env.NODE_ENV !== 'test') {
-      setTimeout(() => {
-        process.exit(process.exitCode || 0);
-      }, 100);
-    }
   }
 }
 
