@@ -53,7 +53,7 @@ class MistralProvider {
             headers: this.headers,
             body: JSON.stringify(requestBody)
           }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out after 5 minutes')), 10 * 60 * 1000))
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out after 10 minutes')), 10 * 60 * 1000))
         ]);
         console.log('[MistralProvider] Response status:', response.status);
 

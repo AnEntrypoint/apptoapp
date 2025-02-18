@@ -83,7 +83,7 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
     `\n<attempts>This is attempt number ${attempts} of ${MAX_ATTEMPTS} to complete the user instruction: ${instruction} and fix the errors in the logs and tests</attempts>\n`,
     `\n<nodeVersion>${process.version}</nodeVersion>\n`,
     `\n<npmVersion>${safeExecSync('npm -v')}</npmVersion>\n`,
-    `\n<testResults>Passed ${testResults.passed} tests\nFailed to fix ${testResults.failed} tests</testResults>\n`,
+    `\n<lint>${testResults} tests</lint>\n`,
     `\n<builderror>\n${errors}</buildError>\n`,
     `\n<installedDependencies>\n${safeExecSync('npm ls --depth=0')}\n</installedDependencies>\n`,
     `\n<gitStatus>\n${safeExecSync('git status --short 2>&1 || echo "Not a git repository"')}\n</gitStatus>\n`,
@@ -92,7 +92,7 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
     `\n<timestamp>${new Date().toISOString()}</timestamp>\n`,
     `\n<currentWorkingDirectory>${process.cwd()}</currentWorkingDirectory>\n`,
     `\n<terminalType>${process.env.TERM || process.platform === 'win32' ? 'cmd/powershell' : 'bash'}</terminalType>\n`,
-    cliBuffer.length > 0 ? `\n\n<bashhistory>${cliBuffer.map(c => c.replace(/<cli>/g, '').replace(/<\/cli>/g, '').reverse()).join('\n')}</bashhistory>\n` : ``,
+    cliBuffer.length > 0 ? `\n\n<bashhistory>${cliBuffer.map(c => c.replace(/<cli>/g, '').replace(/<\/cli>/g, '')).reverse().join('\n')}</bashhistory>\n` : ``,
     (cursorRules && cursorRules.length > 0) ? `\n<rules>Rules:\n${cursorRules}</rules>\n` : '',
     `\n${diffsXML}\n\n`,
   ]
@@ -123,15 +123,15 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
 
         + '\n// Testing & Debugging\n'
         + `The last build error is in <builderror>\n`
-        + ``
+        + `always look in the <diff> tags for the original code if any code was replaced by placeholder or todo type comments\n`
         + `Write comprehensive unit and integration tests\n`
         + `Write tests to discover and fix bugs\n`
         + `Always try to fix all known errors at once\n`
         + `Always analyze logs, CHANGELOG.txt and <attemptDiff> tags as well as <cmdhistory> and <history> and <attemptSummary> tags carefully to avoid repetitive fixes\n`
         + `Look at the logs and history, if the history indicates you are having trouble fixing the errors repeatedly, pick a different approach\n`
-        + `Never run tests using the cli commands, they run automatically at the end of the process\n`
         + `always make 100% sure that none of the tests will get stuck, apply strategies to avoid that\n`
         + `IMPORTANT - never start the application by calling npm start, or npm run dev\n`
+        + `never run npm test or npm run test, instead run the individual test files directly when you need to debug\n`
 
         + '\n// File Management\n'
         + `Use consistent file structure\n`
@@ -157,7 +157,7 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
         + '\n// Performance & Security\n'
         + `Optimize performance while handling edge cases\n`
         + `Follow best practices for security and maintainability\n`
-        + `Always Fix all test and linting errors\n`
+        + `Always Fix all test and linting errors and warnings\n`
     },
     {
       role: 'user',
@@ -395,8 +395,7 @@ async function main(instruction, errors, model = 'mistral') {
               
               // Add command and output to cliBuffer
               cliBuffer.unshift(
-                `<cli>${command}</cli>`,
-                `<output>Exit code: ${result.code}\nSTDOUT: ${result.stdout}\nSTDERR: ${result.stderr}</output>`
+                `${command}\nExit code: ${result.code}\nSTDOUT: ${result.stdout}\nSTDERR: ${result.stderr}`
               );
               
               // Keep buffer size manageable
