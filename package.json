@@ -1,6 +1,6 @@
 {
   "name": "apptoapp",
-  "version": "1.2.14",
+  "version": "1.2.15",
   "description": "Application with Copilot integration",
   "main": "src/index.js",
   "bin": {
