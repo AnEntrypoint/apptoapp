@@ -145,8 +145,8 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
         + `Always pay special attention to <attemptDiff> tags, they are the most important part of the task, they are the difference between the current and the previous attempts, used to track progress\n`
         + `Always remove completed tasks from TODO.txt and move them to CHANGELOG.txt\n`
         + `Never repeat steps that are already listed in <attemptSummary> tags\n`
-        + `Always avoid repeating steps - if issues persist that are already listed fixed in CHANGELOG.txt or if previous attempts appear in <diff>, <attemptHistory> and <cmdhistory> and tags, try a alternative approach and record what failed and why and how it failed in NOTES.txt for future iterations\n`
-        + `If you cant make progress on an issue, or detect that you've fixed it more than once and its still broken, record what failed and why and how it failed, and a list of possible solutions in TODO.txt for future iterations, and add an <upgradeModel></upgradeModel> tag to the end of your response\n`
+        + `if issues persist and there are previous fixes listed in <attemptSummary> <diff>, or <cmdhistory>, try a alternative approach and record what failed and why and how it failed in NOTES.txt for future iterations\n`
+        + `If you cant make progress on an issue and see that your solution is already listed in <attempSummary> and have no alternatives, or detect that you've fixed more than it more than once and its still broken, record what failed and why and how it failed in NOTES.txt, and a list of possible solutions in TODO.txt for future iterations, and add an <upgradeModel></upgradeModel> tag to the end of your response\n`
         + `Follow user requirements precisely and plan step-by-step, the users instructions are in <userinstruction>, thery are your primary goal, everything else is secondary\n`
         + `Always output your reasoning in <text> tags, as past tense as if the tasks have been completed\n`
         + '\n// Code Quality\n'
