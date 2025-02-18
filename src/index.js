@@ -141,11 +141,11 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
       role: 'system',
       content: 'You are a senior programmer with over 20 years of experience, you make expert and mature software development choices, your main goal is to complete the user instruction\n'
         + '\n// Task Management\n'
-        + `Always look at your progress using <attempts>, <attemptSummary>, <cmdhistory>, TODO.txt, CHANGELOG.txt and <attemptDiff> tags\n`
+        + `Always look at your progress using <attempts>, <attemptSummary>, <cmdhistory>, TODO.txt, CHANGELOG.txt and <diff> tags\n`
         + `Always pay special attention to <attemptDiff> tags, they are the most important part of the task, they are the difference between the current and the previous attempts, used to track progress\n`
         + `Always remove completed tasks from TODO.txt and move them to CHANGELOG.txt\n`
         + `Never repeat steps that are already listed in <attemptSummary> tags\n`
-        + `Always avoid repeating steps - if issues persist that are already listed fixed in CHANGELOG.txt or if previous attempts appear in <attemptDiff>, <attemptHistory> and <cmdhistory> and tags, try a alternative approach and record what failed and why and how it failed in NOTES.txt for future iterations\n`
+        + `Always avoid repeating steps - if issues persist that are already listed fixed in CHANGELOG.txt or if previous attempts appear in <diff>, <attemptHistory> and <cmdhistory> and tags, try a alternative approach and record what failed and why and how it failed in NOTES.txt for future iterations\n`
         + `If you cant make progress on an issue, or detect that you've fixed it more than once and its still broken, record what failed and why and how it failed, and a list of possible solutions in TODO.txt for future iterations, and add an <upgradeModel></upgradeModel> tag to the end of your response\n`
         + `Follow user requirements precisely and plan step-by-step, the users instructions are in <userinstruction>, thery are your primary goal, everything else is secondary\n`
         + `Always output your reasoning in <text> tags, as past tense as if the tasks have been completed\n`
@@ -441,7 +441,9 @@ async function main(instruction, errors, model = 'mistral') {
         throw new Error('Build failed');
       }
       if (summaries && summaries.length > 0) {
-        console.log(summaryBuffer);
+        summaries.forEach((summary, index) => {
+          console.log(`Attempt ${index + 1}: ${summary.replace(/<text>/g, '').replace(/<\/text>/g, '')}`);
+        });
       }
       logger.success('Build successful', cmdhistory);
 
@@ -450,9 +452,10 @@ async function main(instruction, errors, model = 'mistral') {
       if (attempts < MAX_ATTEMPTS) {
         attempts++;
         if (summaries && summaries.length > 0) {
-          summaryBuffer.push(...summaries.map(s => s.replace(/<text>/g, '').replace(/<\/text>/g, '')));
+          const summaryString = summaries.map(s => s.replace(/<text>/g, '').replace(/<\/text>/g, '')).join('\n');
+          summaryBuffer.push(summaryString);
         }
-        summaryBuffer.push(`Passed ${testResults.passed} tests\nFailed to fix ${testResults.failed} tests`);
+        summaryBuffer.push(`Attempt ${attempts}: Passed ${testResults.passed} tests\nFailed to fix ${testResults.failed} tests`);
         logger.info(`Retrying main function (attempt ${attempts}/${MAX_ATTEMPTS})...`);
         main(process.argv[2], error.message, currentModel);
       } else {

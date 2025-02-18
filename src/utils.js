@@ -123,8 +123,13 @@ async function makeApiRequest(messages, tools, apiKey, endpoint, model = 'mistra
       console.log(`[Provider Chain] ${providerType} provider succeeded`);
       return { success: true, result };
     } catch (error) {
-      console.error(`[Provider Chain] ${providerType} provider request failed:`, error.message);
-      return { failed: true, error: error.message };
+      const isTimeout = error.message.includes('timed out') || error.name === 'AbortError';
+      console.error(`[Provider Chain] ${providerType} provider ${isTimeout ? 'timed out' : 'failed'}:`, error.message);
+      return { 
+        failed: true, 
+        error: error.message,
+        isTimeout
+      };
     }
   };
 
@@ -136,7 +141,8 @@ async function makeApiRequest(messages, tools, apiKey, endpoint, model = 'mistra
     return response.result;
   }
   if (response.failed) {
-    console.log('[Provider Chain] Mistral failed, attempting Together AI');
+    const reason = response.isTimeout ? 'timed out' : 'failed';
+    console.log(`[Provider Chain] Mistral ${reason}, attempting Together AI`);
   }
 
   // Try Together if Mistral fails
@@ -148,7 +154,8 @@ async function makeApiRequest(messages, tools, apiKey, endpoint, model = 'mistra
     return response.result;
   }
   if (response.failed) {
-    console.log('[Provider Chain] Together AI failed, attempting OpenRouter');
+    const reason = response.isTimeout ? 'timed out' : 'failed';
+    console.log(`[Provider Chain] Together AI ${reason}, attempting OpenRouter`);
   }
 
   // Try OpenRouter if Together fails
@@ -160,7 +167,8 @@ async function makeApiRequest(messages, tools, apiKey, endpoint, model = 'mistra
     return response.result;
   }
   if (response.failed) {
-    console.log('[Provider Chain] OpenRouter failed, attempting Groq as final fallback');
+    const reason = response.isTimeout ? 'timed out' : 'failed';
+    console.log(`[Provider Chain] OpenRouter ${reason}, attempting Groq as final fallback`);
   }
 
   // Try Groq as final fallback
@@ -173,9 +181,13 @@ async function makeApiRequest(messages, tools, apiKey, endpoint, model = 'mistra
   }
 
   // If we get here, all providers have either failed or been skipped
-  const errorMessage = response.failed ? 
-    `All providers failed. Last error: ${response.error}` :
-    'All providers were skipped due to missing API keys';
+  let errorMessage;
+  if (response.failed) {
+    const reason = response.isTimeout ? 'timed out' : 'failed';
+    errorMessage = `All providers ${reason}. Last error: ${response.error}`;
+  } else {
+    errorMessage = 'All providers were skipped due to missing API keys';
+  }
   
   console.error('[Provider Chain]', errorMessage);
   throw new Error(errorMessage);
