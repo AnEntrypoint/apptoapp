@@ -1,6 +1,6 @@
 const logger = require('./logger');
 
-async function retryWithBackoff(operation, maxRetries = 3, initialDelay = 2000) {
+async function retryWithBackoff(operation, maxRetries = 1, initialDelay = 10000) {
   let delay = process.env.NODE_ENV === 'test' ? 100 : initialDelay;
   let lastError;
   
