@@ -284,7 +284,7 @@ async function main(instruction, errors, model = 'mistral') {
     }
 
     const files = await getFiles();
-    logger.info(`\n\n--------------------------------\n\nUser instruction:\n\n--------------------------------\n${instruction}\n\n`);
+    logger.info(`\n\n--------------------------------\n\nUser instruction:\n${instruction}\n\n--------------------------------\n\n`);
 
     // In test mode, skip the LLM call and just write a test file
     if (process.env.NODE_ENV === 'test') {
