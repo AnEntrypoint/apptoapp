@@ -166,6 +166,9 @@ function clearDiffBuffer() {
 }
 
 async function getFiles() {
+  // Ensure .gitignore exists before scanning
+  await ensureGitignore();
+  
   const codebaseDir = path.join(__dirname, '..'); // Parent directory of src
   const currentDir = process.cwd();
   
@@ -263,11 +266,29 @@ async function writeFile(filePath, content) {
   }
 }
 
+async function ensureGitignore() {
+  const currentGitignore = path.join(process.cwd(), '.gitignore');
+  const sourceGitignore = path.join(__dirname, '../.gitignore');
+  
+  if (!fs.existsSync(currentGitignore)) {
+    try {
+      const content = await fsp.readFile(sourceGitignore, 'utf8');
+      await writeFile(currentGitignore, content);
+      logger.success(`Copied .gitignore from tool to current directory`);
+    } catch (error) {
+      logger.error('Failed to copy .gitignore:', error.message);
+      logger.debug(`Source gitignore path: ${sourceGitignore}`);
+      logger.debug(`Target gitignore path: ${currentGitignore}`);
+    }
+  }
+}
+
 module.exports = {
   getFiles,
   generateDiff,
   getDiffBufferStatus,
   clearDiffBuffer,
   diff,
-  writeFile
+  writeFile,
+  ensureGitignore
 };

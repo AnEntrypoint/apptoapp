@@ -156,7 +156,7 @@ class MistralProvider {
         console.error('[MistralProvider] Unhandled error, rethrowing');
         throw error;
       }
-    }, 5, 2000); // 5 retries, starting with 2 second delay
+    });
   }
 }
 
