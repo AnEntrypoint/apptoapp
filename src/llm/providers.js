@@ -47,11 +47,14 @@ class MistralProvider {
         });
 
         console.log('[MistralProvider] Initiating fetch request');
-        const response = await fetch(this.endpoint, {
-          method: 'POST',
-          headers: this.headers,
-          body: JSON.stringify(requestBody)
-        });
+        const response = await Promise.race([
+          fetch(this.endpoint, {
+            method: 'POST',
+            headers: this.headers,
+            body: JSON.stringify(requestBody)
+          }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out after 5 minutes')), 5 * 60 * 1000))
+        ]);
         console.log('[MistralProvider] Response status:', response.status);
 
         let responseText;
