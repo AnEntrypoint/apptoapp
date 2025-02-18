@@ -151,9 +151,6 @@ jest.mock('../utils/logger', () => ({
   warn: jest.fn()
 }));
 
-// Don't mock retryWithBackoff, we want to use the real implementation
-jest.unmock('../utils/retry');
-
 const { createLLMProvider, MistralProvider, GroqProvider, OpenRouterProvider, TogetherProvider } = require('../llm/providers');
 
 describe('createLLMProvider', () => {

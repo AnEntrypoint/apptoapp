@@ -91,15 +91,13 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
       role: 'system',
       content: 'You are a senior programmer with over 20 years of experience, you make expert and mature software development choices, your main goal is to complete the user instruction\n'
         + '\n// Task Management\n'
-        + `Always look at your progress using <attempts>, <attemptSummary>, <cmdhistory>, CHANGELOG.txt and <diff> tags\n`
+        + `always read <attemptSummary> tags carefully, dont repeat the same actions or steps twice, try a alternative approach\n`
         + `Always pay special attention to <attemptDiff> tags, they are the most important part of the task, they are the difference between the current and the previous attempts, used to track progress\n`
-        + `Never repeat steps that are already listed in <attemptSummary> tags\n`
-        + `if issues persist and there are previous fixes listed in <attemptSummary> <diff>, or <cmdhistory>, try a alternative approach and record what failed and why and how it failed in NOTES.txt for future iterations\n`
-        + `If you cant make progress on an issue and see that your solution is already listed in <attempSummary> and have no alternatives, or detect that you've fixed more than it more than once and its still broken, record what failed and why and how it failed in NOTES.txt, and a list of possible solutions in TODO.txt for future iterations, and add an <upgradeModel></upgradeModel> tag to the end of your response\n`
+        + `if you see that your solution is already listed in <attempSummary> and have no alternative solutions, or find multiple <attemptSummary> tags with the same solution, record what failed and why and how it failed in NOTES.txt, and add an <upgradeModel></upgradeModel> tag to the end of your response\n`
         + `Follow user requirements precisely and plan step-by-step, the users instructions are in <userinstruction>, thery are your primary goal, everything else is secondary\n`
         + `Always output your reasoning in <text> tags, as past tense as if the tasks have been completed\n`
         + `Never repeat yourself\n`
-        + `Only output tags that you are specifically asked to output, dont output any other tags, dont output the input tags\n`
+        + `Only output tags that you are specifically asked to output namely <text>, <file>, <cli>, <upgradeModel>, <diff>, <builderror>, <installedDependencies>, <gitStatus>, <nodeVersion>, <npmVersion>, <systemDate>, <timestamp>, <currentWorkingDirectory>, <terminalType>\n`
 
         + '\n// Code Quality\n'
         + `Write clean, DRY, maintainable code following SOLID principles\n`
@@ -277,12 +275,14 @@ async function main(instruction, errors, model = 'mistral') {
     const cliCommands = brainstormedTasks.match(/<cli>([\s\S]*?)<\/cli>/g) || [];
     const summaries = brainstormedTasks.match(/<text>([\s\S]*?)<\/text>/g) || [];
 
+    let upgradeModelTag = brainstormedTasks.match(/<upgradeModel>/);
+
     if (process.env.NODE_ENV !== 'test' && filesToEdit.length === 0 && cliCommands.length === 0 && summaries.length === 0) {
       logger.debug(brainstormedTasks);
       throw new Error('No files to edit, cli commands or summaries found');
+      upgradeModelTag = true;
     }
 
-    const upgradeModelTag = brainstormedTasks.match(/<upgradeModel>/);
     if (upgradeModelTag) {
       logger.warn('Upgrade model tag found, switching to deepseek with fallback chain');
       let deepseekSuccess = false;
@@ -389,8 +389,8 @@ async function main(instruction, errors, model = 'mistral') {
               );
               
               // Keep buffer size manageable
-              if (cliBuffer.length > 1000) {
-                cliBuffer.splice(1000, cliBuffer.length - 1000);
+              if (cliBuffer.length > 100) {
+                cliBuffer.splice(1000, cliBuffer.length - 100);
               }
 
               if (result.code !== 0) {
@@ -414,6 +414,19 @@ async function main(instruction, errors, model = 'mistral') {
           console.log(`Attempt ${index + 1}: ${summary.replace(/<text>/g, '').replace(/<\/text>/g, '')}`);
         });
       }
+
+      const testResults = await runBuild();
+      if (testResults.includes('Lint failed')) {
+        logger.error('Lint errors detected in the test results.');
+        throw new Error('Lint errors found. Please fix them before proceeding.');
+      }
+
+      const lintWarnings = testResults.match(/Warning: (.*)/g);
+      if (lintWarnings && lintWarnings.length > 0) {
+        logger.warn('Lint warnings detected:', lintWarnings.join(', '));
+        throw new Error('Lint warnings found. Please address them before proceeding.');
+      }
+
       logger.success('Operation successful', cmdhistory);
 
     } catch (error) {
@@ -426,6 +439,7 @@ async function main(instruction, errors, model = 'mistral') {
         }
         summaryBuffer.push(`Attempt ${attempts}`);
         logger.info(`Retrying main function (attempt ${attempts}/${MAX_ATTEMPTS})...`);
+        cliBuffer.length = 0;
         main(process.argv[2], error.message, currentModel);
       } else {
         throw new Error('Max attempts reached');
@@ -433,7 +447,7 @@ async function main(instruction, errors, model = 'mistral') {
     }
 
     logger.debug('Final directory contents:', fs.readdirSync(process.cwd()));
-    logger.success('Operation successful', cmdhistory);
+    logger.success('Operation successful');
     return;
   } catch (error) {
     console.error('Error:', error);
