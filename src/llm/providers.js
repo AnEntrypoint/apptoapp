@@ -53,7 +53,7 @@ class MistralProvider {
             headers: this.headers,
             body: JSON.stringify(requestBody)
           }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out after 5 minutes')), 5 * 60 * 1000))
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out after 5 minutes')), 10 * 60 * 1000))
         ]);
         console.log('[MistralProvider] Response status:', response.status);
 
@@ -280,7 +280,7 @@ class OpenRouterProvider {
       
       try {
         const requestBody = {
-          model: process.env.OPENROUTER_MODEL || 'deepseek/deepseek-coder-33b-instruct',
+          model: process.env.OPENROUTER_MODEL || 'deepseek/deepseek-r1:free',
           messages,
           temperature: 0.6,
           max_tokens: 32768,
@@ -296,7 +296,8 @@ class OpenRouterProvider {
         console.log('Sending request to OpenRouter:', {
           model: requestBody.model,
           messageCount: messages.length,
-          toolCount: tools.length
+          toolCount: tools.length,
+          firstMessagePreview: messages[0]?.content?.slice(0, 100) + '...'
         });
 
         const response = await fetch(this.endpoint, {
@@ -308,16 +309,17 @@ class OpenRouterProvider {
         let responseData;
         try {
           responseData = await response.json();
-          console.log('Response data after json():', responseData);
+          console.log('OpenRouter raw response:', JSON.stringify(responseData, null, 2));
         } catch (e) {
-          console.error('Error parsing response:', e);
+          console.error('Error parsing OpenRouter response:', e);
           throw new Error('Failed to parse OpenRouter API response: ' + e.message);
         }
 
         if (!response.ok) {
           console.error('OpenRouter API Error:', {
             status: response.status,
-            bodyPreview: JSON.stringify(responseData).slice(0, 200)
+            statusText: response.statusText,
+            body: responseData
           });
 
           if (response.status === 429) {
@@ -329,23 +331,54 @@ class OpenRouterProvider {
           if (response.status === 401) {
             throw new Error('Invalid OpenRouter API key');
           }
+          if (response.status === 422) {
+            console.error('OpenRouter API request validation failed:', responseData);
+            throw new Error(`OpenRouter API request validation failed: ${JSON.stringify(responseData.error || responseData)}`);
+          }
 
           throw new Error(`OpenRouter API Error ${response.status}: ${response.statusText}`);
         }
 
-        if (!responseData?.choices?.[0]?.message?.content) {
-          console.error('Invalid response data:', responseData);
-          throw new Error('Invalid response format from OpenRouter API');
+        // Log the response structure for debugging
+        console.log('OpenRouter response structure:', {
+          hasId: !!responseData?.id,
+          hasChoices: !!responseData?.choices,
+          choicesLength: responseData?.choices?.length,
+          firstChoice: responseData?.choices?.[0] ? {
+            hasMessage: !!responseData.choices[0].message,
+            messageKeys: responseData.choices[0].message ? Object.keys(responseData.choices[0].message) : [],
+            contentPreview: responseData.choices[0].message?.content?.slice(0, 100) + '...'
+          } : null
+        });
+
+        // Check if we have a valid response with content
+        if (!responseData?.choices?.[0]?.message) {
+          console.error('Invalid OpenRouter response format - missing choices or message:', responseData);
+          throw new Error('Invalid response format from OpenRouter API - missing message');
+        }
+
+        const message = responseData.choices[0].message;
+        if (typeof message !== 'object' || !message.content) {
+          console.error('Invalid OpenRouter message format:', message);
+          throw new Error('Invalid response format from OpenRouter API - invalid message format');
         }
 
         return {
           id: responseData.id,
           choices: [{
-            message: responseData.choices[0].message
+            message: {
+              content: message.content,
+              role: message.role || 'assistant',
+              ...message.function_call ? { function_call: message.function_call } : {}
+            }
           }]
         };
       } catch (error) {
-        console.error('OpenRouter request failed:', error.message);
+        console.error('OpenRouter request failed:', {
+          message: error.message,
+          stack: error.stack,
+          cause: error.cause
+        });
         throw error;
       }
     });
@@ -354,30 +387,27 @@ class OpenRouterProvider {
 
 class TogetherProvider {
   constructor(apiKey) {
-    if (!apiKey) throw new Error('Together API key is required');
     this.apiKey = apiKey;
     this.endpoint = 'https://api.together.xyz/v1/chat/completions';
-    this.abortController = new AbortController();
+    this.abortController = null;
   }
 
   async makeRequest(messages, tools = []) {
-    return retryWithBackoff(async () => {
-      console.log('Making Together API request');
+    return await retryWithBackoff(async () => {
+      // Create a new abort controller for each attempt
+      this.abortController = new AbortController();
+      
       const requestBody = {
-        model: process.env.TOGETHER_MODEL || 'deepseek-coder-33b-instruct',
-        messages,
-        temperature: 0.6,
+        model: 'deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free',
+        messages: messages,
+        temperature: 0.7,
         max_tokens: 32768,
         top_p: 0.95,
         stream: false
       };
 
       try {
-        console.log('Sending request to Together:', {
-          model: requestBody.model,
-          messageCount: messages.length,
-          toolCount: tools.length
-        });
+        console.log('Making Together API request with body:', JSON.stringify(requestBody, null, 2));
 
         const response = await fetch(this.endpoint, {
           method: 'POST',
@@ -392,16 +422,17 @@ class TogetherProvider {
         let responseData;
         try {
           responseData = await response.json();
-          console.log('Response data after json():', responseData);
+          console.log('Together API raw response:', JSON.stringify(responseData, null, 2));
         } catch (e) {
-          console.error('Error parsing response:', e);
+          console.error('Error parsing Together API response:', e);
           throw new Error('Failed to parse Together API response: ' + e.message);
         }
 
         if (!response.ok) {
           console.error('Together API Error:', {
             status: response.status,
-            bodyPreview: JSON.stringify(responseData).slice(0, 200)
+            statusText: response.statusText,
+            body: responseData
           });
 
           if (response.status === 429) {
@@ -413,12 +444,16 @@ class TogetherProvider {
           if (response.status === 401) {
             throw new Error('Invalid Together API key');
           }
+          if (response.status === 422) {
+            console.error('Together API request validation failed:', responseData);
+            throw new Error(`Together API request validation failed: ${JSON.stringify(responseData.error || responseData)}`);
+          }
 
           throw new Error(`Together API Error ${response.status}: ${response.statusText}`);
         }
 
         if (!responseData?.choices?.[0]?.message?.content) {
-          console.error('Invalid response data:', responseData);
+          console.error('Invalid Together API response format:', responseData);
           throw new Error('Invalid response format from Together API');
         }
 
@@ -429,10 +464,8 @@ class TogetherProvider {
           }]
         };
       } catch (error) {
-        console.error('Together request failed:', error.message);
+        console.error('Together API request failed:', error);
         throw error;
-      } finally {
-        this.abortController.abort();
       }
     });
   }

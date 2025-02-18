@@ -1,6 +1,6 @@
 const logger = require('./logger');
 
-async function retryWithBackoff(operation, maxRetries = 2, initialDelay = 10000) {
+async function retryWithBackoff(operation, maxRetries = 2, initialDelay = 1000) {
   let delay = process.env.NODE_ENV === 'test' ? 100 : initialDelay;
   let lastError;
   
@@ -24,33 +24,25 @@ async function retryWithBackoff(operation, maxRetries = 2, initialDelay = 10000)
         stack: error.stack
       });
       
-      // Don't retry on authentication errors
+      // Don't retry on authentication errors or validation errors
       if (error.message.includes('401') || 
           error.message.toLowerCase().includes('invalid api key') ||
-          error.message.toLowerCase().includes('unauthorized')) {
-        console.error('[RetryWithBackoff] Authentication error:', error.message);
-        throw error;
-      }
-      
-      // Don't retry on invalid request errors
-      if (error.message.includes('400') ||
-          error.message.toLowerCase().includes('invalid request')) {
-        console.error('[RetryWithBackoff] Invalid request error:', error.message);
+          error.message.toLowerCase().includes('unauthorized') ||
+          error.message.includes('422')) {
+        console.log('[RetryWithBackoff] Non-retryable error detected');
         throw error;
       }
 
-      // If this was the last attempt, throw the error
-      if (attempt === maxRetries) {
-        console.error('[RetryWithBackoff] Unhandled error:', error.message);
-        throw error;
+      // If this is not the last attempt, wait before retrying
+      if (attempt < maxRetries) {
+        const backoffDelay = delay * Math.pow(2, attempt - 1);
+        console.log(`[RetryWithBackoff] Waiting ${backoffDelay}ms before next attempt`);
+        await new Promise(resolve => setTimeout(resolve, backoffDelay));
       }
-
-      // Wait before retrying
-      await new Promise(resolve => setTimeout(resolve, delay));
-      delay *= 2; // Exponential backoff
     }
   }
 
+  console.error('[RetryWithBackoff] Unhandled error:', lastError.message);
   throw lastError;
 }
 

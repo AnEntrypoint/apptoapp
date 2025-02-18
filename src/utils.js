@@ -180,15 +180,8 @@ async function makeApiRequest(messages, tools, apiKey, endpoint, model = 'mistra
     return response.result;
   }
 
-  // If we get here, all providers have either failed or been skipped
-  let errorMessage;
-  if (response.failed) {
-    const reason = response.isTimeout ? 'timed out' : 'failed';
-    errorMessage = `All providers ${reason}. Last error: ${response.error}`;
-  } else {
-    errorMessage = 'All providers were skipped due to missing API keys';
-  }
-  
+  // If we get here, all providers have failed
+  const errorMessage = `Failed to get response from any available provider. Last error: ${response.error}`;
   console.error('[Provider Chain]', errorMessage);
   throw new Error(errorMessage);
 }

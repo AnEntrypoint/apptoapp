@@ -269,7 +269,8 @@ async function writeFile(filePath, content) {
 async function ensureGitignore() {
   const currentGitignore = path.join(process.cwd(), '.gitignore');
   const sourceGitignore = path.join(__dirname, '../.gitignore');
-  
+  console.log('currentGitignore', currentGitignore);
+  console.log('sourceGitignore', sourceGitignore);
   if (!fs.existsSync(currentGitignore)) {
     try {
       const content = await fsp.readFile(sourceGitignore, 'utf8');
