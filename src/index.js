@@ -314,13 +314,10 @@ async function main(instruction, errors, model = 'mistral', upgrade = false) {
 
         const filePath = fileMatch[1];
         let fileContent = fileMatch[2];
-        console.log({fileContent})
-        const lines = fileContent.split('\n');
-        if (lines.length > 0 && (lines[0].trim().startsWith('```') || lines[1].trim().startsWith('```')) && (lines[lines.length - 2].trim().endsWith('```') || lines[lines.length - 1].trim().endsWith('```'))) {
-          fileContent = lines.slice(1, -1).join('\n');
-          console.log({changed:fileContent})
-          logger.debug(`Removed triple quotes from ${filePath}`);
-        }
+        // Remove code block markers with optional language specifiers
+        fileContent = fileContent.replace(/```(typescript|javascript|css|json|html)/, '')
+                                 .replace(/```/, '');
+        logger.debug(`Removed code block markers from ${filePath}`);
 
         logger.file(`Writing ${filePath} (${fileContent.length} bytes)`);
         try {
