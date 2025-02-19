@@ -433,7 +433,9 @@ async function main(instruction, errors, model = 'mistral', upgrade = false) {
         }
         logger.info(`Retrying main function (attempt ${attempts}/${MAX_ATTEMPTS})...`);
         cmdhistory.length = 0;
-        main(process.argv[2], error.message, currentModel, upgrade);
+
+        if(!completeTag) main(process.argv[2], error.message, currentModel, upgrade);
+        else main('Fix this issue:'+error.message, error.message, currentModel, upgrade);
       } else {
         throw new Error('Max attempts reached');
       }
