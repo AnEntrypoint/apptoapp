@@ -309,6 +309,12 @@ async function main(instruction, errors, model = 'mistral', upgrade = false) {
     if (filesToEdit && filesToEdit.length > 0) {
       for (const file of filesToEdit) {
         const fileMatch = file.match(/<file\s+path="([^"]+)"[^>]*>([\s\S]*?)<\/file>/);
+        // Remove triple quote pairings from file content if present
+        const lines = fileMatch.split('\n');
+        if (lines.length > 0 && lines[0].trim().startsWith('```') && lines[lines.length - 1].trim().endsWith('```')) {
+          fileMatch = lines.slice(1, -1).join('\n');
+          logger.debug(`Removed triple quotes from ${filePath}`);
+        }
         if (!fileMatch || fileMatch.length < 3) continue;
 
         const filePath = fileMatch[1];
