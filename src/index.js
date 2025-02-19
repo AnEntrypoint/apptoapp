@@ -24,10 +24,10 @@ async function runBuild() {
   try {
     await executeCommand('npm install');
     const lint = await executeCommand('npm run lint --fix', false);    
-    const unit = await executeCommand('npm run test', false);
+    const test = await executeCommand('npm run test', false);
 
 
-    return {lint:`Lint exit code: ${lint.code}\nSTDOUT:\n${lint.stdout}\nSTDERR:\n${lint.stderr}`, unit:`Unit exit code: ${unit.code}\nSTDOUT:\n${unit.stdout}\nSTDERR:\n${unit.stderr}`};
+    return {lint:`Lint exit code: ${lint.code}\nSTDOUT:\n${lint.stdout}\nSTDERR:\n${lint.stderr}`, test:`Unit exit code: ${test.code}\nSTDOUT:\n${test.stdout}\nSTDERR:\n${test.stderr}`};
   } catch (error) {
     logger.error('Error executing lint command:', error.message);
     return 'Failed to execute lint command gracefully.';
@@ -53,46 +53,86 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
   const diffsXML = getDiffBufferStatus();
   const files = await getFiles();
   const {lint, test} = await runBuild();
-  const artifacts = [
-    files ? `\n${files}\n` : ``,
-    summaryBuffer.length > 0 ? `\n${summaryBuffer.filter(s => s.trim() !== '').map((s, i) => `<attemptSummary number="${i}">${s}</attemptSummary>\n`).join('\n')}\n` : ``,
-    `\n<nodeEnv>${process.env.NODE_ENV || 'development'}</nodeEnv>\n`,
-    `\n<currentAttempt number="${attempts}"></currentAttempt>\n`,
-    `\n<nodeVersion>${process.version}</nodeVersion>\n`,
-    `\n<npmVersion>${safeExecSync('npm -v')}</npmVersion>\n`,
-    `\n<lint>${lint} tests</lint>\n`,
-    `\n<lint>${test} tests</lint>\n`,
-    `\n<builderror>\n${errors}</buildError>\n`,
-    `\n<installedDependencies>\n${safeExecSync('npm ls --depth=0')}\n</installedDependencies>\n`,
-    `\n<gitStatus>\n${safeExecSync('git status --short 2>&1 || echo "Not a git repository"')}\n</gitStatus>\n`,
-    `\n<gitBranch>${safeExecSync('git branch --show-current 2>&1 || echo "No branch"')}</gitBranch>\n`,
-    `\n<systemDate>${new Date().toISOString()}</systemDate>\n`,
-    `\n<timestamp>${new Date().toISOString()}</timestamp>\n`,
-    `\n<currentWorkingDirectory>${process.cwd()}</currentWorkingDirectory>\n`,
-    `\n<terminalType>${process.env.TERM || process.platform === 'win32' ? 'cmd/powershell' : 'bash'}</terminalType>\n`,
-    cmdhistory.length > 0 ? `\n\n<bashhistory>${cmdhistory.map(c => c.replace(/<cli>/g, '').replace(/<\/cli>/g, '')).reverse().join('\n')}</bashhistory>\n` : ``,
-    `\n${diffsXML}\n\n`,
-  ]
+  let x = 0;
   const messages = [
     {
       role: 'system',
       content: 'You are a senior programmer with over 20 years of experience, you make expert and mature software development choices, your main goal is to complete the user instruction\n'
         + '\nyou are busy iterating on coode, you will get multiple attempts to advance the codebase, always perform fixes and or cli commands to advance the project\n'
-        + `always check <currentAttempt></currentAttempt> to see how many attempts have been made, check each attempts history in <attemptSummary></attemptSummary> tags carefully for progress, dont repeat the same actions or steps twice, try a alternative approach if it didnt work\n`
-        + `Always pay special attention to <attempt></attempt> tags, they are the most important part of the task, they are the difference between the current and the previous attempts, used to track progress\n`
-        + `if you see that your solution is already listed in <attempSummary> and have no alternative solutions, or find multiple <attemptSummary> tags with the same solution, record what failed and why and how it failed in NOTES.txt, and add an <upgradeModel></upgradeModel> tag to the end of your response\n`
-        + `Always output your reasoning and any other prose in <text></text> tags, as past tense as if the tasks have been completed\n`
+        + `always check attempts have been made, and the diff history of the attempts carefully for progress, dont repeat the same actions or steps twice, try a alternative approach if it didnt work\n`
+        + `Always pay special attention to the attempt summaries, they are the most important part of the task, they are the difference between the current and the previous attempts, used to track progress\n`
+        + `if you see that your solution is already listed in attempt summaries and have no alternative solutions, or find multiple <attemptSummary> tags with the same solution, record what failed and why and how it failed in NOTES.txt, and add an <upgradeModel></upgradeModel> tag to the end of your response\n`
+        + `Always output your reasoning and any other prose or text in <text></text> tags, as past tense as if the tasks have been completed\n`
         + `Always write files with the following format: <file path="path/to/file.js">...</file>, just the content of the file inside, dont wrap it in any other tags\n`
         + `Always perform CLI commands with the following format: <cli>command</cli>\n`
         + `When the task is complete, output a <complete></complete> tag with a summary of the task in <text> tags\n`
         + `Always obey the rules in the <Rules></Rules> tags\n` 
         + `Only respond using these tags <text></text>, <file></file>, <cli></cli>, and optionally <upgradeModel></upgradeModel>, never output any other text, prose, formats or tags, all other output has to go into <text></text> tags\n`
-        + `<userInstruction>" + instruction + "</userInstruction>\n`
         + (cursorRules && cursorRules.length > 0) ? `\n<Rules>\n${cursorRules}\n</Rules>\n` : '' + "\n" +  artifacts.join('\n')
-    },
+    },          
     {
       role: 'user',
-      content:  artifacts.join('\n'),
+      content:  instruction,
+    },
+    {
+      "role": "user",
+      "content": 'Npm version: ' + safeExecSync('npm -v')
+    },
+    {
+      "role": "user",
+      "content": 'Git status: ' + safeExecSync('git status --short 2>&1 || echo "Not a git repository"')
+    },
+    {
+      "role": "user",
+      "content": 'Git branch: ' + safeExecSync('git branch --show-current 2>&1 || echo "No branch"')
+    },
+    {
+      "role": "user",
+      "content": 'System date: ' + new Date().toISOString()
+    },
+    {
+      "role": "user",
+      "content": 'Current working directory: ' + process.cwd()
+    },
+    {
+      "role": "user",
+      "content": 'Terminal type: ' + (process.env.TERM || process.platform === 'win32' ? 'cmd/powershell' : 'bash')
+    },
+    {
+      "role": "user",
+      "content": 'Bash history: ' + cmdhistory.map(c => c.replace(/<cli>/g, '').replace(/<\/cli>/g, '')).reverse().join('\n')
+    },
+    {
+      "role": "user",
+      "content": 'Diffs: ' + diffsXML
+    },
+    {
+      "role": "user",
+      "content": 'Installed dependencies: ' + safeExecSync('npm ls --depth=0')
+    },
+    {
+      "role": "user",
+      "content": 'Files: ' + files
+    },
+    {
+      "role": "user",
+      "content": 'Lint: ' + lint
+    },
+    {
+      "role": "user",
+      "content": 'Test: ' + test
+    },
+    {
+      "role": "user",
+      "content": 'Current attempt: ' + attempts
+    },
+    {
+      "role": "user",
+      "content": 'Attempt history: ' + (summaryBuffer.length > 0 ? `\n${summaryBuffer.filter(s => s.trim() !== '').map((s, i) => `<attemptSummary number="${i}">${s}</attemptSummary>\n`).join('\n')}\n` : ``)
+    },
+    {
+      "role": "user",
+      "content": 'Errors: ' + (errors ? errors : 'no further errors')
     }
   ];
   //debug
