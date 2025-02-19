@@ -26,7 +26,6 @@ async function runBuild() {
     const lint = await executeCommand('npm run lint --fix', false);    
     const test = await executeCommand('npm run test', false);
 
-
     return {lint:`Lint exit code: ${lint.code}\nSTDOUT:\n${lint.stdout}\nSTDERR:\n${lint.stderr}`, test:`Unit exit code: ${test.code}\nSTDOUT:\n${test.stdout}\nSTDERR:\n${test.stderr}`};
   } catch (error) {
     logger.error('Error executing lint command:', error.message);
@@ -139,7 +138,7 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
   return [];
 }
 
-async function main(instruction, errors, model = 'mistral') {
+async function main(instruction, errors, model = 'mistral', upgrade = false) {
   console.log('Using model:', model);
   let retryCount = 0;
   const MAX_RETRIES = 3;
@@ -147,6 +146,11 @@ async function main(instruction, errors, model = 'mistral') {
   setCurrentModel(model);
 
   try {
+    if (upgrade) {
+      logger.info('Upgrade flag detected, upgrading model...');
+      setCurrentModel('deepseek'); // Assuming 'deepseek' is the upgraded model
+    }
+
     if (!instruction || instruction.trim() === '') {
       throw new Error('No instruction provided');
     }
@@ -226,10 +230,6 @@ async function main(instruction, errors, model = 'mistral') {
     let upgradeModelTag = brainstormedTasks.match(/<upgradeModel>/);
     let completeTag = brainstormedTasks.match(/<complete>/);
     
-    if (completeTag) {
-      logger.success('Task complete');
-      return;
-    }
 
     if (upgradeModelTag) {
       logger.warn('Upgrade model tag found, switching to deepseek with fallback chain');
@@ -391,7 +391,11 @@ async function main(instruction, errors, model = 'mistral') {
       }
       if(!completeTag) {
         throw new Error('Task not complete');
+      } else if (completeTag) {
+        logger.success('Task complete');
+        return;
       }
+  
       logger.success('Operation successful', cmdhistory);
 
     } catch (error) {
@@ -405,7 +409,7 @@ async function main(instruction, errors, model = 'mistral') {
         }
         logger.info(`Retrying main function (attempt ${attempts}/${MAX_ATTEMPTS})...`);
         cmdhistory.length = 0;
-        main(process.argv[2], error.message, currentModel);
+        main(process.argv[2], error.message, currentModel, upgrade);
       } else {
         throw new Error('Max attempts reached');
       }
@@ -413,7 +417,7 @@ async function main(instruction, errors, model = 'mistral') {
 
     logger.debug('Final directory contents:', fs.readdirSync(process.cwd()));
     logger.success('Operation successful');
-    return;
+    process.exit();
   } catch (error) {
     console.error('Error:', error);
   }
@@ -423,9 +427,10 @@ async function main(instruction, errors, model = 'mistral') {
 program
   .argument('[instruction]', 'Instruction to execute')
   .option('-m, --model <type>', 'Model to use (mistral/groq)', 'mistral')
+  .option('--upgrade', 'Upgrade the model on the first pass')
   .action((instruction, options) => {
     currentModel = options.model;
-    main(instruction, null, currentModel).catch((error) => {
+    main(instruction, null, currentModel, options.upgrade).catch((error) => {
       console.error(error)
       logger.error('Application error:', error, error.message);
     });

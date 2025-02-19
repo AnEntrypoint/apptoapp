@@ -95,6 +95,7 @@ class OpenRouterProvider extends BaseLLMProvider {
                             let content = ''
                             try {
                                 const message = JSON.parse(line.replace("data: ", ''));
+                                //console.log(message)
                                 content = message.choices[0].delta?.content;
                             } catch (e) {
                                 logger.warn('Parse error:', e.message);
