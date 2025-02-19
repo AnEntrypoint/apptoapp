@@ -6,6 +6,7 @@ class TogetherProvider extends BaseLLMProvider {
         super(apiKey);
         this.endpoint = 'https://api.together.xyz/v1/chat/completions';
         this.abortController = null;
+        this.isTest = process.env.NODE_ENV === 'test';
     }
 
     async makeRequest(messages, tools = []) {
@@ -19,8 +20,8 @@ class TogetherProvider extends BaseLLMProvider {
             top_p: 0.7,
             top_k: 50,
             repetition_penalty: 1,
-            stop: ["<｜end▁of▁sentence｜>"],
-            stream: true
+            stop: [""],
+            stream: !this.isTest
         };
 
         try {
@@ -58,6 +59,13 @@ class TogetherProvider extends BaseLLMProvider {
                 throw new Error(`Together API Error ${response.status}: ${response.statusText}`);
             }
 
+            if (this.isTest) {
+                // In test environment, return the JSON response directly
+                const jsonResponse = await response.json();
+                return jsonResponse;
+            }
+
+            // In non-test environment, handle streaming response
             const reader = response.body.getReader();
             const decoder = new TextDecoder("utf-8");
             let fullResponse = '';
@@ -66,12 +74,30 @@ class TogetherProvider extends BaseLLMProvider {
                 const { done, value } = await reader.read();
                 if (done) break;
                 const chunk = decoder.decode(value, { stream: true });
-                fullResponse += chunk;
-                process.stdout.write(chunk);
+                
+                chunk.split('\n').forEach(line => {
+                    if (line.startsWith('data: ') && !line.includes('[DONE]')) {
+                        try {
+                            let content = '';
+                            try {
+                                const message = JSON.parse(line.replace("data: ", ''));
+                                content = message.choices[0].delta?.content;
+                            } catch (e) {
+                                logger.warn('Parse error:', e.message);
+                            }
+                            if (content) {
+                                process.stdout.write(content);
+                                fullResponse += content;
+                            }
+                        } catch (e) {
+                            logger.warn('Parse error:', e.message);
+                        }
+                    }
+                });
             }
 
             logger.info('Full response received');
-            return fullResponse;
+            return {choices: [{message: {content: fullResponse}}]};
         } catch (error) {
             logger.error('Together API request failed:', error);
             throw error;

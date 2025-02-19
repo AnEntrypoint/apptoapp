@@ -15,18 +15,24 @@ function product(a, b) {
   return a * b;
 }
 
-async function executeCommand(command, logHandler = null, options = {}) {
+async function executeCommand(command, history = true) {
   logger.system('Executing command:', command);
   return new Promise((resolve) => {
     const child = exec(command, {
       timeout: options.timeout || 300000, // 5 minute default timeout
       ...options
     }, (error, stdout, stderr) => {
-      cmdhistory.push(command);
-      cmdhistory.push('stdout:');
-      cmdhistory.push(stdout.toString());
-      cmdhistory.push('stderr:');
-      cmdhistory.push(stderr.toString());
+      if(history) {
+        cmdhistory.push(command);
+        if(stdout && stdout.length) {
+          cmdhistory.push('stdout:');
+          cmdhistory.push(stdout.toString());
+        }
+        if(stderr && stderr.length) {
+          cmdhistory.push('stderr:');
+          cmdhistory.push(stderr.toString());
+        }
+      }
       resolve({
         code: error ? error.code : 0,
         stdout: stdout.toString(),
@@ -222,13 +228,57 @@ async function scanDirectory(dir, ig, handler, baseDir = dir) {
 
 async function loadCursorRules() {
   const rulesPath = path.join(process.cwd(), '.cursor/rules'); // Read from the current directory
+
   try {
     const rulesContent = await fsp.readFile(rulesPath, 'utf8');
     console.log('Successfully loaded cursor rules from:', rulesPath); // Added console log for debugging
     return rulesContent;
   } catch (error) {
+    
     console.error('Error reading cursor rules from', rulesPath, ':', error); // Updated error message for clarity
-    return '';
+    return         + '\n// Code Quality\n'
+    + `Write clean, DRY, maintainable code following SOLID principles\n`
+    + `Focus on readability and complete implementations\n`
+    + `Use functional/declarative patterns and avoid classes\n`
+    + `For TypeScript: Maintain strong type safety\n`
+    + `For JavaScript: Use latest language features\n`
+    + `Always refactor files with over 100 lines into smaller modules\n`
+    + `Minimize interdependencies between functions\n`
+    + `Maximise code reuse and generalization\n`
+
+    + '\n// Testing & Debugging\n'
+    + `always look in the <diff> tags for the original code if any code was replaced by placeholder or todo type comments\n`
+    + `Write comprehensive unit and integration tests\n`
+    + `Write tests to discover and fix bugs\n`
+    + `Always try to fix all known errors at once\n`
+    + `Always analyze <diff> tags as well as <cmdhistory> and <history> and <attemptSummary> tags carefully to avoid repetitive fixes\n`
+    + `Look at the logs and history, if the history indicates you are having trouble fixing the errors repeatedly, pick a different approach\n`
+    + `always make 100% sure that none of the tests will get stuck, apply strategies to avoid that\n`
+    + `never run npm test or npm run test, instead run the individual test files directly when you need to debug\n`
+
+    + '\n// File Management\n'
+    + `Use consistent file structure\n`
+    + `Separate tests into their own folder\n`
+    + `Only create necessary files in correct locations\n`
+    + `Don't output unchanged files\n`
+
+    + '\n// Dependency Management\n'
+    + `Use CLI for package management with --save/--save-dev\n`
+    + `Resolve conflicts by removing package-lock.json and reinstalling\n`
+
+    + '\n// Documentation\n'
+    + `Maintain clear JSDoc comments\n`
+    + `Document user-facing text for i18n support\n`
+    + `Explain changes in <text> tags with motivations and CLI commands, in past tense as if the tasks have been completed\n`
+
+    + '\n// Output Formatting\n'
+    + `Only respond in XML tags\n`
+    + `Always provide the complete changed files, no partial files\n`
+
+    + '\n// Performance & Security\n'
+    + `Optimize performance while handling edge cases\n`
+    + `Follow best practices for security and maintainability\n`
+    + `Always Fix all test and linting errors and warnings in the <lint> tags\n`;
   }
 }
 

@@ -1,99 +1,5 @@
 const logger = require('../../utils/logger');
 const BaseLLMProvider = require('./base');
-const levenshtein = require('fast-levenshtein');
-
-function fixBrokenJSON(input) {
-    let original = input;
-    let steps = [];
-  
-    try {
-        // Handle empty/undefined cases first
-        if (input === 'undefined' || input.trim() === '') {
-            return { success: true, fixedJSON: '{}', steps: ['Handled empty input'] };
-        }
-  
-        // Check if input is empty or whitespace only
-        if (!input || !input.trim()) {
-            throw new Error("Input is empty or contains only whitespace");
-        }
-  
-        // Remove comments (none in this input) and whitespace
-        input = input.trim();
-  
-        // Handle escaped quotes and nested quotes in CLI commands
-        input = input.replace(/\\\"/g, '\\"');
-  
-        // Safer property quoting - only add quotes if missing
-        input = input.replace(/([{,]\s*)(\w+)(?=\s*:)/g, (match, prefix, prop) => {
-            if (!prop.startsWith('"')) {
-                steps.push(`Added quotes to property: ${prop}`);
-                return `${prefix}"${prop}"`;
-            }
-            return match;
-        });
-  
-        // Improved value handling
-        input = input.replace(/:(\s*)([^{\s"][^,]*?)(\s*)([,}])/g, (match, space1, value, space2, end) => {
-            // Detect unquoted string values
-            if (!['true','false','null','undefined'].includes(value.toLowerCase()) && 
-                isNaN(value) && 
-                !value.startsWith('"')) {
-                steps.push(`Added quotes to value: ${value}`);
-                return `:${space1}"${value}"${space2}${end}`;
-            }
-            return match;
-        });
-  
-        // Better boolean handling with boundary checks
-        input = input.replace(/(:\s*)(True|False)(\s*[,\]}])/gi, (match, prefix, value, suffix) => {
-            steps.push(`Normalized boolean: ${value}`);
-            return `${prefix}${value.toLowerCase()}${suffix}`;
-        });
-  
-        // Fix invalid null values
-        input = input.replace(/:\s*NULL\b/gi, ': null');
-  
-        // Handle undefined values before JSON parsing
-        input = input.replace(/\bundefined\b/g, 'null');
-  
-        // Remove control characters
-        input = input.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
-  
-        // Fix missing closing braces and brackets
-        let openBraces = (input.match(/\{/g) || []).length;
-        let closeBraces = (input.match(/\}/g) || []).length;
-        let openBrackets = (input.match(/\[/g) || []).length;
-        let closeBrackets = (input.match(/\]/g) || []).length;
-  
-        input += '}'.repeat(Math.max(0, openBraces - closeBraces));
-        input += ']'.repeat(Math.max(0, openBrackets - closeBrackets));
-  
-        // Add debug logging for transformation steps
-        if (steps.length > 0) {
-            console.debug('JSON repair steps:', steps);
-        }
-  
-        // Attempt to parse and stringify to catch any remaining issues
-        let parsed = JSON.parse(input);
-        let fixed = JSON.stringify(parsed, null, 2);
-  
-        return {
-            success: true,
-            fixedJSON: fixed,
-            steps: steps
-        };
-    } catch (e) {
-        console.error('JSON repair failed for input:', original);
-        console.debug('Repair steps attempted:', steps);
-        return {
-            success: false,
-            error: `JSON repair failed: ${e.message}`,
-            steps: steps,
-            partiallyFixedJSON: input
-        };
-    }
-}
-    
 
 class MistralProvider extends BaseLLMProvider {
     constructor(apiKey, endpoint) {
@@ -152,21 +58,18 @@ class MistralProvider extends BaseLLMProvider {
         let fullResponse = '';
         let buffer = '';
         const MAX_REPETITIONS = 4;
-        const MAX_SEQUENCE_LINES = 15;
         const lineBuffer = [];
         const ERROR_PATTERN = /ReferenceError: document is not defined/g;
         let repetitionCount = 0;
         let lastError = '';
 
-        // Configure repetition detection parameters
-        const REPETITION_CHECK_WINDOW = 8; // Check last 8 lines for duplicates
-        const MIN_REPETITION_LENGTH = 3; // Minimum sequence length to consider
-        const MAX_SIMILARITY_RATIO = 0.9; // 90% similarity threshold
-        
-        console.debug('[RepetitionDetector] Initialized with:', {
-            REPETITION_CHECK_WINDOW,
-            MIN_REPETITION_LENGTH,
-            MAX_SIMILARITY_RATIO
+        // Configuration for full response repetition check
+        const MIN_MATCH_LENGTH = 50; // Initial length to check for repetition
+        const REPETITION_THRESHOLD = 0.8; // 80% of new content must match
+
+        console.debug('[RepetitionDetector] Full response config:', {
+            minMatchLength: MIN_MATCH_LENGTH,
+            repetitionThreshold: REPETITION_THRESHOLD
         });
 
         logger.debug('[MistralProvider] Starting stream with error pattern detection');
@@ -186,11 +89,37 @@ class MistralProvider extends BaseLLMProvider {
                     try {
                         const fixed = this.handleStreamingJSON(jsonStr);
                         const message = JSON.parse(fixed.fixedJSON);
-                        
+
                         if (message.choices?.[0]?.delta?.content) {
                             const content = message.choices[0].delta.content;
                             fullResponse += content;
                             process.stdout.write(content);
+
+                            // Full response repetition check
+                            if (fullResponse.length > MIN_MATCH_LENGTH && content.length > MIN_MATCH_LENGTH) {
+                                let matchLength = MIN_MATCH_LENGTH;
+                                while (
+                                    matchLength <= content.length &&
+                                    matchLength <= fullResponse.length &&
+                                    fullResponse.slice(-matchLength) === content.slice(0, matchLength)
+                                ) {
+                                    matchLength++;
+                                }
+                                matchLength--; // Adjust back to the actual matched length
+
+                                // If a significant portion of 'content' matches the end of 'fullResponse', it's a repetition
+                                if (matchLength >= content.length * REPETITION_THRESHOLD) {
+                                    console.debug('[RepetitionDetector] Full response repetition detected:', {
+                                        matchLength,
+                                        contentLength: content.length,
+                                        fullResponseLength: fullResponse.length,
+                                        sample: content.slice(0, 100) + '...'
+                                    });
+                                    logger.info(`Stopping stream - full response repetition detected. Matched ${matchLength} chars.`);
+                                    reader.cancel();
+                                    return fullResponse;
+                                }
+                            }
 
                             // Error pattern detection
                             const errorMatch = content.match(ERROR_PATTERN);
@@ -218,58 +147,9 @@ class MistralProvider extends BaseLLMProvider {
                                 lastError = '';
                             }
 
-                            // Update line buffer with new content
-                            const newLines = content.split('\n');
-                            lineBuffer.push(...newLines.filter(l => l.trim()));
-                            
-                            // Enhanced repetition detection
-                            if (lineBuffer.length >= REPETITION_CHECK_WINDOW) {
-                                const recentLines = lineBuffer.slice(-REPETITION_CHECK_WINDOW);
-                                
-                                // Compare chunks using similarity ratio
-                                const similarityCheck = (a, b) => {
-                                    const maxLength = Math.max(a.length, b.length);
-                                    const distance = levenshtein.get(a, b);
-                                    return (maxLength - distance) / maxLength;
-                                };
-
-                                // Check for repeating patterns of increasing lengths
-                                let repetitionDetected = false;
-                                for (let seqLength = MIN_REPETITION_LENGTH; seqLength <= REPETITION_CHECK_WINDOW/2; seqLength++) {
-                                    const sequences = [];
-                                    for (let i = 0; i < REPETITION_CHECK_WINDOW - seqLength; i++) {
-                                        sequences.push(recentLines.slice(i, i + seqLength).join('\n'));
-                                    }
-
-                                    // Find duplicate sequences using similarity threshold
-                                    const seen = new Set();
-                                    for (const [index, seq] of sequences.entries()) {
-                                        // Compare with all previous sequences in this batch
-                                        for (const prevSeq of Array.from(seen)) {
-                                            const similarity = similarityCheck(prevSeq, seq);
-                                            if (similarity >= MAX_SIMILARITY_RATIO) {
-                                                console.debug('[RepetitionDetector] Found repeating sequence:', {
-                                                    similarity: Math.round(similarity * 100),
-                                                    sequence: seq.slice(0, 100)
-                                                });
-                                                repetitionDetected = true;
-                                                break;
-                                            }
-                                        }
-                                        if (repetitionDetected) break;
-                                        seen.add(seq);
-                                    }
-                                    if (repetitionDetected) {
-                                        logger.info(`Stopping stream - ${seqLength}-line sequence repeated`);
-                                        reader.cancel();
-                                        return fullResponse;
-                                    }
-                                }
-                            }
-
-                            // Trim buffer to retention window (fixed size)
-                            if (lineBuffer.length > REPETITION_CHECK_WINDOW * 2) {
-                                lineBuffer.splice(0, lineBuffer.length - REPETITION_CHECK_WINDOW);
+                            // Trim buffer to retention window
+                            if (lineBuffer.length > MIN_MATCH_LENGTH * 2) {
+                                lineBuffer.splice(0, lineBuffer.length - MIN_MATCH_LENGTH);
                             }
                         }
                     } catch (e) {

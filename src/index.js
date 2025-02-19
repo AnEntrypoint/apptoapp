@@ -23,14 +23,11 @@ function getCurrentModel() {
 async function runBuild() {
   try {
     await executeCommand('npm install');
-    const result = await executeCommand('npm run lint --fix');
+    const lint = await executeCommand('npm run lint --fix', false);    
+    const unit = await executeCommand('npm run test', false);
 
-    if (result.code !== 0) {
-      logger.error('Lint failed with exit code:', result.code, '\nError:', result.stdout);
-      return `Lint failed: ${result.stdout}\n${result.stderr}`;
-    }
 
-    return `Lint exit code: ${result.code}\nSTDOUT:\n${result.stdout}\nSTDERR:\n${result.stderr}`;
+    return {lint:`Lint exit code: ${lint.code}\nSTDOUT:\n${lint.stdout}\nSTDERR:\n${lint.stderr}`, unit:`Unit exit code: ${unit.code}\nSTDOUT:\n${unit.stdout}\nSTDERR:\n${unit.stderr}`};
   } catch (error) {
     logger.error('Error executing lint command:', error.message);
     return 'Failed to execute lint command gracefully.';
@@ -39,15 +36,9 @@ async function runBuild() {
 
 let attempts = 0;
 const summaryBuffer = [];
-const cliBuffer = [];
 
 async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS, errors) {
   const cursorRules = await loadCursorRules();
-  if (cmdhistory.length > 0) {
-    const newcmdhistory = cmdhistory.join('\n').split('\n').slice(cmdhistory.length - 1000, cmdhistory.length).join('\n');
-    cmdhistory.length = 0;
-    cmdhistory.unshift(newcmdhistory);
-  }
 
   function safeExecSync(command) {
     try {
@@ -61,16 +52,16 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
 
   const diffsXML = getDiffBufferStatus();
   const files = await getFiles();
-  const testResults = await runBuild();
+  const {lint, test} = await runBuild();
   const artifacts = [
-    `\n<userinstruction>${instruction}</userinstruction>\n`,
     files ? `\n${files}\n` : ``,
     summaryBuffer.length > 0 ? `\n${summaryBuffer.filter(s => s.trim() !== '').map((s, i) => `<attemptSummary number="${i}">${s}</attemptSummary>\n`).join('\n')}\n` : ``,
     `\n<nodeEnv>${process.env.NODE_ENV || 'development'}</nodeEnv>\n`,
-    `\n<attempts>This is attempt number ${attempts} of ${MAX_ATTEMPTS} to complete the user instruction: ${instruction} and fix the errors in the logs and tests</attempts>\n`,
+    `\n<attempt number="${attempts}"></attempt>\n`,
     `\n<nodeVersion>${process.version}</nodeVersion>\n`,
     `\n<npmVersion>${safeExecSync('npm -v')}</npmVersion>\n`,
-    `\n<lint>${testResults} tests</lint>\n`,
+    `\n<lint>${lint} tests</lint>\n`,
+    `\n<lint>${test} tests</lint>\n`,
     `\n<builderror>\n${errors}</buildError>\n`,
     `\n<installedDependencies>\n${safeExecSync('npm ls --depth=0')}\n</installedDependencies>\n`,
     `\n<gitStatus>\n${safeExecSync('git status --short 2>&1 || echo "Not a git repository"')}\n</gitStatus>\n`,
@@ -79,73 +70,29 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
     `\n<timestamp>${new Date().toISOString()}</timestamp>\n`,
     `\n<currentWorkingDirectory>${process.cwd()}</currentWorkingDirectory>\n`,
     `\n<terminalType>${process.env.TERM || process.platform === 'win32' ? 'cmd/powershell' : 'bash'}</terminalType>\n`,
-    cliBuffer.length > 0 ? `\n\n<bashhistory>${cliBuffer.map(c => c.replace(/<cli>/g, '').replace(/<\/cli>/g, '')).reverse().join('\n')}</bashhistory>\n` : ``,
-    (cursorRules && cursorRules.length > 0) ? `\n<rules>Rules:\n${cursorRules}</rules>\n` : '',
+    cmdhistory.length > 0 ? `\n\n<bashhistory>${cmdhistory.map(c => c.replace(/<cli>/g, '').replace(/<\/cli>/g, '')).reverse().join('\n')}</bashhistory>\n` : ``,
     `\n${diffsXML}\n\n`,
   ]
   const messages = [
     {
       role: 'system',
       content: 'You are a senior programmer with over 20 years of experience, you make expert and mature software development choices, your main goal is to complete the user instruction\n'
-        + '\n// Task Management\n'
-        + `always read <attemptSummary> tags carefully, dont repeat the same actions or steps twice, try a alternative approach\n`
-        + `Always pay special attention to <attemptDiff> tags, they are the most important part of the task, they are the difference between the current and the previous attempts, used to track progress\n`
+        + '\nyou are busy iterating on coode, you will get multiple attempts to advance the codebase, always perform fixes and or cli commands to advance the project\n'
+        + `always check <attempt></attempt> to see how many attempts have been made, check each attempts history in <attemptSummary></attemptSummary> tags carefully for progress, dont repeat the same actions or steps twice, try a alternative approach if it didnt work\n`
+        + `Always pay special attention to <attemptDiff></attemptDiff> tags, they are the most important part of the task, they are the difference between the current and the previous attempts, used to track progress\n`
         + `if you see that your solution is already listed in <attempSummary> and have no alternative solutions, or find multiple <attemptSummary> tags with the same solution, record what failed and why and how it failed in NOTES.txt, and add an <upgradeModel></upgradeModel> tag to the end of your response\n`
-        + `Follow user requirements precisely and plan step-by-step, the users instructions are in <userinstruction>, thery are your primary goal, everything else is secondary\n`
-        + `Always output your reasoning in <text> tags, as past tense as if the tasks have been completed\n`
-        + `Never repeat yourself\n`
-        + `Only output tags that you are specifically asked to output namely <text>, <file>, <cli>, <upgradeModel>, <diff>, <builderror>, <installedDependencies>, <gitStatus>, <nodeVersion>, <npmVersion>, <systemDate>, <timestamp>, <currentWorkingDirectory>, <terminalType>\n`
-
-        + '\n// Code Quality\n'
-        + `Write clean, DRY, maintainable code following SOLID principles\n`
-        + `Focus on readability and complete implementations\n`
-        + `Use functional/declarative patterns and avoid classes\n`
-        + `For TypeScript: Maintain strong type safety\n`
-        + `For JavaScript: Use latest language features\n`
-        + `Always refactor files with over 100 lines into smaller modules\n`
-        + `Minimize interdependencies between functions\n`
-        + `Maximise code reuse and generalization\n`
-
-        + '\n// Testing & Debugging\n'
-        + `The last build error is in <builderror>\n`
-        + `always look in the <diff> tags for the original code if any code was replaced by placeholder or todo type comments\n`
-        + `Write comprehensive unit and integration tests\n`
-        + `Write tests to discover and fix bugs\n`
-        + `Always try to fix all known errors at once\n`
-        + `Always analyze <diff> tags as well as <cmdhistory> and <history> and <attemptSummary> tags carefully to avoid repetitive fixes\n`
-        + `Look at the logs and history, if the history indicates you are having trouble fixing the errors repeatedly, pick a different approach\n`
-        + `always make 100% sure that none of the tests will get stuck, apply strategies to avoid that\n`
-        + `never run npm test or npm run test, instead run the individual test files directly when you need to debug\n`
-
-        + '\n// File Management\n'
-        + `Use consistent file structure\n`
-        + `Separate tests into their own folder\n`
-        + `Only create necessary files in correct locations\n`
-        + `Don't output unchanged files\n`
-
-        + '\n// Dependency Management\n'
-        + `Use CLI for package management with --save/--save-dev\n`
-        + `Resolve conflicts by removing package-lock.json and reinstalling\n`
-
-        + '\n// Documentation\n'
-        + `Maintain clear JSDoc comments\n`
-        + `Document user-facing text for i18n support\n`
-        + `Explain changes in <text> tags with motivations and CLI commands, in past tense as if the tasks have been completed\n`
-
-        + '\n// Output Formatting\n'
-        + `Only respond in XML tags\n`
+        + `Always output your reasoning and any other prose in <text></text> tags, as past tense as if the tasks have been completed\n`
         + `Always write files with the following format: <file path="path/to/file.js">...</file>, just the content of the file inside, dont wrap it in any other tags\n`
         + `Always perform CLI commands with the following format: <cli>command</cli>\n`
-        + `Always provide the complete changed files, no partial files\n`
-
-        + '\n// Performance & Security\n'
-        + `Optimize performance while handling edge cases\n`
-        + `Follow best practices for security and maintainability\n`
-        + `Always Fix all test and linting errors and warnings in the <lint> tags\n`
+        + `When the task is complete, output a <complete></complete> tag with a summary of the task in <text> tags\n`
+        + `Only respond in xml tags, no other text or formatting\n`
+        + `Always obey the rules in the <Rules></Rules> tags\n`
+        + `Only output these tags <text></text>, <file></file>, <cli></cli>, and optionally <upgradeModel></upgradeModel>, ever output anything else\n`
+        + (cursorRules && cursorRules.length > 0) ? `\n<Rules>\n${cursorRules}\n</Rules>\n` : '' + "\n" +  artifacts.join('\n')
     },
     {
       role: 'user',
-      content: artifacts.join('\n'),
+      content:  "<userInstruction>" + instruction + "</userInstruction>\n",
     },
   ];
   //debug
@@ -158,6 +105,7 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
   logger.debug(`${JSON.stringify(messages).length} B of reasoning input`);
   let retryCount = 0;
   const MAX_RETRIES = 3;
+  console.log(cmdhistory)
 
   while (retryCount < MAX_RETRIES) {
     try {
@@ -272,11 +220,11 @@ async function main(instruction, errors, model = 'mistral') {
     const summaries = brainstormedTasks.match(/<text>([\s\S]*?)<\/text>/g) || [];
 
     let upgradeModelTag = brainstormedTasks.match(/<upgradeModel>/);
-
-    if (process.env.NODE_ENV !== 'test' && filesToEdit.length === 0 && cliCommands.length === 0 && summaries.length === 0) {
-      logger.debug(brainstormedTasks);
-      throw new Error('No files to edit, cli commands or summaries found');
-      upgradeModelTag = true;
+    let completeTag = brainstormedTasks.match(/<complete>/);
+    
+    if (completeTag) {
+      logger.success('Task complete');
+      return;
     }
 
     if (upgradeModelTag) {
@@ -381,12 +329,6 @@ async function main(instruction, errors, model = 'mistral') {
               continue;
             }
             
-            // Check against historical command buffer
-            if (cliBuffer.some(entry => entry.startsWith(command))) {
-              logger.warn(`Skipping historically duplicated command: ${command}`);
-              continue;
-            }
-
             // Validate basic command structure
             if (!/^[\w-]+/.test(command)) {
               logger.error(`Invalid command structure: ${command}`);
@@ -413,7 +355,6 @@ async function main(instruction, errors, model = 'mistral') {
               
               // Store command in execution tracking
               executedCommands.add(command);
-              cliBuffer.unshift(`${command}\nExit code: ${result.code}`);
 
               // Keep last 100 commands (was 1000 previously)
               if (cliBuffer.length > 100) {
@@ -437,25 +378,16 @@ async function main(instruction, errors, model = 'mistral') {
         throw new Error('CLI execution failures detected');
       }
 
-      if (summaries && summaries.length > 0) {
-        summaries.forEach((summary, index) => {
-          console.log(`Attempt ${index + 1}: ${summary.replace(/<text>/g, '').replace(/<\/text>/g, '')}`);
-        });
-      }
-
       const testResults = await runBuild();
-      console.log({testResults})
-      if (testResults.includes('Lint failed')) {
-        logger.error('Lint errors detected in the test results.');
-        throw new Error('Lint errors found. Please fix them before proceeding.');
-      }
 
       const lintWarnings = testResults.match(/Warning: (.*)/g);
       if (lintWarnings && lintWarnings.length > 0) {
         logger.warn('Lint warnings detected:', lintWarnings.join(', '));
         throw new Error('Lint warnings found. Please address them before proceeding.');
       }
-
+      if(!completeTag) {
+        throw new Error('Task not complete');
+      }
       logger.success('Operation successful', cmdhistory);
 
     } catch (error) {
@@ -465,10 +397,10 @@ async function main(instruction, errors, model = 'mistral') {
         if (summaries && summaries.length > 0) {
           const summaryString = summaries.map(s => s.replace(/<text>/g, '').replace(/<\/text>/g, '')).join('\n');
           summaryBuffer.push(summaryString);
+          console.log(summaryString)
         }
-        summaryBuffer.push(`Attempt ${attempts}`);
         logger.info(`Retrying main function (attempt ${attempts}/${MAX_ATTEMPTS})...`);
-        cliBuffer.length = 0;
+        cmdhistory.length = 0;
         main(process.argv[2], error.message, currentModel);
       } else {
         throw new Error('Max attempts reached');

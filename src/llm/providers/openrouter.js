@@ -9,6 +9,7 @@ class OpenRouterProvider extends BaseLLMProvider {
         this.siteName = siteName;
         this.lastRequestTime = 0;
         this.minRequestInterval = 2000; // Minimum 2 seconds between requests
+        this.isTest = process.env.NODE_ENV === 'test';
         logger.info('Initialized OpenRouter provider');
     }
 
@@ -39,7 +40,7 @@ class OpenRouterProvider extends BaseLLMProvider {
             temperature: 0.6,
             max_tokens: 32768,
             top_p: 0.95,
-            stream: true // Set stream to true for streaming response
+            stream: !this.isTest // Only stream in non-test environment
         };
 
         if (tools.length > 0) {
@@ -63,20 +64,31 @@ class OpenRouterProvider extends BaseLLMProvider {
                     statusText: response.statusText,
                     body: errorData
                 });
+                
+                if (response.status === 429) {
+                    throw new Error('OpenRouter API rate limit exceeded');
+                }
+                
                 throw new Error(`OpenRouter API Error ${response.status}: ${response.statusText}`);
             }
 
+            if (this.isTest) {
+                // In test environment, return the JSON response directly
+                const jsonResponse = await response.json();
+                return jsonResponse;
+            }
+
+            // In non-test environment, handle streaming response
             logger.info('OpenRouter API request successful, streaming response...');
             const reader = response.body.getReader();
             const decoder = new TextDecoder("utf-8");
-            let fullResponse = ''; // Initialize to collect streamed text
+            let fullResponse = '';
 
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
                 const chunk = decoder.decode(value, { stream: true });
 
-                // Process each line immediately
                 chunk.split('\n').forEach(line => {
                     if (line.startsWith('data: ') && !line.includes('[DONE]')) {
                         try {
@@ -88,8 +100,8 @@ class OpenRouterProvider extends BaseLLMProvider {
                                 logger.warn('Parse error:', e.message);
                             }
                             if (content) {
-                                process.stdout.write(content); // Stream output directly
-                                fullResponse += content; // Accumulate response text
+                                process.stdout.write(content);
+                                fullResponse += content;
                             }
                         } catch (e) {
                             logger.warn('Parse error:', e.message);

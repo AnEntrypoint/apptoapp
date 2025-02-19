@@ -11,3 +11,5 @@ always make sure none of the tests get stuck and run all the way to the timeout,
 always consolidate duplicate implementations in the code and get rid of the duplicate code, dont leave any duplicate code behind
 
 this tool is expected to run main a maximum of 20 times, if the unit tests fail, it should call main again... if it exits before that its not doing its job
+
+npm run test should exit after the first failed test, dont let it run all the tests if there are failures

@@ -1,10 +1,11 @@
 module.exports = {
-  testTimeout: 60000,
+  testTimeout: 10000, // Adjusted to 10 seconds as per user request
   maxWorkers: 1,
   forceExit: true,
   testEnvironment: 'node',
   setupFilesAfterEnv: ['./jest.setup.js'],
-  verbose: true,
+  verbose: false,
+  silent: false,
   // Automatically clear mock calls and instances between every test
   clearMocks: true,
   // Indicates whether the coverage information should be collected while executing the test
@@ -23,5 +24,13 @@ module.exports = {
   // An array of regexp pattern strings that are matched against all test paths before executing
   testPathIgnorePatterns: [
     "/node_modules/"
+  ],
+  reporters: [
+    ["jest-silent-reporter", { 
+      "useDots": false,
+      "showWarnings": false,
+      "showPaths": true,
+      "showOnlyFailed": true
+    }]
   ]
 };
