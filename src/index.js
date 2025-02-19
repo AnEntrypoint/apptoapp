@@ -393,7 +393,7 @@ async function main(instruction, errors, model = 'mistral', upgrade = false) {
         throw new Error('Task not complete');
       } else if (completeTag) {
         logger.success('Task complete');
-        return;
+        process.exit();
       }
   
       logger.success('Operation successful', cmdhistory);
@@ -417,7 +417,6 @@ async function main(instruction, errors, model = 'mistral', upgrade = false) {
 
     logger.debug('Final directory contents:', fs.readdirSync(process.cwd()));
     logger.success('Operation successful');
-    process.exit();
   } catch (error) {
     console.error('Error:', error);
   }
