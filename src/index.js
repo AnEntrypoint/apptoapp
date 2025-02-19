@@ -86,7 +86,7 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
         + `Always perform CLI commands with the following format: <cli>command</cli>\n`
         + `When the task is complete, output a <complete></complete> tag with a summary of the task in <text> tags\n`
         + `Only respond in xml tags, no other text or formatting\n`
-        + `Always obey the rules in the <Rules></Rules> tags\n`
+        + `Always obey the rules in the <Rules></Rules> tags\n` 
         + `Only output these tags <text></text>, <file></file>, <cli></cli>, and optionally <upgradeModel></upgradeModel>, ever output anything else\n`
         + (cursorRules && cursorRules.length > 0) ? `\n<Rules>\n${cursorRules}\n</Rules>\n` : '' + "\n" +  artifacts.join('\n')
     },
