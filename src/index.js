@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const { program } = require('commander');
 const logger = require('./utils/logger');
-dotenv.config();
+dotenv.config({ path: path.join(process.cwd(), '.env') });
 let currentModel = 'mistral';
 
 function setCurrentModel(model) {
