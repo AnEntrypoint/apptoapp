@@ -21,16 +21,26 @@ function getCurrentModel() {
 }
 
 async function runBuild() {
+  let lint;
+  let test;
   try {
     await executeCommand('npm install');
   } catch (error) {
     logger.error('Error executing npm install:', error.message);
   }
   try {
-    const lint = await executeCommand('npm run lint --fix', false);    
-    const test = await executeCommand('npm run test', false);
+    lint = await executeCommand('npm run lint --fix', false);    
+  } catch (error) {
+    logger.error('Error executing npm install:', error.message);
+  }
+  try {
+    test = await executeCommand('npm run test', false);
+  } catch (error) {
+    logger.error('Error executing npm install:', error.message);
+  }
+  try {
 
-    return {lint:`Lint exit code: ${lint.code}\nSTDOUT:\n${lint.stdout}\nSTDERR:\n${lint.stderr}`, test:`Unit exit code: ${test.code}\nSTDOUT:\n${test.stdout}\nSTDERR:\n${test.stderr}`};
+    return {lint:`Exit code: ${lint.code}\nSTDOUT:\n${lint.stdout}\nSTDERR:\n${lint.stderr}`, test:`Exit code: ${test.code}\nSTDOUT:\n${test.stdout}\nSTDERR:\n${test.stderr}`};
   } catch (error) {
     logger.error('Error executing lint command:', error.message);
     return 'Failed to execute lint command gracefully.';
