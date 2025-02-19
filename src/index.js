@@ -67,73 +67,37 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
         + `Always perform CLI commands with the following format: <cli>command</cli>\n`
         + `When the task is complete, output a <complete></complete> tag with a summary of the task in <text> tags\n`
         + `Always obey the rules in the <Rules></Rules> tags\n` 
-        + `Only respond using these tags <text></text>, <file></file>, <cli></cli>, and optionally <upgradeModel></upgradeModel>, never output any other text, prose, formats or tags, all other output has to go into <text></text> tags\n`
+        + `Only respond using these tags <text></text>, <file></file>, <cli></cli>, and optionally <upgradeModel></upgradeModel>, <complete></complete>.`
+        + `never output any other text, prose, formats or tags, all other output has to go into <text></text> tags\n`
         + (cursorRules && cursorRules.length > 0) ? `\n<Rules>\n${cursorRules}\n</Rules>\n` : '' + "\n" +  artifacts.join('\n')
     },          
     {
+      "role": "user",
+      "content": `<npmVersion>${safeExecSync('npm -v')}</npmVersion>
+      <gitStatus>${safeExecSync('git status --short 2>&1 || echo "Not a git repository"')}</gitStatus>
+      <gitBranch>${safeExecSync('git branch --show-current 2>&1 || echo "No branch"')}</gitBranch>
+      <systemDate>${new Date().toISOString()}</systemDate>
+      <workingDirectory>${process.cwd()}</workingDirectory>
+      <terminalType>${process.env.TERM || process.platform === 'win32' ? 'cmd/powershell' : 'bash'}</terminalType>
+      <bashHistory>${cmdhistory.map(c => c.replace(/<cli>/g, '').replace(/<\/cli>/g, '')).reverse().join('\n')}</bashHistory>
+      <diffs>${diffsXML}</diffs>
+      <installedDependencies>${safeExecSync('npm ls --depth=0')}</installedDependencies>
+      <files>${files}</files>
+      <lint>${lint}</lint>
+      <test>${test}</test>
+      <currentAttempt>${attempts}</currentAttempt>
+      <attemptHistory>${summaryBuffer.length > 0 ? `\n${summaryBuffer.filter(s => s.trim() !== '').map((s, i) => `<attemptSummary number="${i}">${s}</attemptSummary>\n`).join('\n')}\n` : ``}</attemptHistory>
+      <errors>${errors ? errors : 'no further errors'}</errors>`,
+    }, 
+    {
+      role: 'assistant',
+      content:  `<text>artifacts received, I will now begin to work on the task, and only output xml tags, no prose, no other text, no other tags, no other formats, no other output, please provide user instruction and output the <complete></complete> tag when there is no more iterations needed</text>`,
+    },
+    {
       role: 'user',
-      content:  instruction,
-    },
-    {
-      "role": "user",
-      "content": 'Npm version: ' + safeExecSync('npm -v')
-    },
-    {
-      "role": "user",
-      "content": 'Git status: ' + safeExecSync('git status --short 2>&1 || echo "Not a git repository"')
-    },
-    {
-      "role": "user",
-      "content": 'Git branch: ' + safeExecSync('git branch --show-current 2>&1 || echo "No branch"')
-    },
-    {
-      "role": "user",
-      "content": 'System date: ' + new Date().toISOString()
-    },
-    {
-      "role": "user",
-      "content": 'Current working directory: ' + process.cwd()
-    },
-    {
-      "role": "user",
-      "content": 'Terminal type: ' + (process.env.TERM || process.platform === 'win32' ? 'cmd/powershell' : 'bash')
-    },
-    {
-      "role": "user",
-      "content": 'Bash history: ' + cmdhistory.map(c => c.replace(/<cli>/g, '').replace(/<\/cli>/g, '')).reverse().join('\n')
-    },
-    {
-      "role": "user",
-      "content": 'Diffs: ' + diffsXML
-    },
-    {
-      "role": "user",
-      "content": 'Installed dependencies: ' + safeExecSync('npm ls --depth=0')
-    },
-    {
-      "role": "user",
-      "content": 'Files: ' + files
-    },
-    {
-      "role": "user",
-      "content": 'Lint: ' + lint
-    },
-    {
-      "role": "user",
-      "content": 'Test: ' + test
-    },
-    {
-      "role": "user",
-      "content": 'Current attempt: ' + attempts
-    },
-    {
-      "role": "user",
-      "content": 'Attempt history: ' + (summaryBuffer.length > 0 ? `\n${summaryBuffer.filter(s => s.trim() !== '').map((s, i) => `<attemptSummary number="${i}">${s}</attemptSummary>\n`).join('\n')}\n` : ``)
-    },
-    {
-      "role": "user",
-      "content": 'Errors: ' + (errors ? errors : 'no further errors')
+      content: `${instruction}`,
     }
+
   ];
   //debug
   const fs = require('fs');

@@ -63,19 +63,95 @@ class MistralProvider extends BaseLLMProvider {
         let repetitionCount = 0;
         let lastError = '';
 
-        // Configuration for full response repetition check
-        const MIN_MATCH_LENGTH = 50; // Initial length to check for repetition
-        const REPETITION_THRESHOLD = 0.8; // 80% of new content must match
-        const IMPORT_REPETITION_THRESHOLD = 3; // Number of times an import statement can repeat
-        const importTracker = new Map(); // Track import statement occurrences
+        // Enhanced configuration for repetition detection
+        const MIN_MATCH_LENGTH = 50;
+        const REPETITION_THRESHOLD = 0.8;
+        const IMPORT_REPETITION_THRESHOLD = 3;
+        const PATTERN_REPETITION_THRESHOLD = 3;
+        const COMMAND_REPETITION_THRESHOLD = 3;
+        const MIN_PATTERN_LENGTH = 100;
+        const SLIDING_WINDOW_SIZE = 2000;
+        const FILE_CONTENT_WINDOW_SIZE = 5000;
+        const importTracker = new Map();
+        const patternTracker = new Map();
+        const fileContentTracker = new Map();
+        const commandTracker = new Map();
+        const npmCommandTracker = new Map();
 
-        console.debug('[RepetitionDetector] Full response config:', {
+        // Track the last N chunks for pattern detection
+        const recentChunks = [];
+        const MAX_RECENT_CHUNKS = 10;
+
+        console.debug('[RepetitionDetector] Configuration:', {
             minMatchLength: MIN_MATCH_LENGTH,
             repetitionThreshold: REPETITION_THRESHOLD,
-            importRepetitionThreshold: IMPORT_REPETITION_THRESHOLD
+            importRepetitionThreshold: IMPORT_REPETITION_THRESHOLD,
+            patternRepetitionThreshold: PATTERN_REPETITION_THRESHOLD,
+            commandRepetitionThreshold: COMMAND_REPETITION_THRESHOLD,
+            minPatternLength: MIN_PATTERN_LENGTH,
+            slidingWindowSize: SLIDING_WINDOW_SIZE,
+            fileContentWindowSize: FILE_CONTENT_WINDOW_SIZE
         });
 
-        logger.debug('[MistralProvider] Starting stream with error pattern detection');
+        // Helper function to detect command repetition
+        const detectCommandRepetition = (content) => {
+            // Check for shell commands in code blocks
+            const codeBlocks = content.match(/```(?:bash|sh)?\s*([^`]+)```/g) || [];
+            for (const block of codeBlocks) {
+                const commands = block.match(/(?:npm|yarn|pnpm)\s+(?:install|add|remove|i)\s+[^;\n]+/g) || [];
+                for (const cmd of commands) {
+                    const count = npmCommandTracker.get(cmd) || 0;
+                    npmCommandTracker.set(cmd, count + 1);
+                    
+                    if (count + 1 >= COMMAND_REPETITION_THRESHOLD) {
+                        logger.debug(`[RepetitionDetector] NPM command repeated ${count + 1} times: ${cmd}`);
+                        return true;
+                    }
+                }
+
+                // Track other shell commands
+                const shellCommands = block.match(/[^\s;]+(?:\s+(?:--?\w+|\S+))*(?=\s*(?:;|\n|$))/g) || [];
+                for (const cmd of shellCommands) {
+                    const count = commandTracker.get(cmd) || 0;
+                    commandTracker.set(cmd, count + 1);
+                    
+                    if (count + 1 >= COMMAND_REPETITION_THRESHOLD) {
+                        logger.debug(`[RepetitionDetector] Shell command repeated ${count + 1} times: ${cmd}`);
+                        return true;
+                    }
+                }
+            }
+            return false;
+        };
+
+        // Helper function to detect repeating patterns with improved command handling
+        const detectRepeatingPattern = (text, minLength = MIN_PATTERN_LENGTH) => {
+            if (text.length < minLength * 2) return null;
+            
+            // Use sliding window to find potential patterns
+            for (let len = minLength; len <= text.length / 3; len++) {
+                const pattern = text.slice(-len);
+                
+                // Skip if pattern contains code block markers
+                if (pattern.includes('```')) continue;
+                
+                // Skip if pattern is just whitespace or common formatting
+                if (/^\s*$/.test(pattern) || /^[#\s-_*]+$/.test(pattern)) continue;
+                
+                // Escape special regex characters and create pattern
+                const escapedPattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const regex = new RegExp(escapedPattern, 'g');
+                const matches = text.match(regex) || [];
+                
+                if (matches.length >= PATTERN_REPETITION_THRESHOLD) {
+                    logger.debug(`[RepetitionDetector] Found repeating pattern of length ${len} with ${matches.length} occurrences`);
+                    return pattern;
+                }
+            }
+            return null;
+        };
+
+        logger.debug('[MistralProvider] Starting stream with enhanced repetition detection');
 
         while (true) {
             const { done, value } = await reader.read();
@@ -96,86 +172,75 @@ class MistralProvider extends BaseLLMProvider {
                         if (message.choices?.[0]?.delta?.content) {
                             const content = message.choices[0].delta.content;
                             
-                            // Check for import statement repetitions
-                            const importMatches = content.match(/import\s*{[^}]+}\s*from\s*['"][^'"]+['"]/g);
-                            if (importMatches) {
-                                logger.debug(`[RepetitionDetector] Found ${importMatches.length} import statements in chunk`);
-                                for (const importStmt of importMatches) {
-                                    const count = importTracker.get(importStmt) || 0;
-                                    importTracker.set(importStmt, count + 1);
-                                    
-                                    logger.debug(`[RepetitionDetector] Import statement count: "${importStmt.slice(0, 50)}..." = ${count + 1}`);
-                                    
-                                    if (count + 1 >= IMPORT_REPETITION_THRESHOLD) {
-                                        console.debug('[RepetitionDetector] Import statement repetition detected:', {
-                                            statement: importStmt,
-                                            count: count + 1
-                                        });
-                                        logger.info(`Stopping stream - import statement repeated ${count + 1} times`);
-                                        reader.cancel();
-                                        return fullResponse;
-                                    }
+                            // Store recent chunks for pattern detection
+                            recentChunks.push(content);
+                            if (recentChunks.length > MAX_RECENT_CHUNKS) {
+                                recentChunks.shift();
+                            }
+
+                            // Check for command repetition
+                            if (detectCommandRepetition(content)) {
+                                logger.info('Stopping stream - command repetition detected');
+                                reader.cancel();
+                                return fullResponse;
+                            }
+
+                            // Check for repeating patterns in recent chunks
+                            const combinedRecentContent = recentChunks.join('');
+                            const pattern = detectRepeatingPattern(combinedRecentContent);
+                            if (pattern) {
+                                const count = patternTracker.get(pattern) || 0;
+                                patternTracker.set(pattern, count + 1);
+                                
+                                if (count + 1 >= PATTERN_REPETITION_THRESHOLD) {
+                                    logger.info(`Stopping stream - pattern repeated ${count + 1} times`);
+                                    reader.cancel();
+                                    return fullResponse;
                                 }
                             }
 
                             fullResponse += content;
                             process.stdout.write(content);
 
-                            // Full response repetition check
-                            if (fullResponse.length > MIN_MATCH_LENGTH && content.length > MIN_MATCH_LENGTH) {
+                            // Enhanced sliding window repetition check
+                            const windowContent = fullResponse.slice(-FILE_CONTENT_WINDOW_SIZE);
+                            if (windowContent.length >= MIN_MATCH_LENGTH && content.length >= MIN_MATCH_LENGTH) {
                                 let matchLength = MIN_MATCH_LENGTH;
                                 while (
                                     matchLength <= content.length &&
-                                    matchLength <= fullResponse.length &&
-                                    fullResponse.slice(-matchLength) === content.slice(0, matchLength)
+                                    matchLength <= windowContent.length &&
+                                    windowContent.slice(-matchLength) === content.slice(0, matchLength)
                                 ) {
                                     matchLength++;
                                 }
-                                matchLength--; // Adjust back to the actual matched length
+                                matchLength--;
 
-                                // If a significant portion of 'content' matches the end of 'fullResponse', it's a repetition
                                 if (matchLength >= content.length * REPETITION_THRESHOLD) {
-                                    console.debug('[RepetitionDetector] Full response repetition detected:', {
-                                        matchLength,
-                                        contentLength: content.length,
-                                        fullResponseLength: fullResponse.length,
-                                        sample: content.slice(0, 100) + '...'
-                                    });
-                                    logger.info(`Stopping stream - full response repetition detected. Matched ${matchLength} chars.`);
+                                    logger.info(`Stopping stream - sliding window repetition detected (${matchLength} chars)`);
                                     reader.cancel();
                                     return fullResponse;
                                 }
                             }
 
-                            // Error pattern detection
+                            // Error pattern detection (existing code)
                             const errorMatch = content.match(ERROR_PATTERN);
                             if (errorMatch) {
                                 const currentError = errorMatch[0];
-                                console.debug('Error pattern detected:', currentError.slice(0, 50));
-                                
                                 if (currentError === lastError) {
                                     repetitionCount++;
-                                    logger.debug(`Repetition count increased to: ${repetitionCount}`);
                                 } else {
-                                    repetitionCount = 1; // Reset counter for new errors
+                                    repetitionCount = 1;
                                     lastError = currentError;
                                 }
 
                                 if (repetitionCount >= MAX_REPETITIONS) {
                                     logger.info(`Stopping stream - error pattern repeated ${MAX_REPETITIONS} times`);
-                                    console.debug('Repeating error:', lastError);
                                     reader.cancel();
                                     return fullResponse;
                                 }
                             } else {
-                                // Reset counter if no error in this chunk
                                 repetitionCount = 0;
                                 lastError = '';
-                            }
-
-                            // Trim buffer to retention window
-                            if (lineBuffer.length > MIN_MATCH_LENGTH * 2) {
-                                lineBuffer.splice(0, lineBuffer.length - MIN_MATCH_LENGTH);
                             }
                         }
                     } catch (e) {
