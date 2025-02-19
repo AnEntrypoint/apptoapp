@@ -89,13 +89,17 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
         + `Only respond using these tags <text></text>, <file></file>, <cli></cli>, and optionally <upgradeModel></upgradeModel>, never output any other text, prose, formats or tags, all other output has to go into <text></text> tags\n`
         + `<userInstruction>" + instruction + "</userInstruction>\n`
         + (cursorRules && cursorRules.length > 0) ? `\n<Rules>\n${cursorRules}\n</Rules>\n` : '' + "\n" +  artifacts.join('\n')
+    },
+    {
+      role: 'user',
+      content:  artifacts.join('\n'),
     }
   ];
   //debug
   const fs = require('fs');
   const path = require('path');
   const outputFilePath = path.join(__dirname, '../../lastprompt.txt');
-  fs.writeFileSync(outputFilePath, messages[0].content);
+  fs.writeFileSync(outputFilePath, messages[0].content+messages[1].content);
 
   logger.success(`Messages have been written to ${outputFilePath}`);
   logger.debug(`${JSON.stringify(messages).length} B of reasoning input`);
