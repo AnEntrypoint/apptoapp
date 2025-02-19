@@ -23,6 +23,8 @@ function getCurrentModel() {
 async function runBuild() {
   try {
     await executeCommand('npm install');
+  } catch (error) {
+    logger.error('Error executing npm install:', error.message);
   }
   try {
     const lint = await executeCommand('npm run lint --fix', false);    
