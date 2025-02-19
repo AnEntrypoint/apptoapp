@@ -106,6 +106,7 @@ async function generateDiff() {
         head: execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf-8' }),
         lastCommit: execSync('git log -1 --oneline', { encoding: 'utf-8' })
       };
+      logger.info('Current git state:', gitState);
       return '';
     }
   } catch (error) {
@@ -192,6 +193,9 @@ async function getFiles() {
   
   logger.info(`Total files included: ${files.length}`);
   const relativeFiles = files.map(file => path.relative(currentDir, file));
+  
+  // Log the files being processed
+  logger.info('Files being processed:', relativeFiles.join(', '));
   
   // Format files in XML schema
   const xmlFiles = await Promise.all(relativeFiles.map(async (file) => {

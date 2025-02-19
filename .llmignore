@@ -4,6 +4,7 @@ components/ui
 node_modules/
 **/node_modules/
 **/.turbo
+**/.next
 .turbo
 packages/
 package-lock.json
