@@ -91,7 +91,7 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
     }, 
     {
       role: 'assistant',
-      content:  `<text>artifacts received, I will now begin to work on the task, and only output xml tags, no prose, no other text, no other tags, no other formats, no other output, please provide user instruction and output the <complete></complete> tag when there is no more iterations needed, I wont output any framework components that have to stay the same</text>`,
+      content:  `<text>artifacts received, I will now begin to work on the task, and only output xml tags, no prose, no other text, no other tags, no other formats, no other output, please provide user instruction and output the <complete></complete> tag when there is no more iterations needed, I wont overwrite any static framework components like ui components that have to stay the same</text>`,
     },
     {
       role: 'user',
