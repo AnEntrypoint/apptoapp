@@ -2,6 +2,10 @@
 @/components/ui
 components/ui
 node_modules/
+**/node_modules/
+**/.turbo
+.turbo
+packages/
 package-lock.json
 yarn.lock
 pnpm-lock.yaml
