@@ -57,7 +57,7 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
     files ? `\n${files}\n` : ``,
     summaryBuffer.length > 0 ? `\n${summaryBuffer.filter(s => s.trim() !== '').map((s, i) => `<attemptSummary number="${i}">${s}</attemptSummary>\n`).join('\n')}\n` : ``,
     `\n<nodeEnv>${process.env.NODE_ENV || 'development'}</nodeEnv>\n`,
-    `\n<attempt number="${attempts}"></attempt>\n`,
+    `\n<currentAttempt number="${attempts}"></currentAttempt>\n`,
     `\n<nodeVersion>${process.version}</nodeVersion>\n`,
     `\n<npmVersion>${safeExecSync('npm -v')}</npmVersion>\n`,
     `\n<lint>${lint} tests</lint>\n`,
@@ -78,28 +78,24 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
       role: 'system',
       content: 'You are a senior programmer with over 20 years of experience, you make expert and mature software development choices, your main goal is to complete the user instruction\n'
         + '\nyou are busy iterating on coode, you will get multiple attempts to advance the codebase, always perform fixes and or cli commands to advance the project\n'
-        + `always check <attempt></attempt> to see how many attempts have been made, check each attempts history in <attemptSummary></attemptSummary> tags carefully for progress, dont repeat the same actions or steps twice, try a alternative approach if it didnt work\n`
-        + `Always pay special attention to <attemptDiff></attemptDiff> tags, they are the most important part of the task, they are the difference between the current and the previous attempts, used to track progress\n`
+        + `always check <currentAttempt></currentAttempt> to see how many attempts have been made, check each attempts history in <attemptSummary></attemptSummary> tags carefully for progress, dont repeat the same actions or steps twice, try a alternative approach if it didnt work\n`
+        + `Always pay special attention to <attempt></attempt> tags, they are the most important part of the task, they are the difference between the current and the previous attempts, used to track progress\n`
         + `if you see that your solution is already listed in <attempSummary> and have no alternative solutions, or find multiple <attemptSummary> tags with the same solution, record what failed and why and how it failed in NOTES.txt, and add an <upgradeModel></upgradeModel> tag to the end of your response\n`
         + `Always output your reasoning and any other prose in <text></text> tags, as past tense as if the tasks have been completed\n`
         + `Always write files with the following format: <file path="path/to/file.js">...</file>, just the content of the file inside, dont wrap it in any other tags\n`
         + `Always perform CLI commands with the following format: <cli>command</cli>\n`
         + `When the task is complete, output a <complete></complete> tag with a summary of the task in <text> tags\n`
-        + `Only respond in xml tags, no other text or formatting\n`
         + `Always obey the rules in the <Rules></Rules> tags\n` 
-        + `Only output these tags <text></text>, <file></file>, <cli></cli>, and optionally <upgradeModel></upgradeModel>, ever output anything else\n`
+        + `Only respond using these tags <text></text>, <file></file>, <cli></cli>, and optionally <upgradeModel></upgradeModel>, never output any other text, prose, formats or tags, all other output has to go into <text></text> tags\n`
+        + `<userInstruction>" + instruction + "</userInstruction>\n`
         + (cursorRules && cursorRules.length > 0) ? `\n<Rules>\n${cursorRules}\n</Rules>\n` : '' + "\n" +  artifacts.join('\n')
-    },
-    {
-      role: 'user',
-      content:  "<userInstruction>" + instruction + "</userInstruction>\n",
-    },
+    }
   ];
   //debug
   const fs = require('fs');
   const path = require('path');
   const outputFilePath = path.join(__dirname, '../../lastprompt.txt');
-  fs.writeFileSync(outputFilePath, messages[1].content);
+  fs.writeFileSync(outputFilePath, messages[0].content);
 
   logger.success(`Messages have been written to ${outputFilePath}`);
   logger.debug(`${JSON.stringify(messages).length} B of reasoning input`);

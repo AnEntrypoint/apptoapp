@@ -19,8 +19,7 @@ async function executeCommand(command, history = true) {
   logger.system('Executing command:', command);
   return new Promise((resolve) => {
     const child = exec(command, {
-      timeout: options.timeout || 300000, // 5 minute default timeout
-      ...options
+      timeout: 300000, // 5 minute default timeout
     }, (error, stdout, stderr) => {
       if(history) {
         cmdhistory.push(command);
@@ -40,14 +39,6 @@ async function executeCommand(command, history = true) {
         kill: () => child.kill()
       });
     });
-
-    
-
-    if (logHandler) {
-      child.stdout.on('data', logHandler);
-      child.stderr.on('data', logHandler);
-    }
-
     // Attach kill method to the promise
     child.kill = () => {
       child.kill('SIGTERM');

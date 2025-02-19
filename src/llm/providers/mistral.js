@@ -66,10 +66,13 @@ class MistralProvider extends BaseLLMProvider {
         // Configuration for full response repetition check
         const MIN_MATCH_LENGTH = 50; // Initial length to check for repetition
         const REPETITION_THRESHOLD = 0.8; // 80% of new content must match
+        const IMPORT_REPETITION_THRESHOLD = 3; // Number of times an import statement can repeat
+        const importTracker = new Map(); // Track import statement occurrences
 
         console.debug('[RepetitionDetector] Full response config:', {
             minMatchLength: MIN_MATCH_LENGTH,
-            repetitionThreshold: REPETITION_THRESHOLD
+            repetitionThreshold: REPETITION_THRESHOLD,
+            importRepetitionThreshold: IMPORT_REPETITION_THRESHOLD
         });
 
         logger.debug('[MistralProvider] Starting stream with error pattern detection');
@@ -92,6 +95,29 @@ class MistralProvider extends BaseLLMProvider {
 
                         if (message.choices?.[0]?.delta?.content) {
                             const content = message.choices[0].delta.content;
+                            
+                            // Check for import statement repetitions
+                            const importMatches = content.match(/import\s*{[^}]+}\s*from\s*['"][^'"]+['"]/g);
+                            if (importMatches) {
+                                logger.debug(`[RepetitionDetector] Found ${importMatches.length} import statements in chunk`);
+                                for (const importStmt of importMatches) {
+                                    const count = importTracker.get(importStmt) || 0;
+                                    importTracker.set(importStmt, count + 1);
+                                    
+                                    logger.debug(`[RepetitionDetector] Import statement count: "${importStmt.slice(0, 50)}..." = ${count + 1}`);
+                                    
+                                    if (count + 1 >= IMPORT_REPETITION_THRESHOLD) {
+                                        console.debug('[RepetitionDetector] Import statement repetition detected:', {
+                                            statement: importStmt,
+                                            count: count + 1
+                                        });
+                                        logger.info(`Stopping stream - import statement repeated ${count + 1} times`);
+                                        reader.cancel();
+                                        return fullResponse;
+                                    }
+                                }
+                            }
+
                             fullResponse += content;
                             process.stdout.write(content);
 
