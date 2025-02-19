@@ -16,7 +16,7 @@ class MistralProvider extends BaseLLMProvider {
             tool_choice: tools.length ? 'any' : 'none',
             tools: tools.length ? tools : undefined,
             stream: true,
-            temperature: 1.0,
+            temperature: 0.1,
         };
 
         try {
@@ -62,7 +62,7 @@ class MistralProvider extends BaseLLMProvider {
 
         // Configuration for sequence repetition detection
         const MIN_SEQUENCE_LENGTH = 30;
-        const SEQUENCE_REPETITION_THRESHOLD = 3;
+        const SEQUENCE_REPETITION_THRESHOLD = 5;
         const SLIDING_WINDOW_SIZE = 5000;
 
         logger.debug('[RepetitionDetector] Starting with config:', {
