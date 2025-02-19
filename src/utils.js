@@ -238,11 +238,11 @@ async function loadCursorRules() {
     + `Maximise code reuse and generalization\n`
 
     + '\n// Testing & Debugging\n'
-    + `always look in the <diff> tags for the original code if any code was replaced by placeholder or todo type comments\n`
+    + `always look in the <attempt> tags for the original code if any code was replaced by placeholder or todo type comments\n`
     + `Write comprehensive unit and integration tests\n`
     + `Write tests to discover and fix bugs\n`
     + `Always try to fix all known errors at once\n`
-    + `Always analyze <diff> tags as well as <cmdhistory> and <history> and <attemptSummary> tags carefully to avoid repetitive fixes\n`
+    + `Always analyze <attempt> tags as well as <cmdhistory> and <history> and <attemptSummary> tags carefully to avoid repetitive fixes\n`
     + `Look at the logs and history, if the history indicates you are having trouble fixing the errors repeatedly, pick a different approach\n`
     + `always make 100% sure that none of the tests will get stuck, apply strategies to avoid that\n`
     + `never run npm test or npm run test, instead run the individual test files directly when you need to debug\n`
