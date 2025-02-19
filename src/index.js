@@ -406,12 +406,12 @@ async function main(instruction, errors, model = 'mistral', upgrade = false) {
       const lintWarnings = testResults.lint.match(/error: (.*)/g);
       if (lintWarnings && lintWarnings.length > 0) {
         logger.warn('Lint warnings detected:', lintWarnings.join(', '));
-        throw new Error('Lint warnings found. Please address them before proceeding.');
+        throw new Error('Lint warnings found: '+lintWarnings.join(', ')+' Please address them before proceeding.');
       }
       const testWarnings = testResults.lint.match(/Error(.*)/g);
       if (testWarnings && testWarnings.length > 0) {
         logger.warn('Test warnings detected:', testWarnings.join(', '));
-        throw new Error('Test warnings found. Please address them before proceeding.');
+        throw new Error('Test warnings found: '+testWarnings.join(', ')+' Please address them before proceeding.');
       }
       if(!completeTag) {
         throw new Error('Task not complete');
