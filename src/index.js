@@ -398,10 +398,15 @@ async function main(instruction, errors, model = 'mistral', upgrade = false) {
 
       const testResults = await runBuild();
 
-      const lintWarnings = testResults.match(/Warning: (.*)/g);
+      const lintWarnings = testResults.lint.match(/error: (.*)/g);
       if (lintWarnings && lintWarnings.length > 0) {
         logger.warn('Lint warnings detected:', lintWarnings.join(', '));
         throw new Error('Lint warnings found. Please address them before proceeding.');
+      }
+      const testWarnings = testResults.lint.match(/Error(.*)/g);
+      if (testWarnings && testWarnings.length > 0) {
+        logger.warn('Test warnings detected:', testWarnings.join(', '));
+        throw new Error('Test warnings found. Please address them before proceeding.');
       }
       if(!completeTag) {
         throw new Error('Task not complete');
@@ -413,7 +418,7 @@ async function main(instruction, errors, model = 'mistral', upgrade = false) {
       logger.success('Operation successful', cmdhistory);
 
     } catch (error) {
-      logger.error('Failed:', error, cmdhistory);
+      logger.error('Failed:', error.message, cmdhistory);
       if (attempts < MAX_ATTEMPTS) {
         attempts++;
         if (summaries && summaries.length > 0) {
