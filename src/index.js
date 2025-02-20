@@ -408,7 +408,7 @@ async function main(instruction, errors, model = 'mistral', upgrade = false) {
         logger.warn('Lint warnings detected:', lintWarnings.join(', '));
         throw new Error('Lint warnings found: '+testResults.lint+' Please address them before proceeding.');
       }
-      const testWarnings = testResults.lint.match(/error/gi);
+      const testWarnings = testResults.test.match(/error/gi);
       if (testWarnings && testWarnings.length > 0) {
         logger.warn('Test warnings detected:', testWarnings.join(', '));
         throw new Error('Test warnings found: '+testResults.test+' Please address them before proceeding.');

@@ -61,8 +61,8 @@ class MistralProvider extends BaseLLMProvider {
         const TIMEOUT_DURATION = 10000; // 10 seconds timeout
 
         // Configuration for sequence repetition detection
-        const MIN_SEQUENCE_LENGTH = 30;
-        const SEQUENCE_REPETITION_THRESHOLD = 5;
+        const MIN_SEQUENCE_LENGTH = 50;
+        const SEQUENCE_REPETITION_THRESHOLD = 10;
         const SLIDING_WINDOW_SIZE = 5000;
 
         logger.debug('[RepetitionDetector] Starting with config:', {
