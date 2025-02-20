@@ -403,15 +403,15 @@ async function main(instruction, errors, model = 'mistral', upgrade = false) {
 
       const testResults = await runBuild();
 
-      const lintWarnings = testResults.lint.match(/error: (.*)/g);
+      const lintWarnings = testResults.lint.match(/(error|warning)/gi);
       if (lintWarnings && lintWarnings.length > 0) {
         logger.warn('Lint warnings detected:', lintWarnings.join(', '));
-        throw new Error('Lint warnings found: '+lintWarnings.join(', ')+' Please address them before proceeding.');
+        throw new Error('Lint warnings found: '+testResults.lint+' Please address them before proceeding.');
       }
-      const testWarnings = testResults.lint.match(/Error(.*)/g);
+      const testWarnings = testResults.lint.match(/error/gi);
       if (testWarnings && testWarnings.length > 0) {
         logger.warn('Test warnings detected:', testWarnings.join(', '));
-        throw new Error('Test warnings found: '+testWarnings.join(', ')+' Please address them before proceeding.');
+        throw new Error('Test warnings found: '+testResults.test+' Please address them before proceeding.');
       }
       if(!completeTag) {
         throw new Error('Task not complete');
