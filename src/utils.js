@@ -226,7 +226,7 @@ async function loadCursorRules() {
     return rulesContent;
   } catch (error) {
     
-    console.error('Error reading cursor rules from', rulesPath, ':', error); // Updated error message for clarity
+    //console.error('Error reading cursor rules from', rulesPath, ':', error); // Updated error message for clarity
     return         + '\n// Code Quality\n'
     + `Write clean, DRY, maintainable code following SOLID principles\n`
     + `Focus on readability and complete implementations\n`

@@ -61,16 +61,13 @@ class BaseLLMProvider {
     }
 
     logRequestDetails(messages, tools = [], requestBody = {}) {
-        logger.info(`[${this.constructor.name}] Request headers:`, {
-            ...this.getHeaders(),
+        logger.info(`[${this.constructor.name}] Request key:`, {
             'Authorization': 'Bearer *****' + this.apiKey.slice(-4)
         });
 
         logger.info(`[${this.constructor.name}] Request details:`, {
             messageCount: messages.length,
             toolCount: tools.length,
-            firstMessagePreview: messages[0]?.content?.slice(0, 100) + '...',
-            messageTypes: messages.map(m => m.role).join(', '),
             totalContentLength: messages.reduce((acc, m) => acc + (m.content?.length || 0), 0),
             model: requestBody.model
         });

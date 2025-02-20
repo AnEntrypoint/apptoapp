@@ -85,10 +85,9 @@ async function runBuild() {
   }
 }
 
-let attempts = 0;
 const summaryBuffer = [];
 
-async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS, errors, testResults) {
+async function brainstormTaskWithLLM(instruction, model, MAX_ATTEMPTS, errors, testResults) {
   const cursorRules = await loadCursorRules();
 
   function safeExecSync(command) {
@@ -103,12 +102,13 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
 
   const diffsXML = getDiffBufferStatus();
   const files = await getFiles();
+  logger.info(`Running tests of attempt number: ${summaryBuffer.length} of ${MAX_ATTEMPTS}`);
   const {lint, test} = testResults ? testResults : await runBuild();
   let x = 0;
   const messages = [
     {
       role: 'system',
-      content: `Only output <text></text>, Complete modified files in <file></file>, CLI commands to run in <cli></cli>, and optionally <upgradeModel></upgradeModel> if you cant handle the task or see repeated attempts, and <complete></complete> if you're confident the task is complete, nothing else`+
+      content: `Only output <text></text>, Only complete versions of modified files in <file></file>, CLI commands to run in <cli></cli>, and optionally <upgradeModel></upgradeModel> if you cant handle the task or see repeated attempts, and <complete></complete> if you're confident the task is done, nothing else`+
       'You are a senior programmer with over 20 years of experience, you make expert and mature software development choices, your main goal is to complete the user instruction\n'
         + '\nyou are busy iterating on coode, you will get multiple attempts to advance the codebase, always perform fixes and or cli commands to advance the project\n'
         + `always check attempts have been made, and the diff history of the attempts carefully for progress, dont repeat the same actions or steps twice, try a alternative approach if it didnt work\n`
@@ -139,13 +139,13 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
       <files>${files}</files>
       <lint>${lint}</lint>
       <test>${test}</test>
-      <currentAttempt>${attempts}</currentAttempt>
+      <currentAttempt>${summaryBuffer.length}</currentAttempt>
       <attemptHistory>${summaryBuffer.length > 0 ? `\n${summaryBuffer.filter(s => s.trim() !== '').map((s, i) => `<attemptSummary number="${i}">${s}</attemptSummary>\n`).join('\n')}\n` : ``}</attemptHistory>
       <errors>${errors ? errors : 'no further errors'}</errors>`,
     }, 
     {
       role: 'assistant',
-      content:  `<text>artifacts received, I will now begin to work on the task, and only output <text></text>, <file></file>, <cli></cli>, and optionally <upgradeModel></upgradeModel>, <complete></complete> tags, no prose, no other text, no other tags, I'll only output <complete></complete> when the task is complete and I think no more iterations are needed, I'll avoid overwriting any framework configs that have to stay the same</text>`,
+      content:  `<text>artifacts received, I will now begin to work on the task, and only output <text></text>, <file></file>, <cli></cli>, and optionally <upgradeModel></upgradeModel>, <complete></complete> tags, no prose, no other text, no other tags, I'll only output <complete></complete> when I'm sure the task is complete and its been tested and I think no more iterations are needed, I'll avoid overwriting any framework configs that have to stay the same</text>`,
     },
     {
       role: 'user',
@@ -159,8 +159,8 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
   const outputFilePath = path.join(__dirname, '../../lastprompt.txt');
   fs.writeFileSync(outputFilePath, messages[0].content+messages[1].content);
 
-  logger.info(`Attempt ${attempts} of ${MAX_ATTEMPTS} prompt call`);
-  console.log(summaryBuffer)
+  logger.info(`Attempt ${summaryBuffer.length} of ${MAX_ATTEMPTS} prompt call`);
+  console.log(summaryBuffer.join('\n\n'))
   logger.debug(`${JSON.stringify(messages).length} B of reasoning input`);
   let retryCount = 0;
   const MAX_RETRIES = 3;
@@ -252,19 +252,19 @@ async function main(instruction, errors, model = 'mistral', upgrade = false, tes
 
     let brainstormedTasks;
     try {
-      brainstormedTasks = await brainstormTaskWithLLM(instruction, getCurrentModel(), attempts, MAX_ATTEMPTS, errors, testResults);
+      brainstormedTasks = await brainstormTaskWithLLM(instruction, getCurrentModel(), MAX_ATTEMPTS, errors, testResults);
     } catch (error) {
       if (error.message.includes('Invalid Groq API key') || 
           error.message.includes('unauthorized') ||
           error.message.includes('401')) {
         logger.error('Authentication error with Groq API. Falling back to Mistral...');
         setCurrentModel('mistral');
-        brainstormedTasks = await brainstormTaskWithLLM(instruction, getCurrentModel(), attempts, MAX_ATTEMPTS, errors);
+        brainstormedTasks = await brainstormTaskWithLLM(instruction, getCurrentModel(), MAX_ATTEMPTS, errors);
       } else if (error.message.includes('rate limit') || 
                  error.message.includes('429')) {
         logger.warn('Rate limit hit. Waiting before retry...');
         await new Promise(resolve => setTimeout(resolve, 5000));
-        brainstormedTasks = await brainstormTaskWithLLM(instruction, getCurrentModel(), attempts, MAX_ATTEMPTS, errors);
+        brainstormedTasks = await brainstormTaskWithLLM(instruction, getCurrentModel(), MAX_ATTEMPTS, errors);
       } else {
         throw error;
       }
@@ -297,7 +297,7 @@ async function main(instruction, errors, model = 'mistral', upgrade = false, tes
         logger.info('Attempting to use TogetherAI for deepseek...');
         setCurrentModel('together');
         try {
-          brainstormedTasks = await brainstormTaskWithLLM(instruction, getCurrentModel(), attempts, MAX_ATTEMPTS, errors);
+          brainstormedTasks = await brainstormTaskWithLLM(instruction, getCurrentModel(), MAX_ATTEMPTS, errors);
           logger.success('Successfully used TogetherAI for deepseek');
           deepseekSuccess = true;
         } catch (error) {
@@ -310,7 +310,7 @@ async function main(instruction, errors, model = 'mistral', upgrade = false, tes
         logger.info('Attempting to use OpenRouter for deepseek...');
         setCurrentModel('openrouter');
         try {
-          brainstormedTasks = await brainstormTaskWithLLM(instruction, getCurrentModel(), attempts, MAX_ATTEMPTS, errors);
+          brainstormedTasks = await brainstormTaskWithLLM(instruction, getCurrentModel(), MAX_ATTEMPTS, errors);
           logger.success('Successfully used OpenRouter for deepseek');
           deepseekSuccess = true;
         } catch (error) {
@@ -323,7 +323,7 @@ async function main(instruction, errors, model = 'mistral', upgrade = false, tes
         logger.info('Attempting to use Groq as final fallback...');
         setCurrentModel('groq');
         try {
-          brainstormedTasks = await brainstormTaskWithLLM(instruction, getCurrentModel(), attempts, MAX_ATTEMPTS, errors);
+          brainstormedTasks = await brainstormTaskWithLLM(instruction, getCurrentModel(), MAX_ATTEMPTS, errors);
           logger.success('Successfully used Groq');
           deepseekSuccess = true;
         } catch (error) {
@@ -333,7 +333,7 @@ async function main(instruction, errors, model = 'mistral', upgrade = false, tes
           logger.info('Updating model from groq to mistral');
           setCurrentModel('mistral');
           try {
-            brainstormedTasks = await brainstormTaskWithLLM(instruction, getCurrentModel(), attempts, MAX_ATTEMPTS, errors);
+            brainstormedTasks = await brainstormTaskWithLLM(instruction, getCurrentModel(), MAX_ATTEMPTS, errors);
             logger.success('Successfully used Mistral as final fallback');
             deepseekSuccess = true;
           } catch (error) {
@@ -467,25 +467,24 @@ async function main(instruction, errors, model = 'mistral', upgrade = false, tes
 
     } catch (error) {
       logger.error('Failed:', error.message, cmdhistory);
-      if (attempts < MAX_ATTEMPTS) {
-        attempts++;
+      if (summaryBuffer.length < MAX_ATTEMPTS) {
         if (summaries && summaries.length > 0) {
           const summaryString = summaries.map(s => s.replace(/<text>/g, '').replace(/<\/text>/g, '')).join('\n');
           summaryBuffer.push(summaryString);
-          console.log(summaryString)
+          console.log('---SUMMARY: '+summaryString+'---')
         }
-        logger.info(`Retrying main function (attempt ${attempts}/${MAX_ATTEMPTS})...`);
+        logger.info(`Retrying main function (attempt ${summaryBuffer.length}/${MAX_ATTEMPTS})...`);
         cmdhistory.length = 0;
 
         if(!completeTag) main(process.argv[2], error.message, currentModel, upgrade);
         else main('Fix this issue:'+error.message, error.message, currentModel, upgrade, testResults);
       } else {
-        throw new Error('Max attempts reached');
+        console.log(summaryBuffer.join('\n'))
       }
     }
 
     logger.debug('Final directory contents:', fs.readdirSync(process.cwd()));
-    logger.success('Operation successful');
+    if(completeTag) logger.success('Operation marked successful by LLM');
   } catch (error) {
     console.error('Error:', error);
   }

@@ -63,8 +63,8 @@ class MistralProvider extends BaseLLMProvider {
         const TIMEOUT_DURATION = 10000; // 10 seconds timeout
 
         // Configuration for sequence repetition detection
-        const MIN_SEQUENCE_LENGTH = 50;
-        const SEQUENCE_REPETITION_THRESHOLD = 10;
+        const MIN_SEQUENCE_LENGTH = 100;
+        const SEQUENCE_REPETITION_THRESHOLD = 5;
         const SLIDING_WINDOW_SIZE = 5000;
 
         logger.debug('[RepetitionDetector] Starting with config:', {
@@ -93,8 +93,17 @@ class MistralProvider extends BaseLLMProvider {
                         logger.debug(`[RepetitionDetector] Found repetition:`, {
                             length: len,
                             count,
-                            sample: sequence.slice(0, 50) + (sequence.length > 50 ? '...' : '')
+                            sample: sequence
                         });
+                        const uniqueSequences = new Set();
+                        const filteredResponse = fullResponse.split('\n').filter(line => {
+                            if (uniqueSequences.has(line)) {
+                                return false; // Skip duplicate
+                            }
+                            uniqueSequences.add(line);
+                            return true; // Keep unique
+                        }).join('\n');
+                        fullResponse = filteredResponse;
                         return true;
                     }
                 }
