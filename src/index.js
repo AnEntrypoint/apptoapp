@@ -24,19 +24,58 @@ async function runBuild() {
   let lint;
   let test;
   try {
-    await executeCommand('npm install').map(`\n`).slice(0, -200).join('\n');
+    await executeCommand('npm install')
   } catch (error) {
     logger.error('Error executing npm install:', error.message);
   }
   try {
-    lint = await executeCommand('npm run lint --fix', false).map(`\n`).slice(0, -200).join('\n');    
+    logger.info('Executing lint command: npm run lint --fix');
+    lint = await executeCommand('npm run lint --fix', false);
+    logger.info('Lint command executed.');
+
+    if (lint && lint.stdout) {
+      const warningCount = (lint.stderr.match(/Warning:/g) || []).length;
+      const errorCount = (lint.stderr.match(/Error:/g) || []).length;
+      logger.info(`Linting tests summary: Warnings: ${warningCount}, Errors: ${errorCount}`);
+
+      if (lint.stdout.split(`\n`).length > 200) {
+        lint.stdout = lint.stdout.split(`\n`).slice(0, 200).join('\n'); // Keep the first 200 lines for summary
+        lint.stderr = lint.stderr.split(`\n`).slice(0, 200).join('\n'); // Keep the first 200 lines for summary
+        logger.info('Lint output truncated to 200 lines.');
+      }
+    } else {
+      logger.warn('Lint output is empty or undefined, cannot summarize linting results.');
+    }
   } catch (error) {
-    logger.error('Error executing npm install:', error.message);
+    logger.error('Error executing npm lint:', error.message);
   }
   try {
-    test = await executeCommand('npm run test', false).map(`\n`).slice(0, -200).join('\n');
+    test = await executeCommand('npm run test', false)
+    if (test && test.stdout) {
+      console.log(test.stdout)
+      const passedMatch = test.stdout.match(/(\d+) passed/);
+      const failedMatch = test.stdout.match(/(\d+) failed/);
+      const passedCount = passedMatch ? parseInt(passedMatch[1], 10) : 0;
+      const failedCount = failedMatch ? parseInt(failedMatch[1], 10) : 0;
+      logger.info(`Unit tests summary: Passed: ${passedCount}, Failed: ${failedCount}`);
+      if (failedCount > 0) {
+        const errorSummary = test.stdout.split('\n').filter(line => line.startsWith('×') || line.includes('fail'));
+        if (errorSummary.length > 0) {
+          logger.error('Unit test errors summary:');
+          errorSummary.forEach(errorLine => {
+            logger.error(errorLine);
+          });
+        } else {
+          logger.warn('Failed tests detected, but no detailed error summary found in test output.');
+        }
+      }
+    } else {
+      logger.warn('Test output is empty or undefined, cannot summarize test results.');
+    }
+    if(test.stdout.split(`\n`).length > 200) test.stdout = test.stdout.split(`\n`).slice(0, -200).join('\n')
+    if(test.stderr.split(`\n`).length > 200) test.stderr = test.stderr.split(`\n`).slice(0, -200).join('\n')
   } catch (error) {
-    logger.error('Error executing npm install:', error.message);
+    logger.error('Error executing npm test:', error.message);
   }
   try {
 
