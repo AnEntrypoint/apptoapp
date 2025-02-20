@@ -160,7 +160,7 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
   fs.writeFileSync(outputFilePath, messages[0].content+messages[1].content);
 
   logger.info(`Attempt ${attempts} of ${MAX_ATTEMPTS} prompt call`);
-  logger.info(`Attempt ${attempts} of ${MAX_ATTEMPTS} prompt call`);
+  console.log(summaryBuffer)
   logger.debug(`${JSON.stringify(messages).length} B of reasoning input`);
   let retryCount = 0;
   const MAX_RETRIES = 3;

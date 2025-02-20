@@ -233,7 +233,6 @@ async function loadCursorRules() {
     + `Use functional/declarative patterns and avoid classes\n`
     + `For TypeScript: Maintain strong type safety\n`
     + `For JavaScript: Use latest language features\n`
-    + `Always refactor files with over 100 lines into smaller modules\n`
     + `Minimize interdependencies between functions\n`
     + `Maximise code reuse and generalization\n`
 
