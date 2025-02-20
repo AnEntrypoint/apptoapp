@@ -88,17 +88,18 @@ class OpenRouterProvider extends BaseLLMProvider {
                 const { done, value } = await reader.read();
                 if (done) break;
                 const chunk = decoder.decode(value, { stream: true });
-
+                console.log(chunk)
                 chunk.split('\n').forEach(line => {
                     if (line.startsWith('data: ') && !line.includes('[DONE]')) {
                         try {
                             let content = ''
                             try {
                                 const message = JSON.parse(line.replace("data: ", ''));
-                                //console.log(message)
                                 content = message.choices[0].delta?.content;
+                                process.stdout.write(content);
                             } catch (e) {
-                                logger.warn('Parse error:', e.message);
+                                console.error('Parse error:', e.message);
+                                process.exit();
                             }
                             if (content) {
                                 process.stdout.write(content);

@@ -16,6 +16,8 @@ class MistralProvider extends BaseLLMProvider {
             tool_choice: tools.length ? 'any' : 'none',
             tools: tools.length ? tools : undefined,
             stream: true,
+            top_p: 0.9,
+            presence_penalty: 0.01,
             temperature: 0.1,
         };
 

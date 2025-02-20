@@ -195,7 +195,7 @@ async function getFiles() {
   const relativeFiles = files.map(file => path.relative(currentDir, file));
   
   // Log the files being processed
-  logger.info('Files being processed:', relativeFiles.join(', '));
+  console.log('Files being processed:', relativeFiles.join('\n'));
   
   // Format files in XML schema
   const xmlFiles = await Promise.all(relativeFiles.map(async (file) => {

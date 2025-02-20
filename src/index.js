@@ -52,7 +52,6 @@ async function runBuild() {
   try {
     test = await executeCommand('npm run test', false)
     if (test && test.stdout) {
-      console.log(test.stdout)
       const passedMatch = test.stdout.match(/(\d+) passed/);
       const failedMatch = test.stdout.match(/(\d+) failed/);
       const passedCount = passedMatch ? parseInt(passedMatch[1], 10) : 0;
@@ -89,7 +88,7 @@ async function runBuild() {
 let attempts = 0;
 const summaryBuffer = [];
 
-async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS, errors) {
+async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS, errors, testResults) {
   const cursorRules = await loadCursorRules();
 
   function safeExecSync(command) {
@@ -104,22 +103,25 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
 
   const diffsXML = getDiffBufferStatus();
   const files = await getFiles();
-  const {lint, test} = await runBuild();
+  const {lint, test} = testResults ? testResults : await runBuild();
   let x = 0;
   const messages = [
     {
       role: 'system',
-      content: 'You are a senior programmer with over 20 years of experience, you make expert and mature software development choices, your main goal is to complete the user instruction\n'
+      content: `Only output <text></text>, Complete modified files in <file></file>, CLI commands to run in <cli></cli>, and optionally <upgradeModel></upgradeModel> if you cant handle the task or see repeated attempts, and <complete></complete> if you're confident the task is complete, nothing else`+
+      'You are a senior programmer with over 20 years of experience, you make expert and mature software development choices, your main goal is to complete the user instruction\n'
         + '\nyou are busy iterating on coode, you will get multiple attempts to advance the codebase, always perform fixes and or cli commands to advance the project\n'
         + `always check attempts have been made, and the diff history of the attempts carefully for progress, dont repeat the same actions or steps twice, try a alternative approach if it didnt work\n`
         + `Always pay special attention to the attempt summaries, they are the most important part of the task, they are the difference between the current and the previous attempts, used to track progress\n`
         + `if you see that your solution is already listed in attempt summaries and have no alternative solutions, or find multiple <attemptSummary> tags with the same solution, record what failed and why and how it failed in NOTES.txt, and add an <upgradeModel></upgradeModel> tag to the end of your response\n`
+        + `read the <lint></lint> tags for lint messages, and the <test></test> tags for test messages, and the <errors></errors> tags for specific recent errors, and the <currentAttempt></currentAttempt> tags for the current attempt number, and the <attemptHistory></attemptHistory> tags for the attempt history\n`
         + `Always output your reasoning and any other prose or text in <text></text> tags, as past tense as if the tasks have been completed\n`
         + `Always write files with the following format: <file path="path/to/file.js">...</file>, just the content of the file inside, dont wrap it in any other tags\n`
         + `Always perform CLI commands with the following format: <cli>command</cli>\n`
-        + `When iterating task is complete as well as tested, and the tests have passed, output a <complete></complete> tag with a summary of the task in <text> tags\n`
+        + `When iterating task is complete as well as tested and the tests have passed, output a <complete></complete> tag with a summary of the task in <text> tags\n`
         + `Always obey the rules in the <Rules></Rules> tags\n` 
-        + `Only respond using these tags <text></text>, <file></file>, <cli></cli>, and optionally <upgradeModel></upgradeModel>, <complete></complete>.`
+        + `check the unit test errors in <test>, and solve one issue if there are any, otherwise try to solve all the linting errors in one file`
+        + `Dont output files that dont need to change, only output files that need to be changed to solve an issue or complete a user request\n`
         + `never output any other text, prose, formats or tags, all other output has to go into <text></text> tags\n`
         + (cursorRules && cursorRules.length > 0) ? `\n<Rules>\n${cursorRules}\n</Rules>\n` : '' + "\n" +  artifacts.join('\n')
     },          
@@ -143,7 +145,7 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
     }, 
     {
       role: 'assistant',
-      content:  `<text>artifacts received, I will now begin to work on the task, and only output xml tags, no prose, no other text, no other tags, no other formats, no other output, please provide user instruction and output the <complete></complete> tag when there is no more iterations needed, I wont overwrite any static framework components like ui components that have to stay the same</text>`,
+      content:  `<text>artifacts received, I will now begin to work on the task, and only output <text></text>, <file></file>, <cli></cli>, and optionally <upgradeModel></upgradeModel>, <complete></complete> tags, no prose, no other text, no other tags, I'll only output <complete></complete> when the task is complete and I think no more iterations are needed, I'll avoid overwriting any framework configs that have to stay the same</text>`,
     },
     {
       role: 'user',
@@ -157,7 +159,8 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
   const outputFilePath = path.join(__dirname, '../../lastprompt.txt');
   fs.writeFileSync(outputFilePath, messages[0].content+messages[1].content);
 
-  logger.success(`Messages have been written to ${outputFilePath}`);
+  logger.info(`Attempt ${attempts} of ${MAX_ATTEMPTS} prompt call`);
+  logger.info(`Attempt ${attempts} of ${MAX_ATTEMPTS} prompt call`);
   logger.debug(`${JSON.stringify(messages).length} B of reasoning input`);
   let retryCount = 0;
   const MAX_RETRIES = 3;
@@ -191,7 +194,7 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
   return [];
 }
 
-async function main(instruction, errors, model = 'mistral', upgrade = false) {
+async function main(instruction, errors, model = 'mistral', upgrade = false, testResults) {
   console.log('Using model:', model);
   let retryCount = 0;
   const MAX_RETRIES = 3;
@@ -249,7 +252,7 @@ async function main(instruction, errors, model = 'mistral', upgrade = false) {
 
     let brainstormedTasks;
     try {
-      brainstormedTasks = await brainstormTaskWithLLM(instruction, getCurrentModel(), attempts, MAX_ATTEMPTS, errors);
+      brainstormedTasks = await brainstormTaskWithLLM(instruction, getCurrentModel(), attempts, MAX_ATTEMPTS, errors, testResults);
     } catch (error) {
       if (error.message.includes('Invalid Groq API key') || 
           error.message.includes('unauthorized') ||
@@ -278,7 +281,8 @@ async function main(instruction, errors, model = 'mistral', upgrade = false) {
 
     const filesToEdit = brainstormedTasks.match(/<file\s+path="([^"]+)"[^>]*>([\s\S]*?)<\/file>/gi) || [];
     const cliCommands = brainstormedTasks.match(/<cli>([\s\S]*?)<\/cli>/g) || [];
-    const summaries = brainstormedTasks.match(/<text>([\s\S]*?)<\/text>/g) || [];
+    cliCommands.push(brainstormedTasks.match(/<command>([\s\S]*?)<\/cli>/g))
+    const summaries = brainstormedTasks.match(/<text>([\s\S]*?)<\/command>/g) || [];
 
     let upgradeModelTag = brainstormedTasks.match(/<upgradeModel>/);
     let completeTag = brainstormedTasks.match(/<complete>/);
@@ -474,7 +478,7 @@ async function main(instruction, errors, model = 'mistral', upgrade = false) {
         cmdhistory.length = 0;
 
         if(!completeTag) main(process.argv[2], error.message, currentModel, upgrade);
-        else main('Fix this issue:'+error.message, error.message, currentModel, upgrade);
+        else main('Fix this issue:'+error.message, error.message, currentModel, upgrade, testResults);
       } else {
         throw new Error('Max attempts reached');
       }
