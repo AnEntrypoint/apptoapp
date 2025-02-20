@@ -23,7 +23,7 @@ class MistralProvider extends BaseLLMProvider {
 
         try {
             this.logRequestDetails(messages, tools, requestBody);
-
+            console.log('Request endpoint:', this.endpoint);
             const response = await fetch(this.endpoint, {
                 method: 'POST',
                 headers: this.getHeaders(),
