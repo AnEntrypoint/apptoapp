@@ -78,7 +78,7 @@ async function brainstormTaskWithLLM(instruction, model, attempts, MAX_ATTEMPTS,
         + `Always output your reasoning and any other prose or text in <text></text> tags, as past tense as if the tasks have been completed\n`
         + `Always write files with the following format: <file path="path/to/file.js">...</file>, just the content of the file inside, dont wrap it in any other tags\n`
         + `Always perform CLI commands with the following format: <cli>command</cli>\n`
-        + `When the task is complete, output a <complete></complete> tag with a summary of the task in <text> tags\n`
+        + `When iterating task is complete as well as tested, and the tests have passed, output a <complete></complete> tag with a summary of the task in <text> tags\n`
         + `Always obey the rules in the <Rules></Rules> tags\n` 
         + `Only respond using these tags <text></text>, <file></file>, <cli></cli>, and optionally <upgradeModel></upgradeModel>, <complete></complete>.`
         + `never output any other text, prose, formats or tags, all other output has to go into <text></text> tags\n`
