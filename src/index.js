@@ -24,17 +24,17 @@ async function runBuild() {
   let lint;
   let test;
   try {
-    await executeCommand('npm install');
+    await executeCommand('npm install').map(`\n`).slice(0, -200).join('\n');
   } catch (error) {
     logger.error('Error executing npm install:', error.message);
   }
   try {
-    lint = await executeCommand('npm run lint --fix', false);    
+    lint = await executeCommand('npm run lint --fix', false).map(`\n`).slice(0, -200).join('\n');    
   } catch (error) {
     logger.error('Error executing npm install:', error.message);
   }
   try {
-    test = await executeCommand('npm run test', false);
+    test = await executeCommand('npm run test', false).map(`\n`).slice(0, -200).join('\n');
   } catch (error) {
     logger.error('Error executing npm install:', error.message);
   }
