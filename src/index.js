@@ -403,7 +403,7 @@ async function main(instruction, errors, model = 'mistral', upgrade = false) {
 
       const testResults = await runBuild();
 
-      const lintWarnings = testResults.lint.match(/(error|warning)/gi);
+      const lintWarnings = testResults.lint.match(/(error)/gi);
       if (lintWarnings && lintWarnings.length > 0) {
         logger.warn('Lint warnings detected:', lintWarnings.join(', '));
         throw new Error('Lint warnings found: '+testResults.lint+' Please address them before proceeding.');

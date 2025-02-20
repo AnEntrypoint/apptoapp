@@ -13,15 +13,15 @@ class TogetherProvider extends BaseLLMProvider {
         this.abortController = new AbortController();
         
         const requestBody = {
-            model: process.env.TOGETHER_MODEL || 'deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free',
-            messages: messages,
-            temperature: 0.7,
-            max_tokens: null,
+            model: process.env.TOGETHER_MODEL || 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free',
+            messages:[],
+            max_tokens: 131072,
+            temperature: 0.1,
             top_p: 0.7,
             top_k: 50,
             repetition_penalty: 1,
-            stop: [""],
-            stream: !this.isTest
+            stop: ["<|eot_id|>", "<|eom_id|>"],
+            stream: true
         };
 
         try {
